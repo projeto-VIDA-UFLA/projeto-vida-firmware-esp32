@@ -5,7 +5,6 @@
 SteeringSensor::SteeringSensor(uint8_t adc_pin)
     : adc_pin_(adc_pin),
       raw_adc_(0),
-      voltage_(0.0f),
       angle_deg_(0.0f),
       filtered_angle_deg_(0.0f),
       filter_initialized_(false)
@@ -21,13 +20,12 @@ void SteeringSensor::begin()
 
 void SteeringSensor::update()
 {
-    raw_adc_ = analogRead(adc_pin_);
-    voltage_ = (static_cast<float>(raw_adc_) / ADC_MAX_VALUE) * ADC_REF_VOLTAGE;
+    raw_adc_ = analogRead(adc_pin_);    
 
     float measured_angle = mapFloat(
-        voltage_,
-        0.0f,
-        ADC_REF_VOLTAGE,
+        raw_adc_,
+        0,
+        (2 ^ ADC_RESOLUTION_BITS) - 1,
         STEERING_MIN_DEG,
         STEERING_MAX_DEG
     );
@@ -51,11 +49,6 @@ void SteeringSensor::update()
 int SteeringSensor::getRawAdc() const
 {
     return raw_adc_;
-}
-
-float SteeringSensor::getVoltage() const
-{
-    return voltage_;
 }
 
 float SteeringSensor::getAngleDeg() const
