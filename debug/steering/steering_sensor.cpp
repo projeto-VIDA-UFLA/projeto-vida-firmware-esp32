@@ -25,7 +25,7 @@ namespace
     {
         steering_sensor.update();
 
-        Serial.printf("Leitura ADC: %d    |    Angulo(graus): %.2f\n",
+        Serial.printf("Leitura ADC: %d    ?    Angulo(graus): %.2f\n",
                       steering_sensor.getRawAdc(),
                       steering_sensor.getAngleDeg());
 
