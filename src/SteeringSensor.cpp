@@ -24,8 +24,8 @@ void SteeringSensor::update()
 
     float measured_angle = mapFloat(
         raw_adc_,
-        0,
-        (2 ^ ADC_RESOLUTION_BITS) - 1,
+        0.0f,
+        4095.0f,
         STEERING_MIN_DEG,
         STEERING_MAX_DEG
     );
