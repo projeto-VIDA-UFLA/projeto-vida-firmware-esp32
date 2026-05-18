@@ -17,7 +17,7 @@ namespace
         Serial.println("Debug do sensor de estercamento - Projeto VIDA");
         Serial.println("=====================================================");
         Serial.printf("Pino ADC: GPIO %u\n", PIN_LVDT);
-        Serial.printf("Resolucao ADC: %u bits\n (0 - 4095)", ADC_RESOLUTION_BITS);
+        Serial.printf("Resolucao ADC: %u bits (0 - 4095)\n", ADC_RESOLUTION_BITS);
         Serial.println();
     }
 
