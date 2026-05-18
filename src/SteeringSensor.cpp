@@ -15,7 +15,6 @@ void SteeringSensor::begin()
 {
     analogReadResolution(ADC_RESOLUTION_BITS);
     pinMode(adc_pin_, INPUT);
-    update();
 }
 
 void SteeringSensor::update()
