@@ -202,6 +202,7 @@ void setup()
 
 void loop()
 {
-  serial_command.update();
-  delay(5);
+  steering_motor.setCommand(0.1);
+  delay(200);
+ 
 }

@@ -5,14 +5,14 @@
 // ============================================================
 
 // Encoders em quadratura
-#define ENC_REAR_A   18
-#define ENC_REAR_B   19
+#define ENC_REAR_A   19
+#define ENC_REAR_B   18
 
-#define ENC_RIGHT_A  33
-#define ENC_RIGHT_B  32
+#define ENC_RIGHT_A 35
+#define ENC_RIGHT_B 34
 
-#define ENC_LEFT_A   35
-#define ENC_LEFT_B   34
+#define ENC_LEFT_A 33
+#define ENC_LEFT_B 32
 
 // Sensor analógico de esterçamento / LVDT / potenciômetro
 #define PIN_LVDT     36  // ADC1_CH0
