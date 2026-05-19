@@ -18,8 +18,8 @@
 #define PIN_LVDT     36  // ADC1_CH0
 
 // Motor de esterçamento - 2 PWMs independentes
-#define PIN_STEER_RIGHT_PWM 26
-#define PIN_STEER_LEFT_PWM  25
+#define PIN_STEER_RIGHT_PWM 25
+#define PIN_STEER_LEFT_PWM  26
 
 // Motor longitudinal - PWM + direção
 #define PIN_DRIVE_PWM       27
