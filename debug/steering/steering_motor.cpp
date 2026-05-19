@@ -34,8 +34,8 @@ void setup()
 
 void loop()
 {
-    steering_motor.setCommand(0.2f);
-    delay(200);
+    steering_motor.setCommand(0.4f);
+    delay(400);
     steering_motor.stop();
     delay(20000);
 }
