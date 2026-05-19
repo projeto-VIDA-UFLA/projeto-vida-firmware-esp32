@@ -109,6 +109,8 @@ def build_microros(*args, **kwargs):
     )
 
     python_env_path = env['PROJECT_CORE_DIR'] + "/penv/bin/activate"
+    if not os.path.exists(python_env_path):
+        python_env_path = "/dev/null"
     builder = library_builder.Build(library_folder=main_path, packages_folder=extra_packages_path, distro=microros_distro, python_env=python_env_path)
     builder.run('{}/metas/{}'.format(main_path, selected_board_meta), cmake_toolchain.path, microros_user_meta)
 
