@@ -6,6 +6,18 @@
 
 #define SERIAL_BAUDRATE 115200
 
+// micro-ROS
+#define ENABLE_MICRO_ROS       1
+#define ENABLE_MICRO_ROS_COMMAND_NODE 0
+#define MICRO_ROS_NODE_NAME    "vida_esp32"
+#define MICRO_ROS_CMD_TOPIC    "/cmd_vel"
+#define MICRO_ROS_SPIN_PERIOD_MS 10
+
+// Quando o transporte micro-ROS usa Serial, logs e comandos ASCII na mesma UART
+// podem corromper o protocolo XRCE-DDS.
+#define ENABLE_SERIAL_COMMANDS 0
+#define ENABLE_DEBUG_STATUS    0
+
 // PWM
 #define PWM_FREQUENCY_HZ       9000
 #define PWM_RESOLUTION_BITS    8
@@ -79,3 +91,4 @@
 #define PRIORITY_CONTROL       3
 #define PRIORITY_SENSORS       2
 #define PRIORITY_DEBUG         1
+#define PRIORITY_MICRO_ROS     2

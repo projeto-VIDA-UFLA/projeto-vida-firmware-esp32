@@ -12,6 +12,10 @@
 #include "VehicleController.h"
 #include "SerialCommand.h"
 
+#if ENABLE_MICRO_ROS_COMMAND_NODE
+#include "MicroRosCommand.h"
+#endif
+
 // ============================================================
 // Objetos globais
 // ============================================================
@@ -38,6 +42,10 @@ VehicleController vehicle_controller(
     safety_manager);
 
 SerialCommand serial_command(vehicle_controller, command_watchdog, rear_encoder, left_encoder, right_encoder);
+
+#if ENABLE_MICRO_ROS_COMMAND_NODE
+MicroRosCommand micro_ros_command(vehicle_controller, command_watchdog);
+#endif
 
 // ============================================================
 // ISRs dos encoders
@@ -70,8 +78,19 @@ void taskSafety(void *parameter)
 
   while (true)
   {
-    bool software_enable = serial_command.getSoftwareEnable();
-    bool odroid_ready = serial_command.isOdroidReady();
+    bool software_enable = false;
+    bool odroid_ready = false;
+
+#if ENABLE_SERIAL_COMMANDS
+    software_enable = software_enable || serial_command.getSoftwareEnable();
+    odroid_ready = odroid_ready || serial_command.isOdroidReady();
+#endif
+
+#if ENABLE_MICRO_ROS_COMMAND_NODE
+    software_enable = software_enable || micro_ros_command.getSoftwareEnable();
+    odroid_ready = odroid_ready || micro_ros_command.isReady();
+#endif
+
     bool watchdog_ok = command_watchdog.isOk();
     bool critical_fault = false;
 
@@ -86,6 +105,19 @@ void taskSafety(void *parameter)
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_SAFETY_PERIOD_MS));
   }
 }
+
+#if ENABLE_SERIAL_COMMANDS
+void taskSerialCommand(void *parameter)
+{
+  (void)parameter;
+
+  while (true)
+  {
+    serial_command.update();
+    vTaskDelay(pdMS_TO_TICKS(5));
+  }
+}
+#endif
 
 void taskSensors(void *parameter)
 {
@@ -151,6 +183,19 @@ void taskDebug(void *parameter)
   }
 }
 
+#if ENABLE_MICRO_ROS_COMMAND_NODE
+void taskMicroRos(void *parameter)
+{
+  (void)parameter;
+
+  while (true)
+  {
+    micro_ros_command.update();
+    vTaskDelay(pdMS_TO_TICKS(MICRO_ROS_SPIN_PERIOD_MS));
+  }
+}
+#endif
+
 // ============================================================
 // Setup / loop
 // ============================================================
@@ -164,7 +209,11 @@ void setup()
   Serial.println("============================================");
   Serial.println("ESP32 Vehicle Firmware - Fase 1");
   Serial.println("Projeto VIDA");
+#if ENABLE_MICRO_ROS_COMMAND_NODE
+  Serial.println("micro-ROS habilitado - subscriber /cmd_vel");
+#else
   Serial.println("Sem micro-ROS - teste local");
+#endif
   Serial.println("============================================");
 
   rear_encoder.begin();
@@ -188,21 +237,38 @@ void setup()
   safety_manager.begin();
   vehicle_controller.begin();
 
+#if ENABLE_SERIAL_COMMANDS
   serial_command.begin();
+#endif
+
+#if ENABLE_MICRO_ROS_COMMAND_NODE
+  micro_ros_command.begin();
+#endif
 
   xTaskCreatePinnedToCore(taskSafety, "TaskSafety", 4096, nullptr, PRIORITY_SAFETY, nullptr, 1);
   xTaskCreatePinnedToCore(taskSensors, "TaskSensors", 4096, nullptr, PRIORITY_SENSORS, nullptr, 1);
   xTaskCreatePinnedToCore(taskControl, "TaskControl", 4096, nullptr, PRIORITY_CONTROL, nullptr, 1);
-  xTaskCreatePinnedToCore(taskDebug, "TaskDebug", 4096, nullptr, PRIORITY_DEBUG, nullptr, 1);
 
+#if ENABLE_SERIAL_COMMANDS
+  xTaskCreatePinnedToCore(taskSerialCommand, "TaskSerialCommand", 4096, nullptr, PRIORITY_DEBUG, nullptr, 1);
+#endif
+
+#if ENABLE_MICRO_ROS_COMMAND_NODE
+  xTaskCreatePinnedToCore(taskMicroRos, "TaskMicroRos", 8192, nullptr, PRIORITY_MICRO_ROS, nullptr, 0);
+#endif
+
+#if ENABLE_DEBUG_STATUS
+  xTaskCreatePinnedToCore(taskDebug, "TaskDebug", 4096, nullptr, PRIORITY_DEBUG, nullptr, 1);
+#endif
+
+#if ENABLE_DEBUG_STATUS || !ENABLE_MICRO_ROS_COMMAND_NODE
   Serial.println("Sistema inicializado.");
   Serial.println("Aguardando handshake: odroid_ready");
   Serial.println("Use comandos: odroid_ready, enable 1, speed 1.0 0.4, steer_target 10 20, reset_enc");
+#endif
 }
 
 void loop()
 {
-  steering_motor.setCommand(0.1);
-  delay(200);
- 
+  vTaskDelay(pdMS_TO_TICKS(1000));
 }

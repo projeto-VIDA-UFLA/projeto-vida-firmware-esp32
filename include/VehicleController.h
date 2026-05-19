@@ -8,6 +8,12 @@
 #include "SteeringController.h"
 #include "DriveVelocityController.h"
 
+enum class VehicleControlMode
+{
+    ClosedLoop,
+    OpenLoop
+};
+
 class VehicleController
 {
 public:
@@ -24,6 +30,9 @@ public:
 
     void setSpeedTarget(float velocity_m_s, float max_accel_m_s2);
     void setSteeringTarget(float target_deg, float max_velocity_deg_s);
+    void setOpenLoopCommand(float drive_command, float steering_command);
+    void setControlMode(VehicleControlMode mode);
+    VehicleControlMode getControlMode() const;
 
     float getTargetVelocityMps() const;
     float getRampedVelocityMps() const;
@@ -40,8 +49,14 @@ public:
     float getSteeringControlCommand() const;
 
 private:
+    DriveMotor& drive_motor_;
+    SteeringMotor& steering_motor_;
     SafetyManager& safety_manager_;
 
     SteeringController steering_controller_;
     DriveVelocityController drive_controller_;
+
+    VehicleControlMode control_mode_;
+    float open_loop_drive_command_;
+    float open_loop_steering_command_;
 };
