@@ -11,12 +11,13 @@ VehicleController::VehicleController(DriveMotor& drive_motor,
                                      SafetyManager& safety_manager)
     : drive_motor_(drive_motor),
       steering_motor_(steering_motor),
+      steering_sensor_(steering_sensor),
       safety_manager_(safety_manager),
       steering_controller_(steering_motor, steering_sensor),
       drive_controller_(drive_motor, rear_encoder, left_encoder, right_encoder),
       control_mode_(VehicleControlMode::ClosedLoop),
       open_loop_drive_command_(0.0f),
-      open_loop_steering_command_(0.0f)
+      open_loop_steering_target_deg_(0.0f)
 {
 }
 
@@ -33,14 +34,24 @@ void VehicleController::update()
         steering_controller_.update(false);
         drive_controller_.update(false);
         open_loop_drive_command_ = 0.0f;
-        open_loop_steering_command_ = 0.0f;
+        open_loop_steering_target_deg_ = steering_sensor_.getAngleDeg();
         return;
     }
 
     if (control_mode_ == VehicleControlMode::OpenLoop)
     {
+        float steering_error_deg = open_loop_steering_target_deg_ - steering_sensor_.getAngleDeg();
+        float steering_command = 0.0f;
+
+        if (fabs(steering_error_deg) > STEERING_OPEN_LOOP_DEADBAND_DEG)
+        {
+            steering_command = steering_error_deg > 0.0f
+                ? STEERING_OPEN_LOOP_COMMAND
+                : -STEERING_OPEN_LOOP_COMMAND;
+        }
+
         drive_motor_.setCommand(open_loop_drive_command_);
-        steering_motor_.setCommand(open_loop_steering_command_);
+        steering_motor_.setCommand(steering_command);
         return;
     }
 
@@ -60,11 +71,12 @@ void VehicleController::setSteeringTarget(float target_deg, float max_velocity_d
     steering_controller_.setTarget(target_deg, max_velocity_deg_s);
 }
 
-void VehicleController::setOpenLoopCommand(float drive_command, float steering_command)
+void VehicleController::setOpenLoopCommand(float drive_command, float steering_target_normalized)
 {
     control_mode_ = VehicleControlMode::OpenLoop;
     open_loop_drive_command_ = clampFloat(drive_command, -MAX_ABS_DRIVE_COMMAND, MAX_ABS_DRIVE_COMMAND);
-    open_loop_steering_command_ = clampFloat(steering_command, -MAX_ABS_STEER_COMMAND, MAX_ABS_STEER_COMMAND);
+    open_loop_steering_target_deg_ =
+        clampFloat(steering_target_normalized, -1.0f, 1.0f) * STEERING_OPEN_LOOP_MAX_TARGET_DEG;
 }
 
 void VehicleController::setControlMode(VehicleControlMode mode)

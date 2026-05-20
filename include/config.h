@@ -8,7 +8,7 @@
 
 // micro-ROS
 #define ENABLE_MICRO_ROS       1
-#define ENABLE_MICRO_ROS_COMMAND_NODE 0
+#define ENABLE_MICRO_ROS_COMMAND_NODE 1
 #define MICRO_ROS_NODE_NAME    "vida_esp32"
 #define MICRO_ROS_CMD_TOPIC    "/cmd_vel"
 #define MICRO_ROS_SPIN_PERIOD_MS 10
@@ -85,6 +85,13 @@
 // Saturações dos comandos
 #define MAX_ABS_DRIVE_COMMAND  1.0f
 #define MAX_ABS_STEER_COMMAND  1.0f
+
+// Comando ROS em malha aberta
+#define DRIVE_OPEN_LOOP_MIN_COMMAND      0.10f
+#define DRIVE_OPEN_LOOP_MAX_COMMAND      0.30f
+#define STEERING_OPEN_LOOP_MAX_TARGET_DEG 20.0f
+#define STEERING_OPEN_LOOP_COMMAND       0.40f
+#define STEERING_OPEN_LOOP_DEADBAND_DEG  1.0f
 
 // Prioridade das tasks
 #define PRIORITY_SAFETY        4

@@ -116,11 +116,23 @@ void MicroRosCommand::commandCallback(const void* msg_in)
 
 void MicroRosCommand::handleCommand(const geometry_msgs__msg__Twist& msg)
 {
-    float drive_command = clampFloat(
+    float speed_normalized = clampFloat(
         static_cast<float>(msg.linear.x),
-        -MAX_ABS_DRIVE_COMMAND,
-        MAX_ABS_DRIVE_COMMAND
+        0.0f,
+        1.0f
     );
+    float drive_command = 0.0f;
+    if (speed_normalized > 0.0f)
+    {
+        drive_command = mapFloat(
+            speed_normalized,
+            0.0f,
+            1.0f,
+            DRIVE_OPEN_LOOP_MIN_COMMAND,
+            DRIVE_OPEN_LOOP_MAX_COMMAND
+        );
+    }
+
     float steering_command = clampFloat(
         static_cast<float>(msg.angular.z),
         -MAX_ABS_STEER_COMMAND,
