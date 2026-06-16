@@ -205,14 +205,16 @@ void setup()
   Serial.begin(SERIAL_BAUDRATE);
   delay(1000);
 
-#if !ENABLE_MICRO_ROS_COMMAND_NODE
   Serial.println();
   Serial.println("============================================");
   Serial.println("ESP32 Vehicle Firmware - Fase 1");
   Serial.println("Projeto VIDA");
+#if ENABLE_MICRO_ROS_COMMAND_NODE
+  Serial.println("micro-ROS habilitado - subscriber /cmd_vel");
+#else
   Serial.println("Sem micro-ROS - teste local");
-  Serial.println("============================================");
 #endif
+  Serial.println("============================================");
 
   rear_encoder.begin();
   right_encoder.begin();
