@@ -9,14 +9,9 @@ VehicleController::VehicleController(DriveMotor& drive_motor,
                                      EncoderReader& left_encoder,
                                      EncoderReader& right_encoder,
                                      SafetyManager& safety_manager)
-    : drive_motor_(drive_motor),
-      steering_motor_(steering_motor),
-      safety_manager_(safety_manager),
+    : safety_manager_(safety_manager),
       steering_controller_(steering_motor, steering_sensor),
-      drive_controller_(drive_motor, rear_encoder, left_encoder, right_encoder),
-      control_mode_(VehicleControlMode::ClosedLoop),
-      open_loop_drive_command_(0.0f),
-      open_loop_steering_command_(0.0f)
+      drive_controller_(drive_motor, rear_encoder, left_encoder, right_encoder)
 {
 }
 
@@ -32,15 +27,6 @@ void VehicleController::update()
     {
         steering_controller_.update(false);
         drive_controller_.update(false);
-        open_loop_drive_command_ = 0.0f;
-        open_loop_steering_command_ = 0.0f;
-        return;
-    }
-
-    if (control_mode_ == VehicleControlMode::OpenLoop)
-    {
-        drive_motor_.setCommand(open_loop_drive_command_);
-        steering_motor_.setCommand(open_loop_steering_command_);
         return;
     }
 
@@ -50,31 +36,12 @@ void VehicleController::update()
 
 void VehicleController::setSpeedTarget(float velocity_m_s, float max_accel_m_s2)
 {
-    control_mode_ = VehicleControlMode::ClosedLoop;
     drive_controller_.setTarget(velocity_m_s, max_accel_m_s2);
 }
 
 void VehicleController::setSteeringTarget(float target_deg, float max_velocity_deg_s)
 {
-    control_mode_ = VehicleControlMode::ClosedLoop;
     steering_controller_.setTarget(target_deg, max_velocity_deg_s);
-}
-
-void VehicleController::setOpenLoopCommand(float drive_command, float steering_command)
-{
-    control_mode_ = VehicleControlMode::OpenLoop;
-    open_loop_drive_command_ = clampFloat(drive_command, -MAX_ABS_DRIVE_COMMAND, MAX_ABS_DRIVE_COMMAND);
-    open_loop_steering_command_ = clampFloat(steering_command, -MAX_ABS_STEER_COMMAND, MAX_ABS_STEER_COMMAND);
-}
-
-void VehicleController::setControlMode(VehicleControlMode mode)
-{
-    control_mode_ = mode;
-}
-
-VehicleControlMode VehicleController::getControlMode() const
-{
-    return control_mode_;
 }
 
 float VehicleController::getTargetVelocityMps() const
