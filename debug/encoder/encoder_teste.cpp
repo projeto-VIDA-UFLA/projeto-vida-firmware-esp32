@@ -40,7 +40,7 @@ namespace
 
         for (;;)
         {
-            Serial.printf("Contagens dos Encoders:");
+            Serial.printf("Contagens dos Encoders:\n");
             Serial.printf(" - Esquerdo: %d\n", encoderLeft.getCount());
             Serial.printf(" - Direito: %d\n", encoderRight.getCount());
             Serial.printf(" - Traseiro: %d\n", encoderRear.getCount());
