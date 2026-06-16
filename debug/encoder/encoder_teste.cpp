@@ -36,7 +36,7 @@ namespace
         (void)pv;
 
         TickType_t xLastWakeTime = xTaskGetTickCount();
-        const TickType_t xPeriod = pdMS_TO_TICKS(1000 / 2000); // 50Hz (1000ms / 50 = 20ms)
+        const TickType_t xPeriod = pdMS_TO_TICKS(1000 / 2); // 50Hz (1000ms / 50 = 20ms)
 
         for (;;)
         {
