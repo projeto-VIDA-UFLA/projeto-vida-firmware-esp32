@@ -13,11 +13,13 @@ typedef int rmw_ret_t;
 
 constexpr rcl_ret_t RCL_RET_OK = 0;
 constexpr rmw_ret_t RMW_RET_OK = 0;
+constexpr int ON_NEW_DATA = 0;
 
 struct rcl_allocator_t {};
 struct rcl_init_options_t {};
 struct rcl_node_t {};
 struct rcl_publisher_t {};
+struct rcl_subscription_t {};
 struct rcl_timer_t {};
 struct rmw_context_t {};
 struct rmw_qos_profile_t {};
@@ -124,6 +126,11 @@ inline rcl_ret_t rclc_publisher_init(rcl_publisher_t *, rcl_node_t *, const rosi
     return RCL_RET_OK;
 }
 
+inline rcl_ret_t rclc_subscription_init(rcl_subscription_t *, rcl_node_t *, const rosidl_message_type_support_t *, const char *, const rmw_qos_profile_t *)
+{
+    return RCL_RET_OK;
+}
+
 inline rcl_ret_t rclc_timer_init_default(rcl_timer_t *, rclc_support_t *, int64_t, void (*)(rcl_timer_t *, int64_t))
 {
     return RCL_RET_OK;
@@ -135,6 +142,11 @@ inline rcl_ret_t rclc_executor_init(rclc_executor_t *, rcl_context_t *, unsigned
 }
 
 inline rcl_ret_t rclc_executor_add_timer(rclc_executor_t *, rcl_timer_t *)
+{
+    return RCL_RET_OK;
+}
+
+inline rcl_ret_t rclc_executor_add_subscription(rclc_executor_t *, rcl_subscription_t *, void *, void (*)(const void *), int)
 {
     return RCL_RET_OK;
 }
@@ -160,6 +172,11 @@ inline rcl_ret_t rcl_timer_fini(rcl_timer_t *)
 }
 
 inline rcl_ret_t rcl_publisher_fini(rcl_publisher_t *, rcl_node_t *)
+{
+    return RCL_RET_OK;
+}
+
+inline rcl_ret_t rcl_subscription_fini(rcl_subscription_t *, rcl_node_t *)
 {
     return RCL_RET_OK;
 }
