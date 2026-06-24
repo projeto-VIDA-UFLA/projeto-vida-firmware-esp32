@@ -1,4 +1,5 @@
 #include "EncoderReader.h"
+#include "esp_timer.h"
 
 EncoderReader::EncoderReader(uint8_t pin_a, uint8_t pin_b, const char* name)
     : pin_a_(pin_a),
@@ -6,6 +7,7 @@ EncoderReader::EncoderReader(uint8_t pin_a, uint8_t pin_b, const char* name)
       name_(name),
       count_(0),
       delta_(0),
+      last_timestamp_us_(0),
       last_state_(0),
       mux_(portMUX_INITIALIZER_UNLOCKED)
 {
@@ -17,6 +19,7 @@ void EncoderReader::begin()
     pinMode(pin_b_, INPUT);
 
     last_state_ = readState();
+    last_timestamp_us_ = esp_timer_get_time();
 }
 
 uint8_t EncoderReader::readState() const
@@ -47,6 +50,7 @@ void EncoderReader::handleInterrupt()
         portENTER_CRITICAL_ISR(&mux_);
         count_ += step;
         delta_ += step;
+        last_timestamp_us_ = esp_timer_get_time();
         portEXIT_CRITICAL_ISR(&mux_);
     }
 
@@ -56,9 +60,17 @@ void EncoderReader::handleInterrupt()
 long EncoderReader::getCount()
 {
     portENTER_CRITICAL(&mux_);
-    long value = count_;
+    long value = static_cast<long>(count_);
     portEXIT_CRITICAL(&mux_);
     return value;
+}
+
+void EncoderReader::getSnapshot(int64_t &count, int64_t &timestamp_us)
+{
+    portENTER_CRITICAL(&mux_);
+    count = count_;
+    timestamp_us = last_timestamp_us_;
+    portEXIT_CRITICAL(&mux_);
 }
 
 long EncoderReader::getAndResetDelta()
@@ -75,6 +87,7 @@ void EncoderReader::reset()
     portENTER_CRITICAL(&mux_);
     count_ = 0;
     delta_ = 0;
+    last_timestamp_us_ = esp_timer_get_time();
     portEXIT_CRITICAL(&mux_);
 }
 

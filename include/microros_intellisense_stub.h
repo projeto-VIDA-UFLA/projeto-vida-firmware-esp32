@@ -75,6 +75,16 @@ struct std_msgs__msg__Int32MultiArray
     rosidl_runtime_c__int32__Sequence data;
 };
 
+struct vida_interfaces__msg__Encoders
+{
+    int64_t encoder_left_counts;
+    int64_t encoder_right_counts;
+    int64_t encoder_rear_counts;
+    int64_t encoder_left_ts;
+    int64_t encoder_right_ts;
+    int64_t encoder_rear_ts;
+};
+
 extern rmw_qos_profile_t rmw_qos_profile_default;
 
 #define RCL_MS_TO_NS(ms) ((int64_t)(ms) * 1000000LL)
