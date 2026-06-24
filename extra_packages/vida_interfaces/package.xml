@@ -5,7 +5,7 @@
   <name>vida_interfaces</name>
   <version>0.1.0</version>
   <description>ROS 2 interfaces shared by Projeto VIDA devices.</description>
-  <maintainer email="projeto-vida@localhost">Projeto VIDA</maintainer>
+  <maintainer email="whilker_santos@hotmail.com">Whilker Henrique dos Santos Silva</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
