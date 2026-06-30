@@ -21,7 +21,7 @@ void SteeringSensor::update()
 {
     raw_adc_ = analogRead(adc_pin_);    
 
-    float measured_angle = mapFloat(
+     raw_angle_deg_ = mapFloat(
         raw_adc_,
         0.0f,
         4095.0f,
@@ -34,12 +34,12 @@ void SteeringSensor::update()
 
     if (!filter_initialized_)
     {
-        filtered_angle_deg_ = measured_angle;
+        filtered_angle_deg_ = raw_angle_deg_;
         filter_initialized_ = true;
     }
     else
     {
-        filtered_angle_deg_ = alpha * measured_angle + (1.0f - alpha) * filtered_angle_deg_;
+        filtered_angle_deg_ = alpha * raw_angle_deg_ + (1.0f - alpha) * filtered_angle_deg_;
     }
 
     angle_deg_ = filtered_angle_deg_;
@@ -50,7 +50,12 @@ int SteeringSensor::getRawAdc() const
     return raw_adc_;
 }
 
-float SteeringSensor::getAngleDeg() const
+float SteeringSensor::getRawAngleDeg() const
+{
+    return raw_angle_deg_;
+}
+
+float SteeringSensor::getFilteredAngleDeg() const
 {
     return angle_deg_;
 }

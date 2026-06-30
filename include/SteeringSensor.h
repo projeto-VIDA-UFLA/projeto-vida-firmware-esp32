@@ -10,12 +10,14 @@ public:
     void update();
 
     int getRawAdc() const;
-    float getAngleDeg() const;
+    float getRawAngleDeg() const;
+    float getFilteredAngleDeg() const;
 
 private:
     uint8_t adc_pin_;
 
     int raw_adc_;
+    float raw_angle_deg_;
     float angle_deg_;
 
     float filtered_angle_deg_;
