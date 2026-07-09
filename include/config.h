@@ -18,9 +18,10 @@
 
 // Controle / tarefas
 #define TASK_SAFETY_PERIOD_MS  10    // 100 Hz
-#define TASK_CONTROL_PERIOD_MS 10    // 100 Hz
-#define TASK_SENSOR_PERIOD_MS  20    // 50 Hz
+#define TASK_CONTROL_PERIOD_MS 40    // 25 Hz
+#define TASK_SENSOR_PERIOD_MS  8    // 125 Hz
 #define TASK_DEBUG_PERIOD_MS   500   // 2 Hz
+//Publicação ros 50 Hz
 
 // Watchdog de comando
 #define COMMAND_WATCHDOG_TIMEOUT_MS 300

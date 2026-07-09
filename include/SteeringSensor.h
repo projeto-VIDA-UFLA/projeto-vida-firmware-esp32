@@ -11,14 +11,16 @@ public:
 
     int getRawAdc() const;
     float getRawAngleDeg() const;
-    float getFilteredAngleDeg() const;
+    float getFilteredAngleDeg() const;    
+    float getAngularVelocity() const;
 
 private:
     uint8_t adc_pin_;
 
     int raw_adc_;
     float raw_angle_deg_;
-    float angle_deg_;
+    float angle_deg_;     
+    float angular_velocity_;
 
     float filtered_angle_deg_;
     bool filter_initialized_;

@@ -6,7 +6,8 @@ SteeringSensor::SteeringSensor(uint8_t adc_pin)
     : adc_pin_(adc_pin),
       raw_adc_(0),
       angle_deg_(0.0f),
-      filtered_angle_deg_(0.0f),
+      angular_velocity_(0.0f),
+      filtered_angle_deg_(0.0f),      
       filter_initialized_(false)
 {
 }
@@ -19,15 +20,8 @@ void SteeringSensor::begin()
 
 void SteeringSensor::update()
 {
-    raw_adc_ = analogRead(adc_pin_);    
-
-     raw_angle_deg_ = mapFloat(
-        raw_adc_,
-        0.0f,
-        4095.0f,
-        STEERING_MIN_DEG,
-        STEERING_MAX_DEG
-    );
+    raw_adc_ = analogRead(adc_pin_);
+    raw_angle_deg_ = mapFloat(raw_adc_, 0.0f, 4095.0f, STEERING_MIN_DEG, STEERING_MAX_DEG);
 
     // Filtro passa-baixas simples.
     const float alpha = 0.15f;
@@ -43,6 +37,8 @@ void SteeringSensor::update()
     }
 
     angle_deg_ = filtered_angle_deg_;
+
+    // TODO: implementar calculo de velocidade angular
 }
 
 int SteeringSensor::getRawAdc() const
@@ -58,4 +54,8 @@ float SteeringSensor::getRawAngleDeg() const
 float SteeringSensor::getFilteredAngleDeg() const
 {
     return angle_deg_;
+}
+
+float SteeringSensor::getAngularVelocity() const{
+    return angular_velocity_;
 }
