@@ -41,6 +41,9 @@ void taskSensors(void *parameter)
   {
     steering_sensor.update();
 
+    Serial.print(millis());
+    Serial.print(" :   ");
+
     Serial.print(steering_sensor.getRawAdc());
     Serial.print("  |   ");
 
@@ -52,8 +55,6 @@ void taskSensors(void *parameter)
 
     Serial.print(left_encoder.getCount());
     Serial.println();
-
-
 
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_SENSOR_PERIOD_MS));
   }
@@ -80,7 +81,7 @@ void setup()
 
   xTaskCreatePinnedToCore(taskSensors, "TaskSensors", 4096, nullptr, PRIORITY_SENSORS, nullptr, 1);
 
-  Serial.println("Sistema inicializado.");  
+  Serial.println("Sistema inicializado.");
 }
 
 void loop()
