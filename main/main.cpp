@@ -304,9 +304,10 @@ void setup()
   // --------------------------------------------------------
 
   ros_communication.begin(Serial);
+  ros_communication.startTask("TaskRosCommunication", 8192, 2, 0);
 }
 
-ros_communication.startTask("TaskRosCommunication", 8192, 2, 0);
+
 
 void loop()
 {
