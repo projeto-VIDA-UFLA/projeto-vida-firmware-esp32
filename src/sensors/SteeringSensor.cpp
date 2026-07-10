@@ -1,6 +1,6 @@
-#include "SteeringSensor.h"
-#include "config.h"
-#include "utils.h"
+#include "sensors/SteeringSensor.h"
+#include "utils/config.h"
+#include "utils/utils.h"
 
 SteeringSensor::SteeringSensor(uint8_t adc_pin)
     : adc_pin_(adc_pin),
