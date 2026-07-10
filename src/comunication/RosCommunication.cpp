@@ -130,7 +130,9 @@ void RosCommunication::taskLoop()
 {
     constexpr uint32_t WAITING_AGENT_PING_PERIOD_MS = 500;
     constexpr uint32_t CONNECTED_AGENT_PING_PERIOD_MS = 200;
-    constexpr uint32_t LOOP_DELAY_MS = 10;
+    constexpr uint32_t DISCONNECTED_LOOP_DELAY_MS = 10;
+    constexpr uint32_t CONNECTED_SPIN_TIMEOUT_MS = 1;
+    constexpr uint32_t CONNECTED_LOOP_DELAY_MS = 1;
 
     for (;;)
     {
@@ -162,7 +164,9 @@ void RosCommunication::taskLoop()
 
             if (executor_created_)
             {
-                (void)rclc_executor_spin_some(&executor_, RCL_MS_TO_NS(LOOP_DELAY_MS));
+                (void)rclc_executor_spin_some(
+                    &executor_,
+                    RCL_MS_TO_NS(CONNECTED_SPIN_TIMEOUT_MS));
             }
             break;
 
@@ -174,7 +178,11 @@ void RosCommunication::taskLoop()
             break;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(LOOP_DELAY_MS));
+        const uint32_t loop_delay_ms = state_ == State::AgentConnected
+                                           ? CONNECTED_LOOP_DELAY_MS
+                                           : DISCONNECTED_LOOP_DELAY_MS;
+
+        vTaskDelay(pdMS_TO_TICKS(loop_delay_ms));
     }
 }
 
