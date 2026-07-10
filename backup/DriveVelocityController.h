@@ -42,10 +42,7 @@ private:
     float accel_setpoint_m_s2_;
     float max_accel_m_s2_;
     float motor_command_;
-    float previous_velocity_m_s_;
     uint32_t last_update_ms_;
-    bool has_previous_velocity_;
 
-    float encoderDeltaToDistanceM(long delta_ticks) const;
     float applyActuationDeadband(float command) const;
 };
