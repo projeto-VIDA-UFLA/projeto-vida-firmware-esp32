@@ -15,25 +15,47 @@ constexpr rcl_ret_t RCL_RET_OK = 0;
 constexpr rmw_ret_t RMW_RET_OK = 0;
 constexpr int ON_NEW_DATA = 0;
 
-struct rcl_allocator_t {};
-struct rcl_init_options_t {};
-struct rcl_node_t {};
-struct rcl_publisher_t {};
-struct rcl_subscription_t {};
-struct rcl_timer_t {};
-struct rmw_context_t {};
-struct rmw_qos_profile_t {};
+struct rcl_allocator_t
+{
+};
+struct rcl_init_options_t
+{
+};
+struct rcl_node_t
+{
+};
+struct rcl_publisher_t
+{
+};
+struct rcl_subscription_t
+{
+};
+struct rcl_timer_t
+{
+};
+struct rmw_context_t
+{
+};
+struct rmw_qos_profile_t
+{
+};
 
-struct rcl_context_t {};
+struct rcl_context_t
+{
+};
 
 struct rclc_support_t
 {
     rcl_context_t context;
 };
 
-struct rclc_executor_t {};
+struct rclc_executor_t
+{
+};
 
-struct rosidl_message_type_support_t {};
+struct rosidl_message_type_support_t
+{
+};
 
 struct rosidl_runtime_c__int32__Sequence
 {
@@ -73,6 +95,11 @@ struct std_msgs__msg__Int32MultiArray
 {
     std_msgs__msg__MultiArrayLayout layout;
     rosidl_runtime_c__int32__Sequence data;
+};
+
+struct std_msgs__msg__Float64MultiArray
+{
+    int64_t std_msgs__msg__Float64MultiArray;
 };
 
 struct vida_interfaces__msg__Encoders
