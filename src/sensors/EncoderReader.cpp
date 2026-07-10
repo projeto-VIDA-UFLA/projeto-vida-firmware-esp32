@@ -218,22 +218,13 @@ void EncoderReader::update()
     raw_velocity_ = calculateVelocity(delta_ticks, dt_s);
 
     // Velocidade filtrada para uso em controle
-    velocity_ = applyLowPassFilter(
-        raw_velocity_,
-        velocity_,
-        DRIVE_VELOCITY_FILTER_ALPHA);
+    velocity_ = applyLowPassFilter(raw_velocity_, velocity_, DRIVE_VELOCITY_FILTER_ALPHA);
 
     // Aceleração bruta calculada a partir da velocidade filtrada
-    raw_acceleration_ = calculateAcceleration(
-        velocity_,
-        previous_velocity_,
-        dt_s);
+    raw_acceleration_ = calculateAcceleration(velocity_, previous_velocity_, dt_s);
 
     // Aceleração filtrada
-    acceleration_ = applyLowPassFilter(
-        raw_acceleration_,
-        acceleration_,
-        DRIVE_ACCEL_FILTER_ALPHA);
+    acceleration_ = applyLowPassFilter(raw_acceleration_, acceleration_, DRIVE_ACCEL_FILTER_ALPHA);
 
     previous_velocity_ = velocity_;
     previous_count_ = count;
@@ -448,10 +439,7 @@ float EncoderReader::calculateVelocity(int64_t delta_ticks, float dt_s) const
  *
  * @return Aceleração em m/s².
  */
-float EncoderReader::calculateAcceleration(
-    float current_velocity_m_s,
-    float previous_velocity_m_s,
-    float dt_s) const
+float EncoderReader::calculateAcceleration(float current_velocity_m_s, float previous_velocity_m_s, float dt_s) const
 {
     if (dt_s <= 0.0f)
     {
