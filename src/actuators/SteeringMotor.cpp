@@ -1,6 +1,6 @@
-#include "SteeringMotor.h"
-#include "config.h"
-#include "utils.h"
+#include "actuators/SteeringMotor.h"
+#include "utils/config.h"
+#include "utils/utils.h"
 
 SteeringMotor::SteeringMotor(uint8_t right_pwm_pin, uint8_t left_pwm_pin, uint8_t right_channel, uint8_t left_channel)
     : right_pwm_pin_(right_pwm_pin),

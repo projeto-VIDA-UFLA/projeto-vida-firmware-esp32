@@ -1,6 +1,6 @@
-#include "DriveMotor.h"
-#include "config.h"
-#include "utils.h"
+#include "actuators/DriveMotor.h"
+#include "utils/config.h"
+#include "utils/utils.h"
 
 DriveMotor::DriveMotor(uint8_t pwm_pin, uint8_t direction_pin, uint8_t pwm_channel)
     : pwm_pin_(pwm_pin),
