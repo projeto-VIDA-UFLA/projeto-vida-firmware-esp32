@@ -64,7 +64,7 @@ private:
     float acceleration_;
     float raw_velocity_;
     float raw_acceleration_;
-    float previous_velocity_;
+    float previous_raw_velocity_;
     bool has_previous_update_;
     int64_t measurement_timestamp_us_;
     int64_t measurement_count_;

@@ -41,7 +41,7 @@ EncoderReader::EncoderReader(uint8_t pin_a, uint8_t pin_b, float tick_per_rev, c
       acceleration_(0.0f),
       raw_velocity_(0.0f),
       raw_acceleration_(0.0f),
-      previous_velocity_(0.0f),
+      previous_raw_velocity_(0.0f),
       has_previous_update_(false),
       measurement_timestamp_us_(0),
       measurement_count_(0),
@@ -79,7 +79,7 @@ void EncoderReader::begin()
     acceleration_ = 0.0f;
     raw_velocity_ = 0.0f;
     raw_acceleration_ = 0.0f;
-    previous_velocity_ = 0.0f;
+    previous_raw_velocity_ = 0.0f;
 
     has_previous_update_ = false;
     measurement_timestamp_us_ = previous_update_us_;
@@ -224,8 +224,8 @@ void EncoderReader::update()
     // Velocidade filtrada para uso em controle
     const float filtered_velocity = applyLowPassFilter(raw_velocity, velocity_, DRIVE_VELOCITY_FILTER_ALPHA);
 
-    // Aceleração bruta calculada a partir da velocidade filtrada
-    const float raw_acceleration = calculateAcceleration(filtered_velocity, previous_velocity_, dt_s);
+    // Aceleracao bruta calculada a partir da velocidade bruta.
+    const float raw_acceleration = calculateAcceleration(raw_velocity, previous_raw_velocity_, dt_s);
 
     // Aceleração filtrada
     const float filtered_acceleration = applyLowPassFilter(raw_acceleration, acceleration_, DRIVE_ACCEL_FILTER_ALPHA);
@@ -239,7 +239,7 @@ void EncoderReader::update()
     measurement_timestamp_us_ = now_us;
     portEXIT_CRITICAL(&mux_);
 
-    previous_velocity_ = velocity_;
+    previous_raw_velocity_ = raw_velocity;
     previous_count_ = count;
     previous_update_us_ = now_us;
 }
@@ -339,7 +339,7 @@ void EncoderReader::reset()
     acceleration_ = 0.0f;
     raw_velocity_ = 0.0f;
     raw_acceleration_ = 0.0f;
-    previous_velocity_ = 0.0f;
+    previous_raw_velocity_ = 0.0f;
 
     has_previous_update_ = false;
 
