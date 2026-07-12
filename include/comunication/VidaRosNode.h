@@ -43,13 +43,15 @@ private:
 
     rcl_publisher_t encoders_publisher_;
     rcl_publisher_t steering_publisher_;
-    rcl_publisher_t comands_publisher_;
-
-    rcl_timer_t sensors_publish_timer_;
+    rcl_publisher_t cmd_steering_publisher_;
+    rcl_publisher_t cmd_drive_publisher_;    
 
     vida_interfaces__msg__Encoders encoders_message_;
     vida_interfaces__msg__Steering steering_message_;
-    vida_interfaces__msg__Comands comands_message_;
+    vida_interfaces__msg__Comands cmd_steering_message_;
+    vida_interfaces__msg__Comands cmd_drive_message_;
+
+    rcl_timer_t sensors_publish_timer_;
 
     SteeringMotor &steering_motor_;
     DriveMotor &drive_motor_;

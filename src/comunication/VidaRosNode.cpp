@@ -7,7 +7,8 @@ namespace
     constexpr char NODE_NAMESPACE[] = "/vida";
     constexpr char ENCODERS_TOPIC[] = "/vida/sensors/encoders";
     constexpr char STEERING_TOPIC[] = "/vida/sensors/steering";
-    constexpr char COMANDS_TOPIC[] = "/vida/actuators/comands";
+    constexpr char CMD_STEERING_TOPIC[] = "/vida/actuators/steering";
+    constexpr char CMD_DRIVE_TOPIC[] = "/vida/actuators/drive";
     constexpr int ROS_DOMAIN_ID = 0;
 } // namespace
 
@@ -22,11 +23,11 @@ VidaRosNode::VidaRosNode(SteeringMotor &steering_motor,
     : communication_(NODE_NAME, NODE_NAMESPACE, ROS_DOMAIN_ID),
       encoders_publisher_(rcl_get_zero_initialized_publisher()),
       steering_publisher_(rcl_get_zero_initialized_publisher()),
-      comands_publisher_(rcl_get_zero_initialized_publisher()),
+      cmd_steering_publisher_(rcl_get_zero_initialized_publisher()),
       sensors_publish_timer_(rcl_get_zero_initialized_timer()),
       encoders_message_{},
       steering_message_{},
-      comands_message_{},
+      cmd_steering_message_{},
       steering_motor_(steering_motor),
       drive_motor_(drive_motor),
       steering_sensor_(steering_sensor),
@@ -81,9 +82,17 @@ bool VidaRosNode::configure()
     }
 
     if (!communication_.addPublisher(
-            comands_publisher_,
+            cmd_steering_publisher_,
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Comands),
-            COMANDS_TOPIC))
+            CMD_STEERING_TOPIC))
+    {
+        return false;
+    }
+
+    if (!communication_.addPublisher(
+            cmd_steering_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Comands),
+            CMD_DRIVE_TOPIC))
     {
         return false;
     }
@@ -135,17 +144,16 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         communication_.publish(steering_publisher_, &steering_message_);
     }
 
-    const bool steering_command_timestamp_valid =
-        setTimestamp(comands_message_.steering_timestamp, steering_pwm.timestamp_us);
-    const bool drive_command_timestamp_valid =
-        setTimestamp(comands_message_.drive_timestamp, drive_pwm.timestamp_us);
+    if (setTimestamp(cmd_steering_message_.steering_timestamp, steering_pwm.timestamp_us))
+    {
+        cmd_steering_message_.pwm_steering = steering_pwm.right_pwm - steering_pwm.left_pwm;
+        communication_.publish(cmd_steering_publisher_, &cmd_steering_message_);
+    }
 
-    if (steering_command_timestamp_valid && drive_command_timestamp_valid)
-    {        
-        comands_message_.pwm_steering = steering_pwm.right_pwm - steering_pwm.left_pwm;
-        comands_message_.pwm_drive = drive_pwm.reverse ? -drive_pwm.pwm : drive_pwm.pwm;
-
-        communication_.publish(comands_publisher_, &comands_message_);
+    if (setTimestamp(cmd_drive_message_.steering_timestamp, drive_pwm.timestamp_us))
+    {
+        cmd_drive_message_.pwm_steering = !drive_pwm.reverse ? drive_pwm.pwm : -drive_pwm.pwm;
+        communication_.publish(cmd_drive_publisher_, &cmd_drive_message_);
     }
 }
 
