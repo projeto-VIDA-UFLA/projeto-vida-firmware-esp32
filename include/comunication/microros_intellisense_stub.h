@@ -134,6 +134,13 @@ struct vida_interfaces__msg__Steering
     float filtered_angular_velocity_deg_s;
 };
 
+struct vida_interfaces__msg__Comands
+{
+    builtin_interfaces__msg__Time timestamp;
+    uint16_t pwm_steering;
+    uint16_t pwm_drive;
+};
+
 extern rmw_qos_profile_t rmw_qos_profile_default;
 
 #define RCL_MS_TO_NS(ms) ((int64_t)(ms) * 1000000LL)

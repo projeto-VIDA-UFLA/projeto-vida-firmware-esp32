@@ -11,6 +11,7 @@
 #else
 #include <vida_interfaces/msg/encoders.h>
 #include <vida_interfaces/msg/steering.h>
+#include <vida_interfaces/msg/comands.h>
 #endif
 
 class VidaRosNode
@@ -38,11 +39,13 @@ private:
 
     rcl_publisher_t encoders_publisher_;
     rcl_publisher_t steering_publisher_;
+    rcl_publisher_t comands_publisher_;
 
     rcl_timer_t sensors_publish_timer_;
 
     vida_interfaces__msg__Encoders encoders_message_;
     vida_interfaces__msg__Steering steering_message_;
+    vida_interfaces__msg__Comands comands_message_;
 
     SteeringSensor &steering_sensor_;
     EncoderReader &rear_encoder_;

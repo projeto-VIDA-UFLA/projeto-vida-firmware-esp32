@@ -9,6 +9,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/EncoderMeasurement.msg"
   "msg/Encoders.msg"
   "msg/Steering.msg"
+  "msg/Comands.msg"
   DEPENDENCIES builtin_interfaces
 )
 

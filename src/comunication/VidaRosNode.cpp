@@ -1,5 +1,4 @@
 #include "comunication/VidaRosNode.h"
-
 #include "utils/config.h"
 
 namespace
@@ -8,6 +7,7 @@ namespace
     constexpr char NODE_NAMESPACE[] = "/vida";
     constexpr char ENCODERS_TOPIC[] = "/vida/sensors/encoders";
     constexpr char STEERING_TOPIC[] = "/vida/sensors/steering";
+    constexpr char COMANDS_TOPIC[] = "/vida/actuators/comands";
     constexpr int ROS_DOMAIN_ID = 0;
 } // namespace
 
@@ -18,6 +18,7 @@ VidaRosNode::VidaRosNode(SteeringSensor &steering_sensor, EncoderReader &rear_en
     : communication_(NODE_NAME, NODE_NAMESPACE, ROS_DOMAIN_ID),
       encoders_publisher_(rcl_get_zero_initialized_publisher()),
       steering_publisher_(rcl_get_zero_initialized_publisher()),
+      comands_publisher_(rcl_get_zero_initialized_publisher()),
       sensors_publish_timer_(rcl_get_zero_initialized_timer()),
       encoders_message_{},
       steering_message_{},
@@ -72,10 +73,7 @@ bool VidaRosNode::configure()
         return false;
     }
 
-    return communication_.addTimer(
-        sensors_publish_timer_,
-        TASK_COMUNICATION_PERIOD_MS,
-        publishSensorsCallback);
+    return communication_.addTimer(sensors_publish_timer_, TASK_COMUNICATION_PERIOD_MS, publishSensorsCallback);
 }
 
 void VidaRosNode::publishSensorsCallback(rcl_timer_t *timer, int64_t last_call_time)
@@ -116,6 +114,14 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         steering_message_.raw_angle_deg = steering.raw_angle_deg;
         steering_message_.filtered_angle_deg = steering.filtered_angle_deg;
         steering_message_.filtered_angular_velocity_deg_s = steering.filtered_angular_velocity_deg_s;
+        communication_.publish(steering_publisher_, &steering_message_);
+    }
+
+    if (setTimestamp(comands_message_.timestamp, steering.timestamp_us))
+    {
+        comands_message_.pwm_steering = 1024;
+        comands_message_.pwm_drive = 1024;
+        
         communication_.publish(steering_publisher_, &steering_message_);
     }
 }
