@@ -73,6 +73,14 @@ bool VidaRosNode::configure()
         return false;
     }
 
+    if (!communication_.addPublisher(
+            comands_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Comands),
+            COMANDS_TOPIC))
+    {
+        return false;
+    }
+
     return communication_.addTimer(sensors_publish_timer_, TASK_COMUNICATION_PERIOD_MS, publishSensorsCallback);
 }
 
