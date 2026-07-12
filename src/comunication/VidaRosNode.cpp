@@ -122,7 +122,7 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         comands_message_.pwm_steering = 1024;
         comands_message_.pwm_drive = 1024;
         
-        communication_.publish(steering_publisher_, &steering_message_);
+        communication_.publish(comands_publisher_, &comands_message_);
     }
 }
 
