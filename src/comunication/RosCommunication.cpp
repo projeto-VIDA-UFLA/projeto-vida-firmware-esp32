@@ -1,4 +1,5 @@
-#include "RosCommunication.h"
+#include "comunication/RosCommunication.h"
+#include "esp_timer.h"
 
 RosCommunication::RosCommunication(const char *node_name,
                                    const char *node_namespace,
@@ -26,7 +27,8 @@ RosCommunication::RosCommunication(const char *node_name,
       entities_created_(false),
       executor_created_(false),
       last_agent_wait_ping_ms_(-1),
-      last_agent_connected_ping_ms_(-1)
+      last_agent_connected_ping_ms_(-1),
+      last_time_sync_ms_(-1)
 {
 }
 
@@ -121,6 +123,23 @@ bool RosCommunication::isConnected() const
     return state_ == State::AgentConnected;
 }
 
+bool RosCommunication::isTimeSynchronized() const
+{
+    return state_ == State::AgentConnected && rmw_uros_epoch_synchronized();
+}
+
+bool RosCommunication::localTimeToEpochNanos(int64_t local_time_us, int64_t &epoch_ns) const
+{
+    if (!isTimeSynchronized())
+    {
+        return false;
+    }
+
+    const int64_t local_now_us = esp_timer_get_time();
+    epoch_ns = rmw_uros_epoch_nanos() - (local_now_us - local_time_us) * 1000LL;
+    return true;
+}
+
 void RosCommunication::taskEntry(void *parameter)
 {
     static_cast<RosCommunication *>(parameter)->taskLoop();
@@ -130,7 +149,10 @@ void RosCommunication::taskLoop()
 {
     constexpr uint32_t WAITING_AGENT_PING_PERIOD_MS = 500;
     constexpr uint32_t CONNECTED_AGENT_PING_PERIOD_MS = 200;
-    constexpr uint32_t LOOP_DELAY_MS = 10;
+    constexpr uint32_t DISCONNECTED_LOOP_DELAY_MS = 10;
+    constexpr uint32_t CONNECTED_SPIN_TIMEOUT_MS = 1;
+    constexpr uint32_t CONNECTED_LOOP_DELAY_MS = 1;
+    constexpr uint32_t TIME_SYNC_PERIOD_MS = 30000;
 
     for (;;)
     {
@@ -153,6 +175,11 @@ void RosCommunication::taskLoop()
             break;
 
         case State::AgentConnected:
+            if (shouldRunEvery(TIME_SYNC_PERIOD_MS, last_time_sync_ms_))
+            {
+                (void)rmw_uros_sync_session(1000);
+            }
+
             if (shouldRunEvery(CONNECTED_AGENT_PING_PERIOD_MS, last_agent_connected_ping_ms_) &&
                 rmw_uros_ping_agent(100, 1) != RMW_RET_OK)
             {
@@ -162,7 +189,9 @@ void RosCommunication::taskLoop()
 
             if (executor_created_)
             {
-                (void)rclc_executor_spin_some(&executor_, RCL_MS_TO_NS(LOOP_DELAY_MS));
+                (void)rclc_executor_spin_some(
+                    &executor_,
+                    RCL_MS_TO_NS(CONNECTED_SPIN_TIMEOUT_MS));
             }
             break;
 
@@ -171,10 +200,15 @@ void RosCommunication::taskLoop()
             state_ = State::WaitingAgent;
             last_agent_wait_ping_ms_ = -1;
             last_agent_connected_ping_ms_ = -1;
+            last_time_sync_ms_ = -1;
             break;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(LOOP_DELAY_MS));
+        const uint32_t loop_delay_ms = state_ == State::AgentConnected
+                                           ? CONNECTED_LOOP_DELAY_MS
+                                           : DISCONNECTED_LOOP_DELAY_MS;
+
+        vTaskDelay(pdMS_TO_TICKS(loop_delay_ms));
     }
 }
 

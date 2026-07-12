@@ -26,35 +26,21 @@ public:
         AgentDisconnected
     };
 
-    RosCommunication(const char *node_name,
-                     const char *node_namespace,
-                     int domain_id);
+    RosCommunication(const char *node_name, const char *node_namespace, int domain_id);
 
     void begin(Stream &transport);
-    bool startTask(const char *task_name,
-                   uint32_t stack_size,
-                   UBaseType_t priority,
-                   BaseType_t core_id);
+    bool startTask(const char *task_name, uint32_t stack_size, UBaseType_t priority, BaseType_t core_id);
 
-    bool addPublisher(rcl_publisher_t &publisher,
-                      const rosidl_message_type_support_t *type_support,
-                      const char *topic_name,
-                      const rmw_qos_profile_t *qos = &rmw_qos_profile_default);
-
-    bool addSubscription(rcl_subscription_t &subscription,
-                         const rosidl_message_type_support_t *type_support,
-                         const char *topic_name,
-                         void *message,
-                         SubscriptionCallback callback,
-                         const rmw_qos_profile_t *qos = &rmw_qos_profile_default);
-
-    bool addTimer(rcl_timer_t &timer,
-                  uint32_t period_ms,
-                  TimerCallback callback);
-
+    bool addPublisher(rcl_publisher_t &publisher, const rosidl_message_type_support_t *type_support, const char *topic_name, const rmw_qos_profile_t *qos = &rmw_qos_profile_default);
+    bool addSubscription(rcl_subscription_t &subscription, const rosidl_message_type_support_t *type_support, const char *topic_name, void *message, SubscriptionCallback callback, const rmw_qos_profile_t *qos = &rmw_qos_profile_default);
+    bool addTimer(rcl_timer_t &timer, uint32_t period_ms, TimerCallback callback);
+   
     bool publish(rcl_publisher_t &publisher, const void *message);
+    
     State getState() const;
     bool isConnected() const;
+    bool isTimeSynchronized() const;
+    bool localTimeToEpochNanos(int64_t local_time_us, int64_t &epoch_ns) const;
 
 private:
     static constexpr size_t MAX_PUBLISHERS = 8;
@@ -124,4 +110,5 @@ private:
 
     int64_t last_agent_wait_ping_ms_;
     int64_t last_agent_connected_ping_ms_;
+    int64_t last_time_sync_ms_;
 };

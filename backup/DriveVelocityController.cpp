@@ -27,18 +27,13 @@ DriveVelocityController::DriveVelocityController(DriveMotor& motor,
       accel_setpoint_m_s2_(0.0f),
       max_accel_m_s2_(DRIVE_DEFAULT_MAX_ACCEL_M_S2),
       motor_command_(0.0f),
-      previous_velocity_m_s_(0.0f),
-      last_update_ms_(0),
-      has_previous_velocity_(false)
+      last_update_ms_(0)
 {
 }
 
 void DriveVelocityController::begin()
 {
     stop();
-    rear_encoder_.getAndResetDelta();
-    left_encoder_.getAndResetDelta();
-    right_encoder_.getAndResetDelta();
     last_update_ms_ = millis();
 }
 
@@ -48,29 +43,17 @@ void DriveVelocityController::update(bool enabled)
     float dt_s = (now_ms - last_update_ms_) / 1000.0f;
     last_update_ms_ = now_ms;
 
-    long rear_delta = rear_encoder_.getAndResetDelta();
-    long left_delta = left_encoder_.getAndResetDelta();
-    long right_delta = right_encoder_.getAndResetDelta();
+    measured_velocity_m_s_ = (
+        rear_encoder_.getVelocityMps() +
+        left_encoder_.getVelocityMps() +
+        right_encoder_.getVelocityMps()
+    ) / 3.0f;
 
-    if (dt_s > 0.0f)
-    {
-        float rear_velocity = encoderDeltaToDistanceM(rear_delta) / dt_s;
-        float left_velocity = encoderDeltaToDistanceM(left_delta) / dt_s;
-        float right_velocity = encoderDeltaToDistanceM(right_delta) / dt_s;
-        float raw_velocity = (rear_velocity + left_velocity + right_velocity) / 3.0f;
-
-        measured_velocity_m_s_ =
-            DRIVE_VELOCITY_FILTER_ALPHA * raw_velocity +
-            (1.0f - DRIVE_VELOCITY_FILTER_ALPHA) * measured_velocity_m_s_;
-
-        if (has_previous_velocity_)
-        {
-            measured_accel_m_s2_ = (measured_velocity_m_s_ - previous_velocity_m_s_) / dt_s;
-        }
-
-        previous_velocity_m_s_ = measured_velocity_m_s_;
-        has_previous_velocity_ = true;
-    }
+    measured_accel_m_s2_ = (
+        rear_encoder_.getAccelerationMps2() +
+        left_encoder_.getAccelerationMps2() +
+        right_encoder_.getAccelerationMps2()
+    ) / 3.0f;
 
     if (!enabled || dt_s <= 0.0f)
     {
@@ -160,12 +143,6 @@ float DriveVelocityController::getMaxAccelMps2() const
 float DriveVelocityController::getMotorCommand() const
 {
     return motor_command_;
-}
-
-float DriveVelocityController::encoderDeltaToDistanceM(long delta_ticks) const
-{
-    float wheel_circumference_m = PI * DRIVE_WHEEL_DIAMETER_M;
-    return (static_cast<float>(delta_ticks) / DRIVE_ENCODER_TICKS_PER_REV) * wheel_circumference_m;
 }
 
 float DriveVelocityController::applyActuationDeadband(float command) const

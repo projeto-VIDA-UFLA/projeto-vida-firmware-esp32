@@ -1,0 +1,5 @@
+builtin_interfaces/Time timestamp
+uint16 raw_adc
+float32 raw_angle_deg
+float32 filtered_angle_deg
+float32 filtered_angular_velocity_deg_s

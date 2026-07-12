@@ -5,7 +5,7 @@
 #if defined(__INTELLISENSE__) || defined(__clangd__)
 #include "microros_intellisense_stub.h"
 #else
-#include <std_msgs/msg/int32_multi_array.h>
+#include <vida_interfaces/msg/encoders.h>
 #endif
 
 #include "config.h"
@@ -26,8 +26,7 @@ namespace
 
     rcl_publisher_t encoder_pub;
     rcl_timer_t encoder_timer;
-    std_msgs__msg__Int32MultiArray encoder_msg;
-    int32_t encoder_counts_data[3] = {0, 0, 0};
+    vida_interfaces__msg__Encoders encoder_msg;
 
     void IRAM_ATTR isrRearEncoder()
     {
@@ -46,9 +45,15 @@ namespace
 
     void syncEncoderMessage()
     {
-        encoder_counts_data[0] = static_cast<int32_t>(encoderRear.getCount());
-        encoder_counts_data[1] = static_cast<int32_t>(encoderLeft.getCount());
-        encoder_counts_data[2] = static_cast<int32_t>(encoderRight.getCount());
+        encoderLeft.getSnapshot(
+            encoder_msg.encoder_left_counts,
+            encoder_msg.encoder_left_ts);
+        encoderRight.getSnapshot(
+            encoder_msg.encoder_right_counts,
+            encoder_msg.encoder_right_ts);
+        encoderRear.getSnapshot(
+            encoder_msg.encoder_rear_counts,
+            encoder_msg.encoder_rear_ts);
     }
 
     void publishEncoderCounts(rcl_timer_t *timer, int64_t last_call_time)
@@ -60,18 +65,6 @@ namespace
         (void)ros.publish(encoder_pub, &encoder_msg);
     }
 
-    void initEncoderMessage()
-    {
-        encoder_msg.layout.dim.capacity = 0;
-        encoder_msg.layout.dim.size = 0;
-        encoder_msg.layout.dim.data = nullptr;
-        encoder_msg.layout.data_offset = 0;
-
-        encoder_msg.data.capacity = 3;
-        encoder_msg.data.size = 3;
-        encoder_msg.data.data = encoder_counts_data;
-        syncEncoderMessage();
-    }
 }
 
 void setup()
@@ -92,13 +85,13 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(ENC_LEFT_A), isrLeftEncoder, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENC_LEFT_B), isrLeftEncoder, CHANGE);
 
-    initEncoderMessage();
+    syncEncoderMessage();
 
     ros.begin(Serial);
     ros.addPublisher(
         encoder_pub,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32MultiArray),
-        "/vida/encoder_counts");
+        ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Encoders),
+        "/vida/encoders");
     ros.addTimer(encoder_timer, ROS_PUBLISH_PERIOD_MS, publishEncoderCounts);
     ros.startTask("TaskMicroRos", 8192, 2, 1);
 }
