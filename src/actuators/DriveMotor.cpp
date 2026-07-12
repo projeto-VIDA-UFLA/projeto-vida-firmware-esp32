@@ -1,6 +1,7 @@
 #include "actuators/DriveMotor.h"
 #include "utils/config.h"
 #include "utils/utils.h"
+#include "esp_timer.h"
 
 DriveMotor::DriveMotor(uint8_t pwm_pin, uint8_t direction_pin, uint8_t pwm_channel)
     : pwm_pin_(pwm_pin),
@@ -8,7 +9,8 @@ DriveMotor::DriveMotor(uint8_t pwm_pin, uint8_t direction_pin, uint8_t pwm_chann
       pwm_channel_(pwm_channel),
       last_command_(0.0f),
       last_pwm_(0),
-      reverse_(false)
+      reverse_(false),
+      pwm_timestamp_us_(0)
 {
 }
 
@@ -26,36 +28,69 @@ void DriveMotor::setCommand(float normalized_command)
 {
     normalized_command = clampFloat(normalized_command, -1.0f, 1.0f);
 
-    reverse_ = normalized_command < 0.0f;
-    last_pwm_ = floatCommandToPwm(normalized_command);
-    last_command_ = normalized_command;
+    const bool reverse = normalized_command < 0.0f;
+    const int pwm = floatCommandToPwm(normalized_command);
 
     // LOW = frente; HIGH = ré
-    digitalWrite(direction_pin_, reverse_ ? HIGH : LOW);
-    ledcWrite(pwm_channel_, last_pwm_);
+    digitalWrite(direction_pin_, reverse ? HIGH : LOW);
+    ledcWrite(pwm_channel_, pwm);
+    const int64_t timestamp_us = esp_timer_get_time();
+
+    portENTER_CRITICAL(&snapshot_mux_);
+    last_command_ = normalized_command;
+    last_pwm_ = pwm;
+    reverse_ = reverse;
+    pwm_timestamp_us_ = timestamp_us;
+    portEXIT_CRITICAL(&snapshot_mux_);
 }
 
 void DriveMotor::stop()
 {
+    digitalWrite(direction_pin_, LOW);
+    ledcWrite(pwm_channel_, 0);
+    const int64_t timestamp_us = esp_timer_get_time();
+
+    portENTER_CRITICAL(&snapshot_mux_);
     last_command_ = 0.0f;
     last_pwm_ = 0;
     reverse_ = false;
-
-    digitalWrite(direction_pin_, LOW);
-    ledcWrite(pwm_channel_, 0);
+    pwm_timestamp_us_ = timestamp_us;
+    portEXIT_CRITICAL(&snapshot_mux_);
 }
 
 float DriveMotor::getLastCommand() const
 {
-    return last_command_;
+    portENTER_CRITICAL(&snapshot_mux_);
+    const float last_command = last_command_;
+    portEXIT_CRITICAL(&snapshot_mux_);
+    return last_command;
 }
 
 int DriveMotor::getLastPwm() const
 {
-    return last_pwm_;
+    portENTER_CRITICAL(&snapshot_mux_);
+    const int last_pwm = last_pwm_;
+    portEXIT_CRITICAL(&snapshot_mux_);
+    return last_pwm;
 }
 
 bool DriveMotor::isReverse() const
 {
-    return reverse_;
+    portENTER_CRITICAL(&snapshot_mux_);
+    const bool reverse = reverse_;
+    portEXIT_CRITICAL(&snapshot_mux_);
+    return reverse;
+}
+
+DriveMotor::Snapshot DriveMotor::getSnapshot() const
+{
+    Snapshot snapshot{};
+
+    portENTER_CRITICAL(&snapshot_mux_);
+    snapshot.pwm = last_pwm_;
+    snapshot.reverse = reverse_;
+    snapshot.timestamp_us = pwm_timestamp_us_;
+    portEXIT_CRITICAL(&snapshot_mux_);
+
+    return snapshot;
 }

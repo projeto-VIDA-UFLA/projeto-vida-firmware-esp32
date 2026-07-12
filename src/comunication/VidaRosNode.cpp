@@ -13,8 +13,12 @@ namespace
 
 VidaRosNode *VidaRosNode::instance_ = nullptr;
 
-VidaRosNode::VidaRosNode(SteeringSensor &steering_sensor, EncoderReader &rear_encoder,
-                         EncoderReader &right_encoder, EncoderReader &left_encoder)
+VidaRosNode::VidaRosNode(SteeringMotor &steering_motor,
+                         DriveMotor &drive_motor,
+                         SteeringSensor &steering_sensor,
+                         EncoderReader &rear_encoder,
+                         EncoderReader &right_encoder,
+                         EncoderReader &left_encoder)
     : communication_(NODE_NAME, NODE_NAMESPACE, ROS_DOMAIN_ID),
       encoders_publisher_(rcl_get_zero_initialized_publisher()),
       steering_publisher_(rcl_get_zero_initialized_publisher()),
@@ -22,6 +26,9 @@ VidaRosNode::VidaRosNode(SteeringSensor &steering_sensor, EncoderReader &rear_en
       sensors_publish_timer_(rcl_get_zero_initialized_timer()),
       encoders_message_{},
       steering_message_{},
+      comands_message_{},
+      steering_motor_(steering_motor),
+      drive_motor_(drive_motor),
       steering_sensor_(steering_sensor),
       rear_encoder_(rear_encoder),
       right_encoder_(right_encoder),
@@ -101,6 +108,9 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         return;
     }
 
+    const SteeringMotor::Snapshot steering_pwm = steering_motor_.getSnapshot();
+    const DriveMotor::Snapshot drive_pwm = drive_motor_.getSnapshot();
+
     const EncoderReader::Snapshot left = left_encoder_.getMeasurementSnapshot();
     const EncoderReader::Snapshot right = right_encoder_.getMeasurementSnapshot();
     const EncoderReader::Snapshot rear = rear_encoder_.getMeasurementSnapshot();
@@ -125,11 +135,16 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         communication_.publish(steering_publisher_, &steering_message_);
     }
 
-    if (setTimestamp(comands_message_.timestamp, steering.timestamp_us))
-    {
-        comands_message_.pwm_steering = 1024;
-        comands_message_.pwm_drive = 1024;
-        
+    const bool steering_command_timestamp_valid =
+        setTimestamp(comands_message_.steering_timestamp, steering_pwm.timestamp_us);
+    const bool drive_command_timestamp_valid =
+        setTimestamp(comands_message_.drive_timestamp, drive_pwm.timestamp_us);
+
+    if (steering_command_timestamp_valid && drive_command_timestamp_valid)
+    {        
+        comands_message_.pwm_steering = steering_pwm.right_pwm - steering_pwm.left_pwm;
+        comands_message_.pwm_drive = drive_pwm.reverse ? -drive_pwm.pwm : drive_pwm.pwm;
+
         communication_.publish(comands_publisher_, &comands_message_);
     }
 }

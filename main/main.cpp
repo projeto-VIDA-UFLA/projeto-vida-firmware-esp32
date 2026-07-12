@@ -15,6 +15,10 @@
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
 
+// Iclui classes de sensores
+#include "actuators/SteeringMotor.h"
+#include "actuators/DriveMotor.h"
+
 // Iclui classes de comunicação
 #include "comunication/VidaRosNode.h"
 
@@ -30,8 +34,13 @@ EncoderReader left_encoder(ENC_LEFT_A, ENC_LEFT_B, ENC_FRONT_TICKS_PER_REV, "fro
 // Instanciando objeto do sensor de esterçamento
 SteeringSensor steering_sensor(PIN_LVDT);
 
+// Instanciando atuadores
+SteeringMotor steering_motor(PIN_STEER_RIGHT_PWM, PIN_STEER_LEFT_PWM, PWM_CH_STEER_RIGHT, PWM_CH_STEER_LEFT);
+DriveMotor drive_motor(PIN_DRIVE_PWM, PIN_DRIVE_REVERSE, PWM_CH_DRIVE);
+
 // Instanciando nó do ROS
-VidaRosNode ros_node(steering_sensor, rear_encoder, right_encoder, left_encoder);
+VidaRosNode ros_node(steering_motor, drive_motor, steering_sensor,
+                     rear_encoder, right_encoder, left_encoder);
 
 //======================================================================
 // DEFINIÇÃO DE ISRs DOS ENCODERS
@@ -87,6 +96,10 @@ void setup()
   right_encoder.begin();
   left_encoder.begin();
   steering_sensor.begin();
+
+  // Inicializa atuadores
+  steering_motor.begin();
+  drive_motor.begin();
 
   // Inicializa interrupções
   attachInterrupt(digitalPinToInterrupt(ENC_REAR_A), isrRearEncoder, CHANGE);

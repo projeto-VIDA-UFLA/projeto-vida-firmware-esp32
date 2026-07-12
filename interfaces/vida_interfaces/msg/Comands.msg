@@ -1,3 +1,5 @@
-builtin_interfaces/Time timestamp
-uint16 pwm_steering
-uint16 pwm_drive
+builtin_interfaces/Time steering_timestamp
+int16 pwm_steering
+
+builtin_interfaces/Time drive_timestamp
+int16 pwm_drive
