@@ -4,7 +4,7 @@
 // Configurações gerais
 // ============================================================
 
-#define SERIAL_BAUDRATE 115200
+#define SERIAL_BAUDRATE 460800
 
 // PWM
 #define PWM_FREQUENCY_HZ 9000
