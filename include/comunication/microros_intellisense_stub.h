@@ -102,14 +102,36 @@ struct std_msgs__msg__Float64MultiArray
     int64_t std_msgs__msg__Float64MultiArray;
 };
 
+struct builtin_interfaces__msg__Time
+{
+    int32_t sec;
+    uint32_t nanosec;
+};
+
+struct vida_interfaces__msg__EncoderMeasurement
+{
+    builtin_interfaces__msg__Time timestamp;
+    int64_t count;
+    float raw_velocity_m_s;
+    float filtered_velocity_m_s;
+    float raw_acceleration_m_s2;
+    float filtered_acceleration_m_s2;
+};
+
 struct vida_interfaces__msg__Encoders
 {
-    int64_t encoder_left_counts;
-    int64_t encoder_right_counts;
-    int64_t encoder_rear_counts;
-    int64_t encoder_left_ts;
-    int64_t encoder_right_ts;
-    int64_t encoder_rear_ts;
+    vida_interfaces__msg__EncoderMeasurement left;
+    vida_interfaces__msg__EncoderMeasurement right;
+    vida_interfaces__msg__EncoderMeasurement rear;
+};
+
+struct vida_interfaces__msg__Steering
+{
+    builtin_interfaces__msg__Time timestamp;
+    uint16_t raw_adc;
+    float raw_angle_deg;
+    float filtered_angle_deg;
+    float filtered_angular_velocity_deg_s;
 };
 
 extern rmw_qos_profile_t rmw_qos_profile_default;
@@ -131,6 +153,26 @@ inline rcl_allocator_t rcl_get_default_allocator()
 inline rcl_init_options_t rcl_get_zero_initialized_init_options()
 {
     return rcl_init_options_t{};
+}
+
+inline rcl_publisher_t rcl_get_zero_initialized_publisher()
+{
+    return rcl_publisher_t{};
+}
+
+inline rcl_subscription_t rcl_get_zero_initialized_subscription()
+{
+    return rcl_subscription_t{};
+}
+
+inline rcl_timer_t rcl_get_zero_initialized_timer()
+{
+    return rcl_timer_t{};
+}
+
+inline rcl_node_t rcl_get_zero_initialized_node()
+{
+    return rcl_node_t{};
 }
 
 inline rclc_executor_t rclc_executor_get_zero_initialized_executor()
@@ -236,6 +278,21 @@ inline rcl_ret_t rclc_support_fini(rclc_support_t *)
 inline rmw_ret_t rmw_uros_ping_agent(int, int)
 {
     return RMW_RET_OK;
+}
+
+inline rmw_ret_t rmw_uros_sync_session(int)
+{
+    return RMW_RET_OK;
+}
+
+inline bool rmw_uros_epoch_synchronized()
+{
+    return true;
+}
+
+inline int64_t rmw_uros_epoch_nanos()
+{
+    return 0;
 }
 
 inline rcl_ret_t rclc_executor_spin_some(rclc_executor_t *, int64_t)

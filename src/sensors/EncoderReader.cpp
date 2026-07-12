@@ -43,6 +43,8 @@ EncoderReader::EncoderReader(uint8_t pin_a, uint8_t pin_b, float tick_per_rev, c
       raw_acceleration_(0.0f),
       previous_velocity_(0.0f),
       has_previous_update_(false),
+      measurement_timestamp_us_(0),
+      measurement_count_(0),
 
       // Proteção para acesso concorrente entre ISR e task
       mux_(portMUX_INITIALIZER_UNLOCKED)
@@ -80,6 +82,8 @@ void EncoderReader::begin()
     previous_velocity_ = 0.0f;
 
     has_previous_update_ = false;
+    measurement_timestamp_us_ = previous_update_us_;
+    measurement_count_ = 0;
 }
 
 // ============================================================
@@ -215,16 +219,25 @@ void EncoderReader::update()
     int64_t delta_ticks = count - previous_count_;
 
     // Velocidade bruta calculada diretamente pelos ticks
-    raw_velocity_ = calculateVelocity(delta_ticks, dt_s);
+    const float raw_velocity = calculateVelocity(delta_ticks, dt_s);
 
     // Velocidade filtrada para uso em controle
-    velocity_ = applyLowPassFilter(raw_velocity_, velocity_, DRIVE_VELOCITY_FILTER_ALPHA);
+    const float filtered_velocity = applyLowPassFilter(raw_velocity, velocity_, DRIVE_VELOCITY_FILTER_ALPHA);
 
     // Aceleração bruta calculada a partir da velocidade filtrada
-    raw_acceleration_ = calculateAcceleration(velocity_, previous_velocity_, dt_s);
+    const float raw_acceleration = calculateAcceleration(filtered_velocity, previous_velocity_, dt_s);
 
     // Aceleração filtrada
-    acceleration_ = applyLowPassFilter(raw_acceleration_, acceleration_, DRIVE_ACCEL_FILTER_ALPHA);
+    const float filtered_acceleration = applyLowPassFilter(raw_acceleration, acceleration_, DRIVE_ACCEL_FILTER_ALPHA);
+
+    portENTER_CRITICAL(&mux_);
+    raw_velocity_ = raw_velocity;
+    velocity_ = filtered_velocity;
+    raw_acceleration_ = raw_acceleration;
+    acceleration_ = filtered_acceleration;
+    measurement_count_ = count;
+    measurement_timestamp_us_ = now_us;
+    portEXIT_CRITICAL(&mux_);
 
     previous_velocity_ = velocity_;
     previous_count_ = count;
@@ -252,22 +265,26 @@ long EncoderReader::getCount()
 }
 
 /**
- * @brief Retorna uma cópia consistente da contagem e do timestamp.
+ * @brief Retorna uma copia consistente da ultima medicao calculada.
  *
  * Essa função permite ler count_ e last_timestamp_ juntos, evitando que uma
  * interrupção altere um deles durante a leitura.
  *
- * @param count Variável de saída para a contagem atual.
- * @param timestamp_us Variável de saída para o timestamp da última transição.
+ * Contagem, velocidades, aceleracoes e timestamp pertencem ao mesmo update().
  */
-void EncoderReader::getSnapshot(int64_t &count, int64_t &timestamp_us)
+EncoderReader::Snapshot EncoderReader::getMeasurementSnapshot()
 {
+    Snapshot snapshot{};
     portENTER_CRITICAL(&mux_);
-
-    count = count_;
-    timestamp_us = last_timestamp_;
-
+    snapshot.timestamp_us = measurement_timestamp_us_;
+    snapshot.count = measurement_count_;
+    snapshot.raw_velocity_m_s = raw_velocity_;
+    snapshot.filtered_velocity_m_s = velocity_;
+    snapshot.raw_acceleration_m_s2 = raw_acceleration_;
+    snapshot.filtered_acceleration_m_s2 = acceleration_;
     portEXIT_CRITICAL(&mux_);
+
+    return snapshot;
 }
 
 /**
@@ -325,6 +342,11 @@ void EncoderReader::reset()
     previous_velocity_ = 0.0f;
 
     has_previous_update_ = false;
+
+    portENTER_CRITICAL(&mux_);
+    measurement_timestamp_us_ = now_us;
+    measurement_count_ = 0;
+    portEXIT_CRITICAL(&mux_);
 }
 
 // ============================================================

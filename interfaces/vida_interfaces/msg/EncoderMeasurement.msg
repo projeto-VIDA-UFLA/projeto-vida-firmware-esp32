@@ -1,0 +1,6 @@
+builtin_interfaces/Time timestamp
+int64 count
+float32 raw_velocity_m_s
+float32 filtered_velocity_m_s
+float32 raw_acceleration_m_s2
+float32 filtered_acceleration_m_s2

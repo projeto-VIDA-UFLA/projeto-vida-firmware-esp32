@@ -39,6 +39,8 @@ public:
     
     State getState() const;
     bool isConnected() const;
+    bool isTimeSynchronized() const;
+    bool localTimeToEpochNanos(int64_t local_time_us, int64_t &epoch_ns) const;
 
 private:
     static constexpr size_t MAX_PUBLISHERS = 8;
@@ -108,4 +110,5 @@ private:
 
     int64_t last_agent_wait_ping_ms_;
     int64_t last_agent_connected_ping_ms_;
+    int64_t last_time_sync_ms_;
 };

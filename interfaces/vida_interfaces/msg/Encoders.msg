@@ -1,7 +1,3 @@
-int64 encoder_left_counts
-int64 encoder_right_counts
-int64 encoder_rear_counts
-
-int64 encoder_left_ts
-int64 encoder_right_ts
-int64 encoder_rear_ts
+vida_interfaces/EncoderMeasurement left
+vida_interfaces/EncoderMeasurement right
+vida_interfaces/EncoderMeasurement rear

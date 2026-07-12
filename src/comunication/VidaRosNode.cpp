@@ -6,23 +6,9 @@ namespace
 {
     constexpr char NODE_NAME[] = "esp32_controller";
     constexpr char NODE_NAMESPACE[] = "/vida";
-    constexpr char SENSORS_TOPIC[] = "/vida/sensors";
+    constexpr char ENCODERS_TOPIC[] = "/vida/sensors/encoders";
+    constexpr char STEERING_TOPIC[] = "/vida/sensors/steering";
     constexpr int ROS_DOMAIN_ID = 0;
-
-    struct SensorSnapshot
-    {
-        uint32_t timestamp_ms;
-        int32_t steering_raw_adc;
-        int64_t rear_count;
-        int64_t right_count;
-        int64_t left_count;
-        float rear_velocity;
-        float right_velocity;
-        float left_velocity;
-        float rear_acceleration;
-        float right_acceleration;
-        float left_acceleration;
-    };
 } // namespace
 
 VidaRosNode *VidaRosNode::instance_ = nullptr;
@@ -30,10 +16,11 @@ VidaRosNode *VidaRosNode::instance_ = nullptr;
 VidaRosNode::VidaRosNode(SteeringSensor &steering_sensor, EncoderReader &rear_encoder,
                          EncoderReader &right_encoder, EncoderReader &left_encoder)
     : communication_(NODE_NAME, NODE_NAMESPACE, ROS_DOMAIN_ID),
-      sensors_publisher_(rcl_get_zero_initialized_publisher()),
+      encoders_publisher_(rcl_get_zero_initialized_publisher()),
+      steering_publisher_(rcl_get_zero_initialized_publisher()),
       sensors_publish_timer_(rcl_get_zero_initialized_timer()),
-      sensors_message_{},
-      sensors_message_buffer_{},
+      encoders_message_{},
+      steering_message_{},
       steering_sensor_(steering_sensor),
       rear_encoder_(rear_encoder),
       right_encoder_(right_encoder),
@@ -69,12 +56,18 @@ bool VidaRosNode::begin(Stream &transport)
 
 bool VidaRosNode::configure()
 {
-    configureSensorsMessage();
+    if (!communication_.addPublisher(
+            encoders_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Encoders),
+            ENCODERS_TOPIC))
+    {
+        return false;
+    }
 
     if (!communication_.addPublisher(
-            sensors_publisher_,
-            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64MultiArray),
-            SENSORS_TOPIC))
+            steering_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Steering),
+            STEERING_TOPIC))
     {
         return false;
     }
@@ -83,18 +76,6 @@ bool VidaRosNode::configure()
         sensors_publish_timer_,
         TASK_COMUNICATION_PERIOD_MS,
         publishSensorsCallback);
-}
-
-void VidaRosNode::configureSensorsMessage()
-{
-    sensors_message_.data.data = sensors_message_buffer_;
-    sensors_message_.data.size = SENSOR_MESSAGE_SIZE;
-    sensors_message_.data.capacity = SENSOR_MESSAGE_SIZE;
-
-    sensors_message_.layout.dim.data = nullptr;
-    sensors_message_.layout.dim.size = 0;
-    sensors_message_.layout.dim.capacity = 0;
-    sensors_message_.layout.data_offset = 0;
 }
 
 void VidaRosNode::publishSensorsCallback(rcl_timer_t *timer, int64_t last_call_time)
@@ -114,30 +95,57 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         return;
     }
 
-    const SensorSnapshot snapshot = {
-        millis(),
-        steering_sensor_.getRawAdc(),
-        rear_encoder_.getCount(),
-        right_encoder_.getCount(),
-        left_encoder_.getCount(),
-        rear_encoder_.getVelocity(),
-        right_encoder_.getVelocity(),
-        left_encoder_.getVelocity(),
-        rear_encoder_.getAcceleration(),
-        right_encoder_.getAcceleration(),
-        left_encoder_.getAcceleration()};
+    const EncoderReader::Snapshot left = left_encoder_.getMeasurementSnapshot();
+    const EncoderReader::Snapshot right = right_encoder_.getMeasurementSnapshot();
+    const EncoderReader::Snapshot rear = rear_encoder_.getMeasurementSnapshot();
+    const SteeringSensor::Snapshot steering = steering_sensor_.getSnapshot();
 
-    sensors_message_buffer_[0] = static_cast<double>(snapshot.timestamp_ms);
-    sensors_message_buffer_[1] = static_cast<double>(snapshot.steering_raw_adc);
-    sensors_message_buffer_[2] = static_cast<double>(snapshot.rear_count);
-    sensors_message_buffer_[3] = static_cast<double>(snapshot.right_count);
-    sensors_message_buffer_[4] = static_cast<double>(snapshot.left_count);
-    sensors_message_buffer_[5] = static_cast<double>(snapshot.rear_velocity);
-    sensors_message_buffer_[6] = static_cast<double>(snapshot.right_velocity);
-    sensors_message_buffer_[7] = static_cast<double>(snapshot.left_velocity);
-    sensors_message_buffer_[8] = static_cast<double>(snapshot.rear_acceleration);
-    sensors_message_buffer_[9] = static_cast<double>(snapshot.right_acceleration);
-    sensors_message_buffer_[10] = static_cast<double>(snapshot.left_acceleration);
+    const bool encoders_valid =
+        fillEncoderMeasurement(encoders_message_.left, left) &&
+        fillEncoderMeasurement(encoders_message_.right, right) &&
+        fillEncoderMeasurement(encoders_message_.rear, rear);
 
-    communication_.publish(sensors_publisher_, &sensors_message_);
+    if (encoders_valid)
+    {
+        communication_.publish(encoders_publisher_, &encoders_message_);
+    }
+
+    if (setTimestamp(steering_message_.timestamp, steering.timestamp_us))
+    {
+        steering_message_.raw_adc = steering.raw_adc;
+        steering_message_.raw_angle_deg = steering.raw_angle_deg;
+        steering_message_.filtered_angle_deg = steering.filtered_angle_deg;
+        steering_message_.filtered_angular_velocity_deg_s = steering.filtered_angular_velocity_deg_s;
+        communication_.publish(steering_publisher_, &steering_message_);
+    }
+}
+
+bool VidaRosNode::setTimestamp(builtin_interfaces__msg__Time &timestamp, int64_t local_time_us)
+{
+    int64_t epoch_ns = 0;
+    if (!communication_.localTimeToEpochNanos(local_time_us, epoch_ns))
+    {
+        return false;
+    }
+
+    timestamp.sec = static_cast<int32_t>(epoch_ns / 1000000000LL);
+    timestamp.nanosec = static_cast<uint32_t>(epoch_ns % 1000000000LL);
+    return true;
+}
+
+bool VidaRosNode::fillEncoderMeasurement(
+    vida_interfaces__msg__EncoderMeasurement &message,
+    const EncoderReader::Snapshot &snapshot)
+{
+    if (!setTimestamp(message.timestamp, snapshot.timestamp_us))
+    {
+        return false;
+    }
+
+    message.count = snapshot.count;
+    message.raw_velocity_m_s = snapshot.raw_velocity_m_s;
+    message.filtered_velocity_m_s = snapshot.filtered_velocity_m_s;
+    message.raw_acceleration_m_s2 = snapshot.raw_acceleration_m_s2;
+    message.filtered_acceleration_m_s2 = snapshot.filtered_acceleration_m_s2;
+    return true;
 }

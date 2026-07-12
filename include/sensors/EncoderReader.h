@@ -8,6 +8,16 @@
 class EncoderReader
 {
 public:
+    struct Snapshot
+    {
+        int64_t timestamp_us;
+        int64_t count;
+        float raw_velocity_m_s;
+        float filtered_velocity_m_s;
+        float raw_acceleration_m_s2;
+        float filtered_acceleration_m_s2;
+    };
+
     /**
      * @brief Construtor da classe EncoderReader.
      *
@@ -21,7 +31,7 @@ public:
     void begin();  // Inicializa pinos e estados internos
     void update(); // Atualiza velocidade e aceleração
 
-    void getSnapshot(int64_t &count, int64_t &timestamp_us); // Retorna uma cópia segura da contagem e do timestamp.
+    Snapshot getMeasurementSnapshot(); // Dados do mesmo ciclo de calculo.
     long getAndResetDelta();                                 // Retorna o delta de ticks e zera o acumulador
     long getCount();                                         // Retorna a contagem total de ticks
     void reset();                                            // Zera contadores e estados internos
@@ -56,6 +66,8 @@ private:
     float raw_acceleration_;
     float previous_velocity_;
     bool has_previous_update_;
+    int64_t measurement_timestamp_us_;
+    int64_t measurement_count_;
 
     // Proteção para acesso entre ISR e task
     portMUX_TYPE mux_;
