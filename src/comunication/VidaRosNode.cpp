@@ -90,7 +90,7 @@ bool VidaRosNode::configure()
     }
 
     if (!communication_.addPublisher(
-            cmd_steering_publisher_,
+            cmd_drive_publisher_,
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Comands),
             CMD_DRIVE_TOPIC))
     {
