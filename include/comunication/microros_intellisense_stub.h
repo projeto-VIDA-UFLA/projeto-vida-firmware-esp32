@@ -136,10 +136,8 @@ struct vida_interfaces__msg__Steering
 
 struct vida_interfaces__msg__Comands
 {
-    builtin_interfaces__msg__Time steering_timestamp;
-    builtin_interfaces__msg__Time drive_timestamp;
-    int16_t pwm_steering;
-    int16_t pwm_drive;
+    builtin_interfaces__msg__Time timestamp;   
+    int16_t pwm;
 };
 
 extern rmw_qos_profile_t rmw_qos_profile_default;

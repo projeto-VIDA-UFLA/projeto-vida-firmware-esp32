@@ -1,3 +1,3 @@
-builtin_interfaces/Time steering_timestamp
+builtin_interfaces/Time timestamp
 int16 pwm
 

@@ -144,15 +144,15 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         communication_.publish(steering_publisher_, &steering_message_);
     }
 
-    if (setTimestamp(cmd_steering_message_.steering_timestamp, steering_pwm.timestamp_us))
+    if (setTimestamp(cmd_steering_message_.timestamp, steering_pwm.timestamp_us))
     {
-        cmd_steering_message_.pwm_steering = steering_pwm.right_pwm - steering_pwm.left_pwm;
+        cmd_steering_message_.pwm = steering_pwm.right_pwm - steering_pwm.left_pwm;
         communication_.publish(cmd_steering_publisher_, &cmd_steering_message_);
     }
 
-    if (setTimestamp(cmd_drive_message_.steering_timestamp, drive_pwm.timestamp_us))
+    if (setTimestamp(cmd_drive_message_.timestamp, drive_pwm.timestamp_us))
     {
-        cmd_drive_message_.pwm_steering = !drive_pwm.reverse ? drive_pwm.pwm : -drive_pwm.pwm;
+        cmd_drive_message_.pwm = !drive_pwm.reverse ? drive_pwm.pwm : -drive_pwm.pwm;
         communication_.publish(cmd_drive_publisher_, &cmd_drive_message_);
     }
 }
