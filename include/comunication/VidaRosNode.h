@@ -5,6 +5,8 @@
 #include "comunication/RosCommunication.h"
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
+#include "actuators/SteeringMotor.h"
+#include "actuators/DriveMotor.h"
 
 #if defined(__INTELLISENSE__) || defined(__clangd__)
 #include "microros_intellisense_stub.h"
@@ -17,7 +19,9 @@
 class VidaRosNode
 {
 public:
-    VidaRosNode(SteeringSensor &steering_sensor,
+    VidaRosNode(SteeringMotor &steering_motor,
+                DriveMotor &drive_motor,
+                SteeringSensor &steering_sensor,
                 EncoderReader &rear_encoder,
                 EncoderReader &right_encoder,
                 EncoderReader &left_encoder);
@@ -39,13 +43,18 @@ private:
 
     rcl_publisher_t encoders_publisher_;
     rcl_publisher_t steering_publisher_;
-    rcl_publisher_t comands_publisher_;
-
-    rcl_timer_t sensors_publish_timer_;
+    rcl_publisher_t cmd_steering_publisher_;
+    rcl_publisher_t cmd_drive_publisher_;    
 
     vida_interfaces__msg__Encoders encoders_message_;
     vida_interfaces__msg__Steering steering_message_;
-    vida_interfaces__msg__Comands comands_message_;
+    vida_interfaces__msg__Comands cmd_steering_message_;
+    vida_interfaces__msg__Comands cmd_drive_message_;
+
+    rcl_timer_t sensors_publish_timer_;
+
+    SteeringMotor &steering_motor_;
+    DriveMotor &drive_motor_;
 
     SteeringSensor &steering_sensor_;
     EncoderReader &rear_encoder_;

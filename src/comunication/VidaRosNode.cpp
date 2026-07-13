@@ -7,21 +7,29 @@ namespace
     constexpr char NODE_NAMESPACE[] = "/vida";
     constexpr char ENCODERS_TOPIC[] = "/vida/sensors/encoders";
     constexpr char STEERING_TOPIC[] = "/vida/sensors/steering";
-    constexpr char COMANDS_TOPIC[] = "/vida/actuators/comands";
+    constexpr char CMD_STEERING_TOPIC[] = "/vida/actuators/steering";
+    constexpr char CMD_DRIVE_TOPIC[] = "/vida/actuators/drive";
     constexpr int ROS_DOMAIN_ID = 0;
 } // namespace
 
 VidaRosNode *VidaRosNode::instance_ = nullptr;
 
-VidaRosNode::VidaRosNode(SteeringSensor &steering_sensor, EncoderReader &rear_encoder,
-                         EncoderReader &right_encoder, EncoderReader &left_encoder)
+VidaRosNode::VidaRosNode(SteeringMotor &steering_motor,
+                         DriveMotor &drive_motor,
+                         SteeringSensor &steering_sensor,
+                         EncoderReader &rear_encoder,
+                         EncoderReader &right_encoder,
+                         EncoderReader &left_encoder)
     : communication_(NODE_NAME, NODE_NAMESPACE, ROS_DOMAIN_ID),
       encoders_publisher_(rcl_get_zero_initialized_publisher()),
       steering_publisher_(rcl_get_zero_initialized_publisher()),
-      comands_publisher_(rcl_get_zero_initialized_publisher()),
+      cmd_steering_publisher_(rcl_get_zero_initialized_publisher()),
       sensors_publish_timer_(rcl_get_zero_initialized_timer()),
       encoders_message_{},
       steering_message_{},
+      cmd_steering_message_{},
+      steering_motor_(steering_motor),
+      drive_motor_(drive_motor),
       steering_sensor_(steering_sensor),
       rear_encoder_(rear_encoder),
       right_encoder_(right_encoder),
@@ -74,9 +82,17 @@ bool VidaRosNode::configure()
     }
 
     if (!communication_.addPublisher(
-            comands_publisher_,
+            cmd_steering_publisher_,
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Comands),
-            COMANDS_TOPIC))
+            CMD_STEERING_TOPIC))
+    {
+        return false;
+    }
+
+    if (!communication_.addPublisher(
+            cmd_drive_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Comands),
+            CMD_DRIVE_TOPIC))
     {
         return false;
     }
@@ -100,6 +116,9 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
     {
         return;
     }
+
+    const SteeringMotor::Snapshot steering_pwm = steering_motor_.getSnapshot();
+    const DriveMotor::Snapshot drive_pwm = drive_motor_.getSnapshot();
 
     const EncoderReader::Snapshot left = left_encoder_.getMeasurementSnapshot();
     const EncoderReader::Snapshot right = right_encoder_.getMeasurementSnapshot();
@@ -125,12 +144,16 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         communication_.publish(steering_publisher_, &steering_message_);
     }
 
-    if (setTimestamp(comands_message_.timestamp, steering.timestamp_us))
+    if (setTimestamp(cmd_steering_message_.timestamp, steering_pwm.timestamp_us))
     {
-        comands_message_.pwm_steering = 1024;
-        comands_message_.pwm_drive = 1024;
-        
-        communication_.publish(comands_publisher_, &comands_message_);
+        cmd_steering_message_.pwm = steering_pwm.right_pwm - steering_pwm.left_pwm;
+        communication_.publish(cmd_steering_publisher_, &cmd_steering_message_);
+    }
+
+    if (setTimestamp(cmd_drive_message_.timestamp, drive_pwm.timestamp_us))
+    {
+        cmd_drive_message_.pwm = !drive_pwm.reverse ? drive_pwm.pwm : -drive_pwm.pwm;
+        communication_.publish(cmd_drive_publisher_, &cmd_drive_message_);
     }
 }
 
