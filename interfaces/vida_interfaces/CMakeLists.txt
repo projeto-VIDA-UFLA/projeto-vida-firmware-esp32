@@ -10,6 +10,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Encoders.msg"
   "msg/Steering.msg"
   "msg/Comands.msg"
+  "msg/SteeringReference.msg"
+  "msg/DriveReference.msg"
+  "msg/LogicalEnable.msg"
   DEPENDENCIES builtin_interfaces
 )
 

@@ -140,6 +140,26 @@ struct vida_interfaces__msg__Comands
     int16_t pwm;
 };
 
+struct vida_interfaces__msg__SteeringReference
+{
+    builtin_interfaces__msg__Time timestamp;
+    float angle_deg;
+    float angular_velocity_deg_s;
+};
+
+struct vida_interfaces__msg__DriveReference
+{
+    builtin_interfaces__msg__Time timestamp;
+    float velocity_m_s;
+    float acceleration_m_s2;
+};
+
+struct vida_interfaces__msg__LogicalEnable
+{
+    builtin_interfaces__msg__Time timestamp;
+    bool enabled;
+};
+
 extern rmw_qos_profile_t rmw_qos_profile_default;
 
 #define RCL_MS_TO_NS(ms) ((int64_t)(ms) * 1000000LL)

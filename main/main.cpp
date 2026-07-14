@@ -20,6 +20,7 @@
 #include "actuators/DriveMotor.h"
 
 // Iclui classes de comunicação
+#include "comunication/CommandMailbox.h"
 #include "comunication/VidaRosNode.h"
 
 //======================================================================
@@ -38,9 +39,12 @@ SteeringSensor steering_sensor(PIN_LVDT);
 SteeringMotor steering_motor(PIN_STEER_RIGHT_PWM, PIN_STEER_LEFT_PWM, PWM_CH_STEER_RIGHT, PWM_CH_STEER_LEFT);
 DriveMotor drive_motor(PIN_DRIVE_PWM, PIN_DRIVE_REVERSE, PWM_CH_DRIVE);
 
+CommandMailbox command_mailbox;
+
 // Instanciando nó do ROS
 VidaRosNode ros_node(steering_motor, drive_motor, steering_sensor,
-                     rear_encoder, right_encoder, left_encoder);
+                     rear_encoder, right_encoder, left_encoder,
+                     command_mailbox);
 
 //======================================================================
 // DEFINIÇÃO DE ISRs DOS ENCODERS

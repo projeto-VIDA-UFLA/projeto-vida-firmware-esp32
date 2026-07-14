@@ -1,0 +1,3 @@
+builtin_interfaces/Time timestamp
+float32 angle_deg
+float32 angular_velocity_deg_s
