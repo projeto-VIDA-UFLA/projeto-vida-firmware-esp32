@@ -11,6 +11,7 @@ namespace
     constexpr char STEERING_TOPIC[] = "/vida/sensors/steering";
     constexpr char CMD_STEERING_TOPIC[] = "/vida/actuators/steering";
     constexpr char CMD_DRIVE_TOPIC[] = "/vida/actuators/drive";
+    constexpr char SAFETY_STATUS_TOPIC[] = "/vida/safety/status";
     constexpr char STEERING_REFERENCE_TOPIC[] = "/vida/control/steering/reference";
     constexpr char DRIVE_REFERENCE_TOPIC[] = "/vida/control/drive/reference";
     constexpr char LOGICAL_ENABLE_TOPIC[] = "/vida/safety/logical_enable";
@@ -26,6 +27,7 @@ namespace
 VidaRosNode *VidaRosNode::instance_ = nullptr;
 
 VidaRosNode::VidaRosNode(ActuatorManager &actuator_manager,
+                         SafetyManager &safety_manager,
                          SteeringSensor &steering_sensor,
                          EncoderReader &rear_encoder,
                          EncoderReader &right_encoder,
@@ -36,6 +38,7 @@ VidaRosNode::VidaRosNode(ActuatorManager &actuator_manager,
       steering_publisher_(rcl_get_zero_initialized_publisher()),
       cmd_steering_publisher_(rcl_get_zero_initialized_publisher()),
       cmd_drive_publisher_(rcl_get_zero_initialized_publisher()),
+      safety_status_publisher_(rcl_get_zero_initialized_publisher()),
       steering_reference_subscription_(rcl_get_zero_initialized_subscription()),
       drive_reference_subscription_(rcl_get_zero_initialized_subscription()),
       logical_enable_subscription_(rcl_get_zero_initialized_subscription()),
@@ -43,11 +46,13 @@ VidaRosNode::VidaRosNode(ActuatorManager &actuator_manager,
       steering_message_{},
       cmd_steering_message_{},
       cmd_drive_message_{},
+      safety_status_message_{},
       steering_reference_message_{},
       drive_reference_message_{},
       logical_enable_message_{},
       sensors_publish_timer_(rcl_get_zero_initialized_timer()),
       actuator_manager_(actuator_manager),
+      safety_manager_(safety_manager),
       steering_sensor_(steering_sensor),
       rear_encoder_(rear_encoder),
       right_encoder_(right_encoder),
@@ -112,6 +117,14 @@ bool VidaRosNode::configure()
             cmd_drive_publisher_,
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Comands),
             CMD_DRIVE_TOPIC))
+    {
+        return false;
+    }
+
+    if (!communication_.addPublisher(
+            safety_status_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, SafetyStatus),
+            SAFETY_STATUS_TOPIC))
     {
         return false;
     }
@@ -232,6 +245,7 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
     const EncoderReader::Snapshot right = right_encoder_.getMeasurementSnapshot();
     const EncoderReader::Snapshot rear = rear_encoder_.getMeasurementSnapshot();
     const SteeringSensor::Snapshot steering = steering_sensor_.getSnapshot();
+    const SafetyManager::Snapshot safety = safety_manager_.getSnapshot();
 
     const bool encoders_valid =
         fillEncoderMeasurement(encoders_message_.left, left) &&
@@ -262,6 +276,16 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
     {
         cmd_drive_message_.pwm = !drive_pwm.reverse ? drive_pwm.pwm : -drive_pwm.pwm;
         communication_.publish(cmd_drive_publisher_, &cmd_drive_message_);
+    }
+
+    if (setTimestamp(safety_status_message_.timestamp, safety.timestamp_us))
+    {
+        safety_status_message_.state = static_cast<uint8_t>(safety.state);
+        safety_status_message_.physical_enable = safety.physical_enable;
+        safety_status_message_.logical_enable = safety.logical_enable;
+        safety_status_message_.logical_enable_received = safety.logical_enable_received;
+        safety_status_message_.motion_permitted = safety.motion_permitted;
+        communication_.publish(safety_status_publisher_, &safety_status_message_);
     }
 }
 

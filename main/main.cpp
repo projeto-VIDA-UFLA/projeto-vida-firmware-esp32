@@ -46,7 +46,7 @@ CommandMailbox command_mailbox;
 SafetyManager safety_manager(PIN_ENABLE_SAFETY, command_mailbox, actuator_manager);
 
 // Instanciando nó do ROS
-VidaRosNode ros_node(actuator_manager, steering_sensor,
+VidaRosNode ros_node(actuator_manager, safety_manager, steering_sensor,
                      rear_encoder, right_encoder, left_encoder,
                      command_mailbox);
 

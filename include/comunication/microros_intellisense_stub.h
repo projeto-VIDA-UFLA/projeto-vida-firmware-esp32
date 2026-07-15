@@ -160,6 +160,16 @@ struct vida_interfaces__msg__LogicalEnable
     bool enabled;
 };
 
+struct vida_interfaces__msg__SafetyStatus
+{
+    builtin_interfaces__msg__Time timestamp;
+    uint8_t state;
+    bool physical_enable;
+    bool logical_enable;
+    bool logical_enable_received;
+    bool motion_permitted;
+};
+
 extern rmw_qos_profile_t rmw_qos_profile_default;
 
 #define RCL_MS_TO_NS(ms) ((int64_t)(ms) * 1000000LL)

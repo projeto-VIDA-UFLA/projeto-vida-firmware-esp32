@@ -5,6 +5,7 @@
 #include "comunication/CommandMailbox.h"
 #include "comunication/RosCommunication.h"
 #include "actuators/ActuatorManager.h"
+#include "safety/SafetyManager.h"
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
 
@@ -17,12 +18,14 @@
 #include <vida_interfaces/msg/steering_reference.h>
 #include <vida_interfaces/msg/drive_reference.h>
 #include <vida_interfaces/msg/logical_enable.h>
+#include <vida_interfaces/msg/safety_status.h>
 #endif
 
 class VidaRosNode
 {
 public:
     VidaRosNode(ActuatorManager &actuator_manager,
+                SafetyManager &safety_manager,
                 SteeringSensor &steering_sensor,
                 EncoderReader &rear_encoder,
                 EncoderReader &right_encoder,
@@ -51,6 +54,7 @@ private:
     rcl_publisher_t steering_publisher_;
     rcl_publisher_t cmd_steering_publisher_;
     rcl_publisher_t cmd_drive_publisher_;
+    rcl_publisher_t safety_status_publisher_;
 
     rcl_subscription_t steering_reference_subscription_;
     rcl_subscription_t drive_reference_subscription_;
@@ -60,6 +64,7 @@ private:
     vida_interfaces__msg__Steering steering_message_;
     vida_interfaces__msg__Comands cmd_steering_message_;
     vida_interfaces__msg__Comands cmd_drive_message_;
+    vida_interfaces__msg__SafetyStatus safety_status_message_;
 
     vida_interfaces__msg__SteeringReference steering_reference_message_;
     vida_interfaces__msg__DriveReference drive_reference_message_;
@@ -68,6 +73,7 @@ private:
     rcl_timer_t sensors_publish_timer_;
 
     ActuatorManager &actuator_manager_;
+    SafetyManager &safety_manager_;
 
     SteeringSensor &steering_sensor_;
     EncoderReader &rear_encoder_;

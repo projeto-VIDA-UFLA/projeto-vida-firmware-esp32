@@ -7,8 +7,8 @@
 
 enum class SafetyState : uint8_t
 {
-    STATE_DISABLED,
-    STATE_READY
+    STATE_DISABLED = 0,
+    STATE_READY = 1
 };
 
 class SafetyManager
