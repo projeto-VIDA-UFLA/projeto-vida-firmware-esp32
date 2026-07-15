@@ -37,7 +37,7 @@ bool SafetyManager::begin()
 
 void SafetyManager::update()
 {
-    const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
+    const bool physical_enable = digitalRead(physical_enable_pin_) == !HIGH;
     const CommandMailbox::LogicalEnableSnapshot logical_enable =
         command_mailbox_.getLogicalEnableSnapshot();
 
