@@ -17,7 +17,9 @@ enum SafetyInhibitFlag : uint32_t
     INHIBIT_PHYSICAL_ENABLE_OFF = 1U << 0,
     INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED = 1U << 1,
     INHIBIT_LOGICAL_ENABLE_FALSE = 1U << 2,
-    INHIBIT_LOGICAL_ENABLE_TIMEOUT = 1U << 3
+    INHIBIT_LOGICAL_ENABLE_TIMEOUT = 1U << 3,
+    INHIBIT_DRIVE_REFERENCE_NOT_FRESH = 1U << 4,
+    INHIBIT_STEERING_REFERENCE_NOT_FRESH = 1U << 5
 };
 
 class SafetyManager
@@ -30,6 +32,8 @@ public:
         bool logical_enable;
         bool logical_enable_received;
         bool logical_enable_fresh;
+        bool drive_reference_fresh;
+        bool steering_reference_fresh;
         bool motion_permitted;
         uint32_t inhibit_flags;
         int64_t timestamp_us;
@@ -43,6 +47,10 @@ public:
     Snapshot getSnapshot() const;
 
 private:
+    static bool isFresh(bool received,
+                        int64_t received_at_us,
+                        int64_t now_us,
+                        int64_t timeout_us);
     void applyStateTransition(SafetyState previous_state, SafetyState new_state);
 
     uint8_t physical_enable_pin_;

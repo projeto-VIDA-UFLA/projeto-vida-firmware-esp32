@@ -16,10 +16,14 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
     snapshot_.logical_enable = false;
     snapshot_.logical_enable_received = false;
     snapshot_.logical_enable_fresh = false;
+    snapshot_.drive_reference_fresh = false;
+    snapshot_.steering_reference_fresh = false;
     snapshot_.motion_permitted = false;
     snapshot_.inhibit_flags =
         INHIBIT_PHYSICAL_ENABLE_OFF |
-        INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED;
+        INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED |
+        INHIBIT_DRIVE_REFERENCE_NOT_FRESH |
+        INHIBIT_STEERING_REFERENCE_NOT_FRESH;
     snapshot_.timestamp_us = 0;
 }
 
@@ -38,8 +42,12 @@ bool SafetyManager::begin()
         false,
         false,
         false,
+        false,
+        false,
         (physical_enable ? INHIBIT_NONE : INHIBIT_PHYSICAL_ENABLE_OFF) |
-            INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED,
+            INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED |
+            INHIBIT_DRIVE_REFERENCE_NOT_FRESH |
+            INHIBIT_STEERING_REFERENCE_NOT_FRESH,
         esp_timer_get_time()};
 
     portENTER_CRITICAL(&snapshot_mux_);
@@ -51,19 +59,34 @@ bool SafetyManager::begin()
 
 void SafetyManager::update()
 {
-    constexpr int64_t timeout_us =
+    constexpr int64_t logical_enable_timeout_us =
         static_cast<int64_t>(LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS) * 1000LL;
+    constexpr int64_t drive_reference_timeout_us =
+        static_cast<int64_t>(DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS) * 1000LL;
+    constexpr int64_t steering_reference_timeout_us =
+        static_cast<int64_t>(STEERING_REFERENCE_WATCHDOG_TIMEOUT_MS) * 1000LL;
 
     const int64_t now_us = esp_timer_get_time();
     const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
     const CommandMailbox::LogicalEnableSnapshot logical_enable =
         command_mailbox_.getLogicalEnableSnapshot();
+    const CommandMailbox::DriveReferenceSnapshot drive_reference =
+        command_mailbox_.getDriveReferenceSnapshot();
+    const CommandMailbox::SteeringReferenceSnapshot steering_reference =
+        command_mailbox_.getSteeringReferenceSnapshot();
 
-    const bool logical_enable_fresh =
-        logical_enable.received &&
-        logical_enable.received_at_us > 0 &&
-        now_us >= logical_enable.received_at_us &&
-        now_us - logical_enable.received_at_us <= timeout_us;
+    const bool logical_enable_fresh = isFresh(logical_enable.received,
+                                              logical_enable.received_at_us,
+                                              now_us,
+                                              logical_enable_timeout_us);
+    const bool drive_reference_fresh = isFresh(drive_reference.received,
+                                               drive_reference.received_at_us,
+                                               now_us,
+                                               drive_reference_timeout_us);
+    const bool steering_reference_fresh = isFresh(steering_reference.received,
+                                                  steering_reference.received_at_us,
+                                                  now_us,
+                                                  steering_reference_timeout_us);
 
     uint32_t inhibit_flags = INHIBIT_NONE;
     if (!physical_enable)
@@ -88,13 +111,23 @@ void SafetyManager::update()
         }
     }
 
-    // TODO: Antes da TaskControl, adicionar timeout das referencias,
-    // supervisao ROS e validacao de referencias e sensores.
+    if (!drive_reference_fresh)
+    {
+        inhibit_flags |= INHIBIT_DRIVE_REFERENCE_NOT_FRESH;
+    }
+
+    if (!steering_reference_fresh)
+    {
+        inhibit_flags |= INHIBIT_STEERING_REFERENCE_NOT_FRESH;
+    }
+
     const bool motion_permitted =
         physical_enable &&
         logical_enable.received &&
         logical_enable_fresh &&
-        logical_enable.enabled;
+        logical_enable.enabled &&
+        drive_reference_fresh &&
+        steering_reference_fresh;
     const SafetyState new_state = motion_permitted
                                       ? SafetyState::STATE_READY
                                       : SafetyState::STATE_DISABLED;
@@ -115,6 +148,8 @@ void SafetyManager::update()
         logical_enable.enabled,
         logical_enable.received,
         logical_enable_fresh,
+        drive_reference_fresh,
+        steering_reference_fresh,
         motion_permitted,
         inhibit_flags,
         now_us};
@@ -130,6 +165,17 @@ SafetyManager::Snapshot SafetyManager::getSnapshot() const
     const Snapshot snapshot = snapshot_;
     portEXIT_CRITICAL(&snapshot_mux_);
     return snapshot;
+}
+
+bool SafetyManager::isFresh(bool received,
+                            int64_t received_at_us,
+                            int64_t now_us,
+                            int64_t timeout_us)
+{
+    return received &&
+           received_at_us > 0 &&
+           now_us >= received_at_us &&
+           (now_us - received_at_us) <= timeout_us;
 }
 
 void SafetyManager::applyStateTransition(SafetyState previous_state,

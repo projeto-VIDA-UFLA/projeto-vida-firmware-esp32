@@ -168,6 +168,8 @@ struct vida_interfaces__msg__SafetyStatus
     bool logical_enable;
     bool logical_enable_received;
     bool logical_enable_fresh;
+    bool drive_reference_fresh;
+    bool steering_reference_fresh;
     bool motion_permitted;
     uint32_t inhibit_flags;
 };

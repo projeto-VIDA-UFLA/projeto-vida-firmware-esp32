@@ -5,6 +5,8 @@ uint32 INHIBIT_PHYSICAL_ENABLE_OFF=1
 uint32 INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED=2
 uint32 INHIBIT_LOGICAL_ENABLE_FALSE=4
 uint32 INHIBIT_LOGICAL_ENABLE_TIMEOUT=8
+uint32 INHIBIT_DRIVE_REFERENCE_NOT_FRESH=16
+uint32 INHIBIT_STEERING_REFERENCE_NOT_FRESH=32
 
 builtin_interfaces/Time timestamp
 uint8 state
@@ -12,5 +14,7 @@ bool physical_enable
 bool logical_enable
 bool logical_enable_received
 bool logical_enable_fresh
+bool drive_reference_fresh
+bool steering_reference_fresh
 bool motion_permitted
 uint32 inhibit_flags
