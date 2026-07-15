@@ -30,7 +30,7 @@ bool SafetyManager::begin()
     // A inicializacao e sempre bloqueada, independentemente do nivel fisico.
     actuator_manager_.setMotionPermit(false);
 
-    const bool physical_enable = digitalRead(physical_enable_pin_) == !HIGH;
+    const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
     const Snapshot initial_snapshot{
         SafetyState::STATE_DISABLED,
         physical_enable,
@@ -55,7 +55,7 @@ void SafetyManager::update()
         static_cast<int64_t>(LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS) * 1000LL;
 
     const int64_t now_us = esp_timer_get_time();
-    const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
+    const bool physical_enable = digitalRead(physical_enable_pin_) == !HIGH;
     const CommandMailbox::LogicalEnableSnapshot logical_enable =
         command_mailbox_.getLogicalEnableSnapshot();
 
