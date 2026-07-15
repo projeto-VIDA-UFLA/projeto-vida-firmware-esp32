@@ -25,8 +25,7 @@ namespace
 
 VidaRosNode *VidaRosNode::instance_ = nullptr;
 
-VidaRosNode::VidaRosNode(SteeringMotor &steering_motor,
-                         DriveMotor &drive_motor,
+VidaRosNode::VidaRosNode(ActuatorManager &actuator_manager,
                          SteeringSensor &steering_sensor,
                          EncoderReader &rear_encoder,
                          EncoderReader &right_encoder,
@@ -48,8 +47,7 @@ VidaRosNode::VidaRosNode(SteeringMotor &steering_motor,
       drive_reference_message_{},
       logical_enable_message_{},
       sensors_publish_timer_(rcl_get_zero_initialized_timer()),
-      steering_motor_(steering_motor),
-      drive_motor_(drive_motor),
+      actuator_manager_(actuator_manager),
       steering_sensor_(steering_sensor),
       rear_encoder_(rear_encoder),
       right_encoder_(right_encoder),
@@ -226,8 +224,9 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         return;
     }
 
-    const SteeringMotor::Snapshot steering_pwm = steering_motor_.getSnapshot();
-    const DriveMotor::Snapshot drive_pwm = drive_motor_.getSnapshot();
+    const ActuatorManager::Snapshot actuators = actuator_manager_.getSnapshot();
+    const SteeringMotor::Snapshot &steering_pwm = actuators.steering;
+    const DriveMotor::Snapshot &drive_pwm = actuators.drive;
 
     const EncoderReader::Snapshot left = left_encoder_.getMeasurementSnapshot();
     const EncoderReader::Snapshot right = right_encoder_.getMeasurementSnapshot();

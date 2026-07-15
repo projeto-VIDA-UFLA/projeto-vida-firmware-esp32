@@ -19,6 +19,7 @@
 // Controle / tarefas
 #define TASK_CONTROL_PERIOD_MS 10      // 100 Hz
 #define TASK_SENSOR_PERIOD_MS 2        // 500 Hz
+#define TASK_SAFETY_PERIOD_MS 5         // 200 Hz
 #define TASK_COMUNICATION_PERIOD_MS 20 // 50Hz
 
 // Publicação ros 50 Hz

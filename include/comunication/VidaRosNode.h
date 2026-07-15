@@ -4,10 +4,9 @@
 
 #include "comunication/CommandMailbox.h"
 #include "comunication/RosCommunication.h"
+#include "actuators/ActuatorManager.h"
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
-#include "actuators/SteeringMotor.h"
-#include "actuators/DriveMotor.h"
 
 #if defined(__INTELLISENSE__) || defined(__clangd__)
 #include "microros_intellisense_stub.h"
@@ -23,8 +22,7 @@
 class VidaRosNode
 {
 public:
-    VidaRosNode(SteeringMotor &steering_motor,
-                DriveMotor &drive_motor,
+    VidaRosNode(ActuatorManager &actuator_manager,
                 SteeringSensor &steering_sensor,
                 EncoderReader &rear_encoder,
                 EncoderReader &right_encoder,
@@ -69,8 +67,7 @@ private:
 
     rcl_timer_t sensors_publish_timer_;
 
-    SteeringMotor &steering_motor_;
-    DriveMotor &drive_motor_;
+    ActuatorManager &actuator_manager_;
 
     SteeringSensor &steering_sensor_;
     EncoderReader &rear_encoder_;

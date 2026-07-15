@@ -18,6 +18,8 @@
 // Iclui classes de sensores
 #include "actuators/SteeringMotor.h"
 #include "actuators/DriveMotor.h"
+#include "actuators/ActuatorManager.h"
+#include "safety/SafetyManager.h"
 
 // Iclui classes de comunicação
 #include "comunication/CommandMailbox.h"
@@ -38,11 +40,13 @@ SteeringSensor steering_sensor(PIN_LVDT);
 // Instanciando atuadores
 SteeringMotor steering_motor(PIN_STEER_RIGHT_PWM, PIN_STEER_LEFT_PWM, PWM_CH_STEER_RIGHT, PWM_CH_STEER_LEFT);
 DriveMotor drive_motor(PIN_DRIVE_PWM, PIN_DRIVE_REVERSE, PWM_CH_DRIVE);
+ActuatorManager actuator_manager(drive_motor, steering_motor);
 
 CommandMailbox command_mailbox;
+SafetyManager safety_manager(PIN_ENABLE_SAFETY, command_mailbox, actuator_manager);
 
 // Instanciando nó do ROS
-VidaRosNode ros_node(steering_motor, drive_motor, steering_sensor,
+VidaRosNode ros_node(actuator_manager, steering_sensor,
                      rear_encoder, right_encoder, left_encoder,
                      command_mailbox);
 
@@ -85,6 +89,20 @@ void taskSensors(void *parameter)
   }
 }
 
+void taskSafety(void *parameter)
+{
+  (void)parameter;
+
+  TickType_t last_wake_time = xTaskGetTickCount();
+
+  while (true)
+  {
+    safety_manager.update();
+
+    vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_SAFETY_PERIOD_MS));
+  }
+}
+
 //======================================================================
 // VOID SETUP
 //======================================================================
@@ -102,8 +120,15 @@ void setup()
   steering_sensor.begin();
 
   // Inicializa atuadores
-  steering_motor.begin();
   drive_motor.begin();
+  steering_motor.begin();
+  actuator_manager.begin();
+
+  const bool safety_initialized = safety_manager.begin();
+  if (!safety_initialized)
+  {
+    actuator_manager.setMotionPermit(false);
+  }
 
   // Inicializa interrupções
   attachInterrupt(digitalPinToInterrupt(ENC_REAR_A), isrRearEncoder, CHANGE);
@@ -115,6 +140,12 @@ void setup()
 
   // Inicializa TASKs
   xTaskCreatePinnedToCore(taskSensors, "TaskSensors", 4096, nullptr, PRIORITY_SENSORS, nullptr, 1);
+
+  if (safety_initialized && xTaskCreatePinnedToCore(taskSafety, "TaskSafety", 4096, nullptr, PRIORITY_SAFETY, nullptr, 1) != pdPASS)
+  {
+    actuator_manager.setMotionPermit(false);
+  }
+
   ros_node.begin(Serial);
 }
 
