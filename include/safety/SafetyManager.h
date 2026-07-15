@@ -11,6 +11,15 @@ enum class SafetyState : uint8_t
     STATE_READY = 1
 };
 
+enum SafetyInhibitFlag : uint32_t
+{
+    INHIBIT_NONE = 0,
+    INHIBIT_PHYSICAL_ENABLE_OFF = 1U << 0,
+    INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED = 1U << 1,
+    INHIBIT_LOGICAL_ENABLE_FALSE = 1U << 2,
+    INHIBIT_LOGICAL_ENABLE_TIMEOUT = 1U << 3
+};
+
 class SafetyManager
 {
 public:
@@ -20,7 +29,9 @@ public:
         bool physical_enable;
         bool logical_enable;
         bool logical_enable_received;
+        bool logical_enable_fresh;
         bool motion_permitted;
+        uint32_t inhibit_flags;
         int64_t timestamp_us;
     };
 

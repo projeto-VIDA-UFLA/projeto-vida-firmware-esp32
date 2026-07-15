@@ -284,7 +284,9 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         safety_status_message_.physical_enable = safety.physical_enable;
         safety_status_message_.logical_enable = safety.logical_enable;
         safety_status_message_.logical_enable_received = safety.logical_enable_received;
+        safety_status_message_.logical_enable_fresh = safety.logical_enable_fresh;
         safety_status_message_.motion_permitted = safety.motion_permitted;
+        safety_status_message_.inhibit_flags = safety.inhibit_flags;
         communication_.publish(safety_status_publisher_, &safety_status_message_);
     }
 }

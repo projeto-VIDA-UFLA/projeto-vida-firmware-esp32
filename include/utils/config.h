@@ -26,6 +26,7 @@
 
 // Watchdog de comando
 #define COMMAND_WATCHDOG_TIMEOUT_MS 300
+#define LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS 300
 
 // Handshake com o computador de bordo
 #define REQUIRE_ODROID_HANDSHAKE 1

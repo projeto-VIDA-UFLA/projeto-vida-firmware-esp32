@@ -1,5 +1,6 @@
 #include "safety/SafetyManager.h"
 
+#include "utils/config.h"
 #include "esp_timer.h"
 
 SafetyManager::SafetyManager(uint8_t physical_enable_pin,
@@ -8,8 +9,18 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
     : physical_enable_pin_(physical_enable_pin),
       command_mailbox_(command_mailbox),
       actuator_manager_(actuator_manager),
-      snapshot_{SafetyState::STATE_DISABLED, false, false, false, false, 0}
+      snapshot_()
 {
+    snapshot_.state = SafetyState::STATE_DISABLED;
+    snapshot_.physical_enable = false;
+    snapshot_.logical_enable = false;
+    snapshot_.logical_enable_received = false;
+    snapshot_.logical_enable_fresh = false;
+    snapshot_.motion_permitted = false;
+    snapshot_.inhibit_flags =
+        INHIBIT_PHYSICAL_ENABLE_OFF |
+        INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED;
+    snapshot_.timestamp_us = 0;
 }
 
 bool SafetyManager::begin()
@@ -26,6 +37,9 @@ bool SafetyManager::begin()
         false,
         false,
         false,
+        false,
+        (physical_enable ? INHIBIT_NONE : INHIBIT_PHYSICAL_ENABLE_OFF) |
+            INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED,
         esp_timer_get_time()};
 
     portENTER_CRITICAL(&snapshot_mux_);
@@ -37,14 +51,50 @@ bool SafetyManager::begin()
 
 void SafetyManager::update()
 {
+    constexpr int64_t timeout_us =
+        static_cast<int64_t>(LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS) * 1000LL;
+
+    const int64_t now_us = esp_timer_get_time();
     const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
     const CommandMailbox::LogicalEnableSnapshot logical_enable =
         command_mailbox_.getLogicalEnableSnapshot();
 
-    // TODO: Antes da TaskControl, adicionar timeout do enable logico e das
-    // referencias, supervisao ROS e validacao de referencias e sensores.
+    const bool logical_enable_fresh =
+        logical_enable.received &&
+        logical_enable.received_at_us > 0 &&
+        now_us >= logical_enable.received_at_us &&
+        now_us - logical_enable.received_at_us <= timeout_us;
+
+    uint32_t inhibit_flags = INHIBIT_NONE;
+    if (!physical_enable)
+    {
+        inhibit_flags |= INHIBIT_PHYSICAL_ENABLE_OFF;
+    }
+
+    if (!logical_enable.received)
+    {
+        inhibit_flags |= INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED;
+    }
+    else
+    {
+        if (!logical_enable.enabled)
+        {
+            inhibit_flags |= INHIBIT_LOGICAL_ENABLE_FALSE;
+        }
+
+        if (!logical_enable_fresh)
+        {
+            inhibit_flags |= INHIBIT_LOGICAL_ENABLE_TIMEOUT;
+        }
+    }
+
+    // TODO: Antes da TaskControl, adicionar timeout das referencias,
+    // supervisao ROS e validacao de referencias e sensores.
     const bool motion_permitted =
-        physical_enable && logical_enable.received && logical_enable.enabled;
+        physical_enable &&
+        logical_enable.received &&
+        logical_enable_fresh &&
+        logical_enable.enabled;
     const SafetyState new_state = motion_permitted
                                       ? SafetyState::STATE_READY
                                       : SafetyState::STATE_DISABLED;
@@ -64,8 +114,10 @@ void SafetyManager::update()
         physical_enable,
         logical_enable.enabled,
         logical_enable.received,
+        logical_enable_fresh,
         motion_permitted,
-        esp_timer_get_time()};
+        inhibit_flags,
+        now_us};
 
     portENTER_CRITICAL(&snapshot_mux_);
     snapshot_ = new_snapshot;

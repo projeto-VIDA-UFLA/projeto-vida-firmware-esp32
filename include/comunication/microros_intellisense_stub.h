@@ -167,7 +167,9 @@ struct vida_interfaces__msg__SafetyStatus
     bool physical_enable;
     bool logical_enable;
     bool logical_enable_received;
+    bool logical_enable_fresh;
     bool motion_permitted;
+    uint32_t inhibit_flags;
 };
 
 extern rmw_qos_profile_t rmw_qos_profile_default;
