@@ -30,7 +30,7 @@ bool SafetyManager::begin()
     // A inicializacao e sempre bloqueada, independentemente do nivel fisico.
     actuator_manager_.setMotionPermit(false);
 
-    const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
+    const bool physical_enable = digitalRead(physical_enable_pin_) == !HIGH;
     const Snapshot initial_snapshot{
         SafetyState::STATE_DISABLED,
         physical_enable,
