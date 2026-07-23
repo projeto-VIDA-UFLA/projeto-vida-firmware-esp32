@@ -79,10 +79,12 @@ void SafetyManager::update()
                                               logical_enable.received_at_us,
                                               now_us,
                                               logical_enable_timeout_us);
+
     const bool drive_reference_fresh = isFresh(drive_reference.received,
                                                drive_reference.received_at_us,
                                                now_us,
                                                drive_reference_timeout_us);
+
     const bool steering_reference_fresh = isFresh(steering_reference.received,
                                                   steering_reference.received_at_us,
                                                   now_us,

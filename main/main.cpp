@@ -15,7 +15,7 @@
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
 
-// Iclui classes de sensores
+// Iclui classes de atuadores
 #include "actuators/SteeringMotor.h"
 #include "actuators/DriveMotor.h"
 #include "actuators/ActuatorManager.h"
