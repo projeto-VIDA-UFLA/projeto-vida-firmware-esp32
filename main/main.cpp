@@ -4,6 +4,7 @@
 
 // Inclui bibliotecas ESP32
 #include <Arduino.h>
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -11,17 +12,22 @@
 #include "utils/pinout.h"
 #include "utils/config.h"
 
-// Iclui classes de sensores
+// Inclui classes de sensores
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
 
-// Iclui classes de atuadores
+// Inclui classes de atuadores
 #include "actuators/SteeringMotor.h"
 #include "actuators/DriveMotor.h"
 #include "actuators/ActuatorManager.h"
+
+// Inclui classes de controle
+#include "control/SteeringController.h"
+
+// Inclui classes de segurança
 #include "safety/SafetyManager.h"
 
-// Iclui classes de comunicação
+// Inclui classes de comunicação
 #include "comunication/CommandMailbox.h"
 #include "comunication/VidaRosNode.h"
 
@@ -42,13 +48,15 @@ SteeringMotor steering_motor(PIN_STEER_RIGHT_PWM, PIN_STEER_LEFT_PWM, PWM_CH_STE
 DriveMotor drive_motor(PIN_DRIVE_PWM, PIN_DRIVE_REVERSE, PWM_CH_DRIVE);
 ActuatorManager actuator_manager(drive_motor, steering_motor);
 
+SteeringController steering_controller;
+
 CommandMailbox command_mailbox;
 SafetyManager safety_manager(PIN_ENABLE_SAFETY, command_mailbox, actuator_manager);
 
 // Instanciando nó do ROS
 VidaRosNode ros_node(actuator_manager, safety_manager, steering_sensor,
                      rear_encoder, right_encoder, left_encoder,
-                     command_mailbox);
+                     command_mailbox, steering_controller);
 
 //======================================================================
 // DEFINIÇÃO DE ISRs DOS ENCODERS
@@ -103,6 +111,39 @@ void taskSafety(void *parameter)
   }
 }
 
+void taskControl(void *parameter)
+{
+  (void)parameter;
+
+  TickType_t last_wake_time = xTaskGetTickCount();
+  int64_t previous_update_us = 0;
+
+  while (true)
+  {
+    const int64_t now_us = esp_timer_get_time();
+    const CommandMailbox::SteeringReferenceSnapshot reference =
+        command_mailbox.getSteeringReferenceSnapshot();
+
+    if (reference.received)
+    {
+      const SteeringSensor::Snapshot steering = steering_sensor.getSnapshot();
+      const float dt_s = previous_update_us > 0
+                             ? static_cast<float>(now_us - previous_update_us) / 1000000.0f
+                             : static_cast<float>(TASK_CONTROL_PERIOD_MS) / 1000.0f;
+
+      const SteeringController::Input input{
+          reference.angle_deg,
+          steering.filtered_angle_deg,
+          dt_s};
+
+      (void)steering_controller.update(input);
+    }
+
+    previous_update_us = now_us;
+    vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_CONTROL_PERIOD_MS));
+  }
+}
+
 //======================================================================
 // VOID SETUP
 //======================================================================
@@ -140,6 +181,7 @@ void setup()
 
   // Inicializa TASKs
   xTaskCreatePinnedToCore(taskSensors, "TaskSensors", 4096, nullptr, PRIORITY_SENSORS, nullptr, 1);
+  xTaskCreatePinnedToCore(taskControl, "TaskControl", 4096, nullptr, PRIORITY_CONTROL, nullptr, 1);
 
   if (safety_initialized && xTaskCreatePinnedToCore(taskSafety, "TaskSafety", 4096, nullptr, PRIORITY_SAFETY, nullptr, 1) != pdPASS)
   {

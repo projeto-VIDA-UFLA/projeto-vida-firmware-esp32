@@ -174,6 +174,22 @@ struct vida_interfaces__msg__SafetyStatus
     uint32_t inhibit_flags;
 };
 
+struct vida_interfaces__msg__SteeringControllerOutput
+{
+    float target_angle_deg;
+    float measured_angle_deg;
+    float angle_error_deg;
+    float proportional_term;
+    float integral_term;
+    float derivative_term;
+    float normalized_command;
+    bool inside_deadband;
+    bool saturated;
+    bool target_clamped;
+    bool position_limit_active;
+    bool valid;
+};
+
 extern rmw_qos_profile_t rmw_qos_profile_default;
 
 #define RCL_MS_TO_NS(ms) ((int64_t)(ms) * 1000000LL)

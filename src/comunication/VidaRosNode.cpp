@@ -9,7 +9,7 @@ namespace
     constexpr char NODE_NAMESPACE[] = "/vida";
     constexpr char ENCODERS_TOPIC[] = "/vida/sensors/encoders";
     constexpr char STEERING_TOPIC[] = "/vida/sensors/steering";
-    constexpr char CMD_STEERING_TOPIC[] = "/vida/actuators/steering";
+    constexpr char STEERING_OUTPUT_TOPIC[] = "/vida/controle/steering/output";
     constexpr char CMD_DRIVE_TOPIC[] = "/vida/actuators/drive";
     constexpr char SAFETY_STATUS_TOPIC[] = "/vida/safety/status";
     constexpr char STEERING_REFERENCE_TOPIC[] = "/vida/control/steering/reference";
@@ -32,11 +32,12 @@ VidaRosNode::VidaRosNode(ActuatorManager &actuator_manager,
                          EncoderReader &rear_encoder,
                          EncoderReader &right_encoder,
                          EncoderReader &left_encoder,
-                         CommandMailbox &command_mailbox)
+                         CommandMailbox &command_mailbox,
+                         SteeringController &steering_controller)
     : communication_(NODE_NAME, NODE_NAMESPACE, ROS_DOMAIN_ID),
       encoders_publisher_(rcl_get_zero_initialized_publisher()),
       steering_publisher_(rcl_get_zero_initialized_publisher()),
-      cmd_steering_publisher_(rcl_get_zero_initialized_publisher()),
+      steering_output_publisher_(rcl_get_zero_initialized_publisher()),
       cmd_drive_publisher_(rcl_get_zero_initialized_publisher()),
       safety_status_publisher_(rcl_get_zero_initialized_publisher()),
       steering_reference_subscription_(rcl_get_zero_initialized_subscription()),
@@ -44,20 +45,22 @@ VidaRosNode::VidaRosNode(ActuatorManager &actuator_manager,
       logical_enable_subscription_(rcl_get_zero_initialized_subscription()),
       encoders_message_{},
       steering_message_{},
-      cmd_steering_message_{},
+      steering_output_message_{},
       cmd_drive_message_{},
       safety_status_message_{},
       steering_reference_message_{},
       drive_reference_message_{},
       logical_enable_message_{},
       sensors_publish_timer_(rcl_get_zero_initialized_timer()),
+      steering_output_publish_timer_(rcl_get_zero_initialized_timer()),
       actuator_manager_(actuator_manager),
       safety_manager_(safety_manager),
       steering_sensor_(steering_sensor),
       rear_encoder_(rear_encoder),
       right_encoder_(right_encoder),
       left_encoder_(left_encoder),
-      command_mailbox_(command_mailbox)
+      command_mailbox_(command_mailbox),
+      steering_controller_(steering_controller)
 {
 }
 
@@ -106,9 +109,9 @@ bool VidaRosNode::configure()
     }
 
     if (!communication_.addPublisher(
-            cmd_steering_publisher_,
-            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Comands),
-            CMD_STEERING_TOPIC))
+            steering_output_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, SteeringControllerOutput),
+            STEERING_OUTPUT_TOPIC))
     {
         return false;
     }
@@ -159,7 +162,18 @@ bool VidaRosNode::configure()
         return false;
     }
 
-    return communication_.addTimer(sensors_publish_timer_, TASK_COMUNICATION_PERIOD_MS, publishSensorsCallback);
+    if (!communication_.addTimer(
+            sensors_publish_timer_,
+            TASK_COMUNICATION_PERIOD_MS,
+            publishSensorsCallback))
+    {
+        return false;
+    }
+
+    return communication_.addTimer(
+        steering_output_publish_timer_,
+        TASK_COMUNICATION_PERIOD_MS,
+        publishSteeringOutputCallback);
 }
 
 void VidaRosNode::steeringReferenceCallback(const void *message)
@@ -230,6 +244,17 @@ void VidaRosNode::publishSensorsCallback(rcl_timer_t *timer, int64_t last_call_t
     }
 }
 
+void VidaRosNode::publishSteeringOutputCallback(rcl_timer_t *timer,
+                                                int64_t last_call_time)
+{
+    (void)last_call_time;
+
+    if (instance_ != nullptr)
+    {
+        instance_->publishSteeringOutput(timer);
+    }
+}
+
 void VidaRosNode::publishSensors(rcl_timer_t *timer)
 {
     if (timer == nullptr)
@@ -238,7 +263,6 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
     }
 
     const ActuatorManager::Snapshot actuators = actuator_manager_.getSnapshot();
-    const SteeringMotor::Snapshot &steering_pwm = actuators.steering;
     const DriveMotor::Snapshot &drive_pwm = actuators.drive;
 
     const EncoderReader::Snapshot left = left_encoder_.getMeasurementSnapshot();
@@ -266,12 +290,6 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         communication_.publish(steering_publisher_, &steering_message_);
     }
 
-    if (setTimestamp(cmd_steering_message_.timestamp, steering_pwm.timestamp_us))
-    {
-        cmd_steering_message_.pwm = steering_pwm.right_pwm - steering_pwm.left_pwm;
-        communication_.publish(cmd_steering_publisher_, &cmd_steering_message_);
-    }
-
     if (setTimestamp(cmd_drive_message_.timestamp, drive_pwm.timestamp_us))
     {
         cmd_drive_message_.pwm = !drive_pwm.reverse ? drive_pwm.pwm : -drive_pwm.pwm;
@@ -291,6 +309,33 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         safety_status_message_.inhibit_flags = safety.inhibit_flags;
         communication_.publish(safety_status_publisher_, &safety_status_message_);
     }
+}
+
+void VidaRosNode::publishSteeringOutput(rcl_timer_t *timer)
+{
+    if (timer == nullptr)
+    {
+        return;
+    }
+
+    const SteeringController::Output output =
+        steering_controller_.getLastOutput();
+
+    steering_output_message_.target_angle_deg = output.target_angle_deg;
+    steering_output_message_.measured_angle_deg = output.measured_angle_deg;
+    steering_output_message_.angle_error_deg = output.angle_error_deg;
+    steering_output_message_.proportional_term = output.proportional_term;
+    steering_output_message_.integral_term = output.integral_term;
+    steering_output_message_.derivative_term = output.derivative_term;
+    steering_output_message_.normalized_command = output.normalized_command;
+    steering_output_message_.inside_deadband = output.inside_deadband;
+    steering_output_message_.saturated = output.saturated;
+    steering_output_message_.target_clamped = output.target_clamped;
+    steering_output_message_.position_limit_active = output.position_limit_active;
+    steering_output_message_.valid = output.valid;
+
+    communication_.publish(steering_output_publisher_,
+                           &steering_output_message_);
 }
 
 bool VidaRosNode::setTimestamp(builtin_interfaces__msg__Time &timestamp, int64_t local_time_us)

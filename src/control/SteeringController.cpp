@@ -21,7 +21,8 @@ namespace
 SteeringController::SteeringController()
     : integral_(0.0f),
       previous_error_deg_(0.0f),
-      initialized_(false)
+      initialized_(false),
+      last_output_{}
 {
 }
 
@@ -38,7 +39,7 @@ SteeringController::Output SteeringController::update(const Input &input)
         input.dt_s > STEERING_CONTROL_MAX_DT_S)
     {
         reset();
-        return output;
+        return storeOutput(output);
     }
 
     // A referencia nunca pode solicitar uma posicao fora do curso permitido.
@@ -55,7 +56,7 @@ SteeringController::Output SteeringController::update(const Input &input)
     if (!std::isfinite(error_deg))
     {
         reset();
-        return output;
+        return storeOutput(output);
     }
 
     output.angle_error_deg = error_deg;
@@ -69,7 +70,7 @@ SteeringController::Output SteeringController::update(const Input &input)
         {
             reset();
             output.valid = false;
-            return output;
+            return storeOutput(output);
         }
     }
     else
@@ -91,7 +92,7 @@ SteeringController::Output SteeringController::update(const Input &input)
         output.integral_term = 0.0f;
         output.normalized_command = 0.0f;
         output.inside_deadband = true;
-        return output;
+        return storeOutput(output);
     }
 
     float candidate_integral = 0.0f;
@@ -134,7 +135,7 @@ SteeringController::Output SteeringController::update(const Input &input)
         output.integral_term = 0.0f;
         output.derivative_term = 0.0f;
         output.valid = false;
-        return output;
+        return storeOutput(output);
     }
 
     output.saturated = command > MAX_ABS_STEER_COMMAND ||
@@ -176,6 +177,22 @@ SteeringController::Output SteeringController::update(const Input &input)
     }
 
     previous_error_deg_ = error_deg;
+    return storeOutput(output);
+}
+
+SteeringController::Output SteeringController::getLastOutput() const
+{
+    portENTER_CRITICAL(&output_mux_);
+    const Output output = last_output_;
+    portEXIT_CRITICAL(&output_mux_);
+    return output;
+}
+
+SteeringController::Output SteeringController::storeOutput(const Output &output)
+{
+    portENTER_CRITICAL(&output_mux_);
+    last_output_ = output;
+    portEXIT_CRITICAL(&output_mux_);
     return output;
 }
 

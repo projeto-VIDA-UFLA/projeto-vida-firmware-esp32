@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Arduino.h>
+
 class SteeringController
 {
 public:
@@ -31,10 +33,16 @@ public:
     SteeringController();
 
     Output update(const Input &input);
+    Output getLastOutput() const;
     void reset();
 
 private:
+    Output storeOutput(const Output &output);
+
     float integral_;
     float previous_error_deg_;
     bool initialized_;
+
+    Output last_output_;
+    mutable portMUX_TYPE output_mux_ = portMUX_INITIALIZER_UNLOCKED;
 };

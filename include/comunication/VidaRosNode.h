@@ -5,6 +5,7 @@
 #include "comunication/CommandMailbox.h"
 #include "comunication/RosCommunication.h"
 #include "actuators/ActuatorManager.h"
+#include "control/SteeringController.h"
 #include "safety/SafetyManager.h"
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
@@ -19,6 +20,7 @@
 #include <vida_interfaces/msg/drive_reference.h>
 #include <vida_interfaces/msg/logical_enable.h>
 #include <vida_interfaces/msg/safety_status.h>
+#include <vida_interfaces/msg/steering_controller_output.h>
 #endif
 
 class VidaRosNode
@@ -30,18 +32,21 @@ public:
                 EncoderReader &rear_encoder,
                 EncoderReader &right_encoder,
                 EncoderReader &left_encoder,
-                CommandMailbox &command_mailbox);
+                CommandMailbox &command_mailbox,
+                SteeringController &steering_controller);
 
     bool begin(Stream &transport);
 
 private:
     static void publishSensorsCallback(rcl_timer_t *timer, int64_t last_call_time);
+    static void publishSteeringOutputCallback(rcl_timer_t *timer, int64_t last_call_time);
     static void steeringReferenceCallback(const void *message);
     static void driveReferenceCallback(const void *message);
     static void logicalEnableCallback(const void *message);
 
     bool configure();
     void publishSensors(rcl_timer_t *timer);
+    void publishSteeringOutput(rcl_timer_t *timer);
     bool setTimestamp(builtin_interfaces__msg__Time &timestamp, int64_t local_time_us);
     bool fillEncoderMeasurement(vida_interfaces__msg__EncoderMeasurement &message,
                                 const EncoderReader::Snapshot &snapshot);
@@ -52,7 +57,7 @@ private:
 
     rcl_publisher_t encoders_publisher_;
     rcl_publisher_t steering_publisher_;
-    rcl_publisher_t cmd_steering_publisher_;
+    rcl_publisher_t steering_output_publisher_;
     rcl_publisher_t cmd_drive_publisher_;
     rcl_publisher_t safety_status_publisher_;
 
@@ -62,7 +67,7 @@ private:
 
     vida_interfaces__msg__Encoders encoders_message_;
     vida_interfaces__msg__Steering steering_message_;
-    vida_interfaces__msg__Comands cmd_steering_message_;
+    vida_interfaces__msg__SteeringControllerOutput steering_output_message_;
     vida_interfaces__msg__Comands cmd_drive_message_;
     vida_interfaces__msg__SafetyStatus safety_status_message_;
 
@@ -71,6 +76,7 @@ private:
     vida_interfaces__msg__LogicalEnable logical_enable_message_;
 
     rcl_timer_t sensors_publish_timer_;
+    rcl_timer_t steering_output_publish_timer_;
 
     ActuatorManager &actuator_manager_;
     SafetyManager &safety_manager_;
@@ -80,4 +86,5 @@ private:
     EncoderReader &right_encoder_;
     EncoderReader &left_encoder_;
     CommandMailbox &command_mailbox_;
+    SteeringController &steering_controller_;
 };

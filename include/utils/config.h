@@ -34,10 +34,10 @@
 // ============================================================
 
 #define PRIORITY_SAFETY 4
+#define PRIORITY_CONTROL 3
 #define PRIORITY_SENSORS 2
 
 // Sem uso enquanto as respectivas tarefas nao existirem.
-// #define PRIORITY_CONTROL 3
 // #define PRIORITY_DEBUG 1
 
 // ============================================================
