@@ -124,20 +124,17 @@ void taskControl(void *parameter)
     const CommandMailbox::SteeringReferenceSnapshot reference =
         command_mailbox.getSteeringReferenceSnapshot();
 
-    if (reference.received)
-    {
-      const SteeringSensor::Snapshot steering = steering_sensor.getSnapshot();
-      const float dt_s = previous_update_us > 0
-                             ? static_cast<float>(now_us - previous_update_us) / 1000000.0f
-                             : static_cast<float>(TASK_CONTROL_PERIOD_MS) / 1000.0f;
+    const SteeringSensor::Snapshot steering = steering_sensor.getSnapshot();
+    const float dt_s = previous_update_us > 0
+                           ? static_cast<float>(now_us - previous_update_us) / 1000000.0f
+                           : static_cast<float>(TASK_CONTROL_PERIOD_MS) / 1000.0f;
 
-      const SteeringController::Input input{
-          reference.angle_deg,
-          steering.filtered_angle_deg,
-          dt_s};
+    const SteeringController::Input input{
+        reference.angle_deg,
+        steering.filtered_angle_deg,
+        dt_s};
 
-      (void)steering_controller.update(input);
-    }
+    (void)steering_controller.update(input);
 
     previous_update_us = now_us;
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_CONTROL_PERIOD_MS));
