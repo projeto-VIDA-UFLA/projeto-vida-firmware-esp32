@@ -176,6 +176,7 @@ struct vida_interfaces__msg__SafetyStatus
 
 struct vida_interfaces__msg__SteeringControllerOutput
 {
+    builtin_interfaces__msg__Time timestamp;
     float target_angle_deg;
     float measured_angle_deg;
     float angle_error_deg;

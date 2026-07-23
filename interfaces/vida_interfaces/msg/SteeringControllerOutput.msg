@@ -1,3 +1,5 @@
+builtin_interfaces/Time timestamp
+
 float32 target_angle_deg
 float32 measured_angle_deg
 float32 angle_error_deg

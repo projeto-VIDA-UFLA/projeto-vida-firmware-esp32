@@ -30,10 +30,16 @@ public:
         bool valid;
     };
 
+    struct Snapshot
+    {
+        Output output;
+        int64_t timestamp_us;
+    };
+
     SteeringController();
 
     Output update(const Input &input);
-    Output getLastOutput() const;
+    Snapshot getLastOutput() const;
     void reset();
 
 private:
@@ -44,5 +50,6 @@ private:
     bool initialized_;
 
     Output last_output_;
+    int64_t last_output_timestamp_us_;
     mutable portMUX_TYPE output_mux_ = portMUX_INITIALIZER_UNLOCKED;
 };

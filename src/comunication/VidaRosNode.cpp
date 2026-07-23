@@ -2,6 +2,7 @@
 #include "utils/config.h"
 
 #include <cmath>
+#include "esp_timer.h"
 
 namespace
 {
@@ -9,7 +10,7 @@ namespace
     constexpr char NODE_NAMESPACE[] = "/vida";
     constexpr char ENCODERS_TOPIC[] = "/vida/sensors/encoders";
     constexpr char STEERING_TOPIC[] = "/vida/sensors/steering";
-    constexpr char STEERING_OUTPUT_TOPIC[] = "/vida/controle/steering/output";
+    constexpr char STEERING_OUTPUT_TOPIC[] = "/vida/control/steering/output";
     constexpr char CMD_DRIVE_TOPIC[] = "/vida/actuators/drive";
     constexpr char SAFETY_STATUS_TOPIC[] = "/vida/safety/status";
     constexpr char STEERING_REFERENCE_TOPIC[] = "/vida/control/steering/reference";
@@ -318,8 +319,17 @@ void VidaRosNode::publishSteeringOutput(rcl_timer_t *timer)
         return;
     }
 
-    const SteeringController::Output output =
+    const SteeringController::Snapshot snapshot =
         steering_controller_.getLastOutput();
+    const SteeringController::Output &output = snapshot.output;
+    const int64_t timestamp_us = snapshot.timestamp_us > 0
+                                     ? snapshot.timestamp_us
+                                     : esp_timer_get_time();
+
+    if (!setTimestamp(steering_output_message_.timestamp, timestamp_us))
+    {
+        return;
+    }
 
     steering_output_message_.target_angle_deg = output.target_angle_deg;
     steering_output_message_.measured_angle_deg = output.measured_angle_deg;

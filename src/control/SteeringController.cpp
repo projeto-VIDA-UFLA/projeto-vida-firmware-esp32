@@ -1,5 +1,6 @@
 #include "control/SteeringController.h"
 #include "utils/config.h"
+#include "esp_timer.h"
 #include <cmath>
 
 namespace
@@ -22,7 +23,8 @@ SteeringController::SteeringController()
     : integral_(0.0f),
       previous_error_deg_(0.0f),
       initialized_(false),
-      last_output_{}
+      last_output_{},
+      last_output_timestamp_us_(0)
 {
 }
 
@@ -180,18 +182,21 @@ SteeringController::Output SteeringController::update(const Input &input)
     return storeOutput(output);
 }
 
-SteeringController::Output SteeringController::getLastOutput() const
+SteeringController::Snapshot SteeringController::getLastOutput() const
 {
     portENTER_CRITICAL(&output_mux_);
-    const Output output = last_output_;
+    const Snapshot snapshot{last_output_, last_output_timestamp_us_};
     portEXIT_CRITICAL(&output_mux_);
-    return output;
+    return snapshot;
 }
 
 SteeringController::Output SteeringController::storeOutput(const Output &output)
 {
+    const int64_t timestamp_us = esp_timer_get_time();
+
     portENTER_CRITICAL(&output_mux_);
     last_output_ = output;
+    last_output_timestamp_us_ = timestamp_us;
     portEXIT_CRITICAL(&output_mux_);
     return output;
 }
