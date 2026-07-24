@@ -1,6 +1,8 @@
 #include "actuators/ActuatorManager.h"
 
 #include <cmath>
+#include "esp_timer.h"
+#include "utils/config.h"
 
 ActuatorManager::ActuatorManager(DriveMotor &drive_motor,
                                  SteeringMotor &steering_motor)
@@ -33,18 +35,29 @@ bool ActuatorManager::begin()
     return true;
 }
 
-bool ActuatorManager::applyCommands(float drive_command, float steering_command)
+bool ActuatorManager::applyCommands(
+    const TimedCommand &command,
+    const DriveMotor::VelocityMeasurement &drive_velocity)
 {
     if (!takeMutex())
     {
         return false;
     }
 
+    const int64_t now_us = esp_timer_get_time();
+    constexpr int64_t control_output_timeout_us =
+        static_cast<int64_t>(CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS) * 1000LL;
+    const bool output_is_fresh =
+        command.produced_at_us > 0 &&
+        now_us >= command.produced_at_us &&
+        (now_us - command.produced_at_us) <= control_output_timeout_us;
     const bool commands_are_valid =
-        std::isfinite(drive_command) &&
-        std::isfinite(steering_command) &&
-        drive_command >= -1.0f && drive_command <= 1.0f &&
-        steering_command >= -1.0f && steering_command <= 1.0f;
+        command.valid &&
+        output_is_fresh &&
+        std::isfinite(command.drive_command) &&
+        std::isfinite(command.steering_command) &&
+        command.drive_command >= -1.0f && command.drive_command <= 1.0f &&
+        command.steering_command >= -1.0f && command.steering_command <= 1.0f;
 
     if (!commands_are_valid || !motion_permitted_ || emergency_latched_)
     {
@@ -53,8 +66,8 @@ bool ActuatorManager::applyCommands(float drive_command, float steering_command)
         return false;
     }
 
-    drive_motor_.setCommand(drive_command);
-    steering_motor_.setCommand(steering_command);
+    drive_motor_.setCommand(command.drive_command, drive_velocity);
+    steering_motor_.setCommand(command.steering_command);
     giveMutex();
     return true;
 }

@@ -192,7 +192,9 @@ SteeringController::Snapshot SteeringController::getLastOutput() const
 
 SteeringController::Output SteeringController::storeOutput(const Output &output)
 {
-    const int64_t timestamp_us = esp_timer_get_time();
+    const bool valid_output =
+        output.valid && std::isfinite(output.normalized_command);
+    const int64_t timestamp_us = valid_output ? esp_timer_get_time() : 0;
 
     portENTER_CRITICAL(&output_mux_);
     last_output_ = output;

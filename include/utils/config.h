@@ -48,6 +48,15 @@
 #define DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS 200
 #define STEERING_REFERENCE_WATCHDOG_TIMEOUT_MS 200
 
+// Tempo maximo entre ciclos validos da task de sensores.
+#define SENSOR_TASK_WATCHDOG_TIMEOUT_MS 20
+// Janela concedida na inicializacao para a primeira conclusao da task.
+#define SENSOR_TASK_STARTUP_GRACE_MS 500
+// Idade maxima da amostra do sensor usada pelo controle de estercamento.
+#define STEERING_SENSOR_SNAPSHOT_TIMEOUT_MS 20
+// Idade maxima de uma saida concluida e valida do controlador.
+#define CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS 20
+
 // ============================================================
 // Sensor de estercamento
 // ============================================================
@@ -56,6 +65,12 @@
 
 #define STEERING_MIN_DEG -30.0f
 #define STEERING_MAX_DEG 30.0f
+
+#define STEERING_CALIBRATE_DEG_1 0.0f
+#define STEERING_CALIBRATE_DEG_2 30.0f
+
+#define STEERING_CALIBRATE_ADC_1 2048
+#define STEERING_CALIBRATE_ADC_2 4095
 
 #define STEERING_FILTER_ALPHA 0.25f
 #define STEERING_VELOCITY_FILTER_ALPHA 0.25f
@@ -74,6 +89,15 @@
 #define DRIVE_VELOCITY_FILTER_ALPHA 0.25f
 #define DRIVE_ACCEL_FILTER_ALPHA 0.20f
 
+// Velocidade maxima realimentada para considerar o veiculo parado.
+#define DRIVE_STOP_SPEED_THRESHOLD_MPS 0.05f
+// Tempo continuo abaixo do limiar exigido antes de trocar DIR.
+#define DRIVE_STOP_CONFIRMATION_TIME_MS 200
+// Idade maxima aceita para a velocidade usada na autorizacao de inversao.
+#define DRIVE_VELOCITY_MEASUREMENT_TIMEOUT_MS 50
+// Tempo sem torque depois de alterar DIR antes de reaplicar PWM.
+#define DRIVE_DIRECTION_DEADTIME_MS 20
+
 // ============================================================
 // Controle direto de posicao do estercamento
 // ============================================================
@@ -82,6 +106,8 @@
 #define STEERING_MIN_ACTUATION 0.08f
 #define MAX_ABS_STEER_COMMAND 1.0f
 #define STEERING_CONTROL_MAX_DT_S 0.1f
+// Intervalo sem PWM entre sentidos opostos do motor de estercamento.
+#define STEERING_DIRECTION_DEADTIME_US 1000
 
 // Kp: comando normalizado por grau.
 // Ki: comando normalizado por grau-segundo.

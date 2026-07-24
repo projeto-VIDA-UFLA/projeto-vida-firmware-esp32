@@ -10,6 +10,14 @@
 class ActuatorManager
 {
 public:
+    struct TimedCommand
+    {
+        float drive_command;
+        float steering_command;
+        int64_t produced_at_us;
+        bool valid;
+    };
+
     struct Snapshot
     {
         DriveMotor::Snapshot drive;
@@ -22,7 +30,9 @@ public:
 
     bool begin();
 
-    bool applyCommands(float drive_command, float steering_command);
+    bool applyCommands(
+        const TimedCommand &command,
+        const DriveMotor::VelocityMeasurement &drive_velocity);
     void setMotionPermit(bool permitted);
     void stop();
     void emergencyStop();

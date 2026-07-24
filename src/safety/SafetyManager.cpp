@@ -1,14 +1,22 @@
 #include "safety/SafetyManager.h"
+#include "safety/SafetyWatchdogs.h"
 
 #include "utils/config.h"
 #include "esp_timer.h"
 
 SafetyManager::SafetyManager(uint8_t physical_enable_pin,
                              CommandMailbox &command_mailbox,
-                             ActuatorManager &actuator_manager)
+                             ActuatorManager &actuator_manager,
+                             SteeringSensor &steering_sensor,
+                             SteeringController &steering_controller)
     : physical_enable_pin_(physical_enable_pin),
       command_mailbox_(command_mailbox),
       actuator_manager_(actuator_manager),
+      steering_sensor_(steering_sensor),
+      steering_controller_(steering_controller),
+      initialized_at_us_(0),
+      sensor_task_heartbeat_us_(0),
+      reported_steering_snapshot_us_(0),
       snapshot_()
 {
     snapshot_.state = SafetyState::STATE_DISABLED;
@@ -18,6 +26,9 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
     snapshot_.logical_enable_fresh = false;
     snapshot_.drive_reference_fresh = false;
     snapshot_.steering_reference_fresh = false;
+    snapshot_.sensor_task_healthy = false;
+    snapshot_.steering_sensor_fresh = false;
+    snapshot_.control_output_fresh = false;
     snapshot_.motion_permitted = false;
     snapshot_.inhibit_flags =
         INHIBIT_PHYSICAL_ENABLE_OFF |
@@ -27,17 +38,28 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
     snapshot_.timestamp_us = 0;
 }
 
-bool SafetyManager::begin()
+void SafetyManager::begin()
 {
     pinMode(physical_enable_pin_, INPUT);
 
     // A inicializacao e sempre bloqueada, independentemente do nivel fisico.
     actuator_manager_.setMotionPermit(false);
 
+    const int64_t now_us = esp_timer_get_time();
     const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
+
+    portENTER_CRITICAL(&health_mux_);
+    initialized_at_us_ = now_us;
+    sensor_task_heartbeat_us_ = 0;
+    reported_steering_snapshot_us_ = 0;
+    portEXIT_CRITICAL(&health_mux_);
+
     const Snapshot initial_snapshot{
         SafetyState::STATE_DISABLED,
         physical_enable,
+        false,
+        false,
+        false,
         false,
         false,
         false,
@@ -48,13 +70,26 @@ bool SafetyManager::begin()
             INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED |
             INHIBIT_DRIVE_REFERENCE_NOT_FRESH |
             INHIBIT_STEERING_REFERENCE_NOT_FRESH,
-        esp_timer_get_time()};
+        now_us};
 
     portENTER_CRITICAL(&snapshot_mux_);
     snapshot_ = initial_snapshot;
     portEXIT_CRITICAL(&snapshot_mux_);
+}
 
-    return true;
+void SafetyManager::reportSensorTaskCycle(
+    bool cycle_valid, int64_t steering_snapshot_timestamp_us)
+{
+    if (!cycle_valid || steering_snapshot_timestamp_us <= 0)
+    {
+        return;
+    }
+
+    const int64_t now_us = esp_timer_get_time();
+    portENTER_CRITICAL(&health_mux_);
+    sensor_task_heartbeat_us_ = now_us;
+    reported_steering_snapshot_us_ = steering_snapshot_timestamp_us;
+    portEXIT_CRITICAL(&health_mux_);
 }
 
 void SafetyManager::update()
@@ -74,6 +109,19 @@ void SafetyManager::update()
         command_mailbox_.getDriveReferenceSnapshot();
     const CommandMailbox::SteeringReferenceSnapshot steering_reference =
         command_mailbox_.getSteeringReferenceSnapshot();
+    const SteeringSensor::Snapshot steering_sensor =
+        steering_sensor_.getSnapshot();
+    const SteeringController::Snapshot control_output =
+        steering_controller_.getLastOutput();
+
+    int64_t initialized_at_us = 0;
+    int64_t sensor_task_heartbeat_us = 0;
+    int64_t reported_steering_snapshot_us = 0;
+    portENTER_CRITICAL(&health_mux_);
+    initialized_at_us = initialized_at_us_;
+    sensor_task_heartbeat_us = sensor_task_heartbeat_us_;
+    reported_steering_snapshot_us = reported_steering_snapshot_us_;
+    portEXIT_CRITICAL(&health_mux_);
 
     const bool logical_enable_fresh = isFresh(logical_enable.received,
                                               logical_enable.received_at_us,
@@ -89,6 +137,30 @@ void SafetyManager::update()
                                                   steering_reference.received_at_us,
                                                   now_us,
                                                   steering_reference_timeout_us);
+    const bool control_required =
+        physical_enable &&
+        logical_enable.received &&
+        logical_enable_fresh &&
+        logical_enable.enabled &&
+        drive_reference_fresh &&
+        steering_reference_fresh;
+    const SafetyWatchdogs::Result watchdogs = SafetyWatchdogs::evaluate(
+        SafetyWatchdogs::Input{
+            now_us,
+            initialized_at_us,
+            sensor_task_heartbeat_us,
+            steering_sensor.valid,
+            steering_sensor.timestamp_us,
+            reported_steering_snapshot_us,
+            control_required,
+            control_output.output.valid,
+            control_output.output.normalized_command,
+            control_output.timestamp_us});
+    const bool sensor_task_timed_out = watchdogs.sensor_task_timed_out;
+    const bool sensor_task_healthy = watchdogs.sensor_task_healthy;
+    // Snapshot e heartbeat sao propositalmente avaliados separadamente.
+    const bool steering_sensor_fresh = watchdogs.steering_snapshot_fresh;
+    const bool control_output_fresh = watchdogs.control_output_fresh;
 
     uint32_t inhibit_flags = INHIBIT_NONE;
     if (!physical_enable)
@@ -122,6 +194,18 @@ void SafetyManager::update()
     {
         inhibit_flags |= INHIBIT_STEERING_REFERENCE_NOT_FRESH;
     }
+    if (sensor_task_timed_out)
+    {
+        inhibit_flags |= INHIBIT_SENSOR_TASK_TIMEOUT;
+    }
+    if (!steering_sensor_fresh)
+    {
+        inhibit_flags |= INHIBIT_STEERING_SENSOR_NOT_FRESH;
+    }
+    if (watchdogs.control_output_timed_out)
+    {
+        inhibit_flags |= INHIBIT_CONTROL_OUTPUT_TIMEOUT;
+    }
 
     const bool motion_permitted =
         physical_enable &&
@@ -129,7 +213,10 @@ void SafetyManager::update()
         logical_enable_fresh &&
         logical_enable.enabled &&
         drive_reference_fresh &&
-        steering_reference_fresh;
+        steering_reference_fresh &&
+        sensor_task_healthy &&
+        steering_sensor_fresh &&
+        control_output_fresh;
     const SafetyState new_state = motion_permitted
                                       ? SafetyState::STATE_READY
                                       : SafetyState::STATE_DISABLED;
@@ -152,6 +239,9 @@ void SafetyManager::update()
         logical_enable_fresh,
         drive_reference_fresh,
         steering_reference_fresh,
+        sensor_task_healthy,
+        steering_sensor_fresh,
+        control_output_fresh,
         motion_permitted,
         inhibit_flags,
         now_us};
