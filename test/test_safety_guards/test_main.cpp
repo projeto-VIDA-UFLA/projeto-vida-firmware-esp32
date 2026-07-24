@@ -50,7 +50,7 @@ namespace
     SafetyWatchdogs::Input healthyWatchdogs()
     {
         constexpr int64_t now = 1000000;
-        return {now, 500000, now - 1000, true, now - 1000, now - 1000,
+        return {now, 500000, now - 1000, true, now - 1000,
                 true, true, 0.5f, now - 1000};
     }
 
@@ -171,7 +171,6 @@ namespace
             input.now_us -
             static_cast<int64_t>(STEERING_SENSOR_SNAPSHOT_TIMEOUT_MS + 1) *
                 1000LL;
-        input.reported_steering_snapshot_us = input.steering_snapshot_us;
         TEST_ASSERT_FALSE(
             SafetyWatchdogs::evaluate(input).steering_snapshot_fresh);
     }

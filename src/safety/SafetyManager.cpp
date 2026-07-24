@@ -7,16 +7,12 @@
 SafetyManager::SafetyManager(uint8_t physical_enable_pin,
                              CommandMailbox &command_mailbox,
                              ActuatorManager &actuator_manager,
-                             SteeringSensor &steering_sensor,
                              SteeringController &steering_controller)
     : physical_enable_pin_(physical_enable_pin),
       command_mailbox_(command_mailbox),
       actuator_manager_(actuator_manager),
-      steering_sensor_(steering_sensor),
       steering_controller_(steering_controller),
-      initialized_at_us_(0),
-      sensor_task_heartbeat_us_(0),
-      reported_steering_snapshot_us_(0),
+      sensor_health_{0, 0, false, 0},
       snapshot_()
 {
     snapshot_.state = SafetyState::STATE_DISABLED;
@@ -49,9 +45,7 @@ void SafetyManager::begin()
     const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
 
     portENTER_CRITICAL(&health_mux_);
-    initialized_at_us_ = now_us;
-    sensor_task_heartbeat_us_ = 0;
-    reported_steering_snapshot_us_ = 0;
+    sensor_health_ = SensorHealthSnapshot{now_us, 0, false, 0};
     portEXIT_CRITICAL(&health_mux_);
 
     const Snapshot initial_snapshot{
@@ -78,17 +72,22 @@ void SafetyManager::begin()
 }
 
 void SafetyManager::reportSensorTaskCycle(
-    bool cycle_valid, int64_t steering_snapshot_timestamp_us)
+    bool cycle_valid,
+    const SteeringSensor::Snapshot &steering_snapshot)
 {
-    if (!cycle_valid || steering_snapshot_timestamp_us <= 0)
+    if (!cycle_valid ||
+        !steering_snapshot.valid ||
+        steering_snapshot.timestamp_us <= 0)
     {
         return;
     }
 
     const int64_t now_us = esp_timer_get_time();
     portENTER_CRITICAL(&health_mux_);
-    sensor_task_heartbeat_us_ = now_us;
-    reported_steering_snapshot_us_ = steering_snapshot_timestamp_us;
+    // Heartbeat e metadados da amostra pertencem ao mesmo ciclo publicado.
+    sensor_health_.heartbeat_us = now_us;
+    sensor_health_.steering_snapshot_valid = steering_snapshot.valid;
+    sensor_health_.steering_snapshot_us = steering_snapshot.timestamp_us;
     portEXIT_CRITICAL(&health_mux_);
 }
 
@@ -102,25 +101,19 @@ void SafetyManager::update()
         static_cast<int64_t>(STEERING_REFERENCE_WATCHDOG_TIMEOUT_MS) * 1000LL;
 
     const int64_t now_us = esp_timer_get_time();
-    const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
+    const bool physical_enable = digitalRead(physical_enable_pin_) == !HIGH;
     const CommandMailbox::LogicalEnableSnapshot logical_enable =
         command_mailbox_.getLogicalEnableSnapshot();
     const CommandMailbox::DriveReferenceSnapshot drive_reference =
         command_mailbox_.getDriveReferenceSnapshot();
     const CommandMailbox::SteeringReferenceSnapshot steering_reference =
         command_mailbox_.getSteeringReferenceSnapshot();
-    const SteeringSensor::Snapshot steering_sensor =
-        steering_sensor_.getSnapshot();
     const SteeringController::Snapshot control_output =
         steering_controller_.getLastOutput();
 
-    int64_t initialized_at_us = 0;
-    int64_t sensor_task_heartbeat_us = 0;
-    int64_t reported_steering_snapshot_us = 0;
+    SensorHealthSnapshot sensor_health{};
     portENTER_CRITICAL(&health_mux_);
-    initialized_at_us = initialized_at_us_;
-    sensor_task_heartbeat_us = sensor_task_heartbeat_us_;
-    reported_steering_snapshot_us = reported_steering_snapshot_us_;
+    sensor_health = sensor_health_;
     portEXIT_CRITICAL(&health_mux_);
 
     const bool logical_enable_fresh = isFresh(logical_enable.received,
@@ -147,18 +140,16 @@ void SafetyManager::update()
     const SafetyWatchdogs::Result watchdogs = SafetyWatchdogs::evaluate(
         SafetyWatchdogs::Input{
             now_us,
-            initialized_at_us,
-            sensor_task_heartbeat_us,
-            steering_sensor.valid,
-            steering_sensor.timestamp_us,
-            reported_steering_snapshot_us,
+            sensor_health.initialized_at_us,
+            sensor_health.heartbeat_us,
+            sensor_health.steering_snapshot_valid,
+            sensor_health.steering_snapshot_us,
             control_required,
             control_output.output.valid,
             control_output.output.normalized_command,
             control_output.timestamp_us});
     const bool sensor_task_timed_out = watchdogs.sensor_task_timed_out;
     const bool sensor_task_healthy = watchdogs.sensor_task_healthy;
-    // Snapshot e heartbeat sao propositalmente avaliados separadamente.
     const bool steering_sensor_fresh = watchdogs.steering_snapshot_fresh;
     const bool control_output_fresh = watchdogs.control_output_fresh;
 

@@ -49,16 +49,17 @@ SteeringMotor steering_motor(PIN_STEER_RIGHT_PWM, PIN_STEER_LEFT_PWM, PWM_CH_STE
 DriveMotor drive_motor(PIN_DRIVE_PWM, PIN_DRIVE_REVERSE, PWM_CH_DRIVE);
 ActuatorManager actuator_manager(drive_motor, steering_motor);
 
-// Instanciando Objeto de gerenciamento de segurança
-SafetyManager safety_manager(PIN_ENABLE_SAFETY, command_mailbox, actuator_manager, steering_sensor, steering_controller);
-
 // Instanciando Controladores
 SteeringController steering_controller;
 
+CommandMailbox command_mailbox;
+
+// Instanciando Objeto de gerenciamento de segurança
+SafetyManager safety_manager(PIN_ENABLE_SAFETY, command_mailbox,
+                             actuator_manager, steering_controller);
+
 // Instanciando nó do ROS
 VidaRosNode ros_node(rear_encoder, right_encoder, left_encoder, steering_sensor, safety_manager, actuator_manager, command_mailbox, steering_controller);
-
-CommandMailbox command_mailbox;
 
 //======================================================================
 // DEFINIÇÃO DE ISRs DOS ENCODERS
@@ -111,7 +112,7 @@ void taskSensors(void *parameter)
         left.timestamp_us > 0;
 
     // Heartbeat registrado somente depois do ciclo completo.
-    safety_manager.reportSensorTaskCycle(cycle_valid, steering.timestamp_us);
+    safety_manager.reportSensorTaskCycle(cycle_valid, steering);
 
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_SENSOR_PERIOD_MS));
   }

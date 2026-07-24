@@ -182,13 +182,13 @@ bool VidaRosNode::configure()
         return false;
     }
 
-    if (!communication_.addPublisher(
+    /*if (!communication_.addPublisher(
             steering_output_publisher_,
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, DriveControllerOutput),
             DRIVE_OUTPUT_TOPIC))
     {
         return false;
-    }
+    }*/
 
     return communication_.addTimer(
         publish_timer_,
@@ -328,7 +328,7 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         communication_.publish(safety_status_publisher_, &safety_status_message_);
     }
 
-    if (!setTimestamp(steering_output_message_.timestamp, steering_controller.timestamp_us))
+    if (setTimestamp(steering_output_message_.timestamp, steering_controller.timestamp_us))
     {
         steering_output_message_.target_angle_deg = steering_controller.output.target_angle_deg;
         steering_output_message_.measured_angle_deg = steering_controller.output.measured_angle_deg;

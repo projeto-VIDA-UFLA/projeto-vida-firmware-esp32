@@ -26,7 +26,6 @@ SafetyWatchdogs::Result SafetyWatchdogs::evaluate(const Input &input)
 
     const bool steering_snapshot_fresh =
         input.steering_snapshot_valid &&
-        input.steering_snapshot_us == input.reported_steering_snapshot_us &&
         isFresh(input.steering_snapshot_us, input.now_us,
                 steering_snapshot_timeout_us);
 

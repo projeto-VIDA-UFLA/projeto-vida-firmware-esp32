@@ -50,13 +50,13 @@ public:
     SafetyManager(uint8_t physical_enable_pin,
                   CommandMailbox &command_mailbox,
                   ActuatorManager &actuator_manager,
-                  SteeringSensor &steering_sensor,
                   SteeringController &steering_controller);
 
     void begin();
     void update();
-    void reportSensorTaskCycle(bool cycle_valid,
-                               int64_t steering_snapshot_timestamp_us);
+    void reportSensorTaskCycle(
+        bool cycle_valid,
+        const SteeringSensor::Snapshot &steering_snapshot);
 
     Snapshot getSnapshot() const;
 
@@ -70,12 +70,17 @@ private:
     uint8_t physical_enable_pin_;
     CommandMailbox &command_mailbox_;
     ActuatorManager &actuator_manager_;
-    SteeringSensor &steering_sensor_;
     SteeringController &steering_controller_;
 
-    int64_t initialized_at_us_;
-    int64_t sensor_task_heartbeat_us_;
-    int64_t reported_steering_snapshot_us_;
+    struct SensorHealthSnapshot
+    {
+        int64_t initialized_at_us;
+        int64_t heartbeat_us;
+        bool steering_snapshot_valid;
+        int64_t steering_snapshot_us;
+    };
+
+    SensorHealthSnapshot sensor_health_;
     mutable portMUX_TYPE health_mux_ = portMUX_INITIALIZER_UNLOCKED;
 
     Snapshot snapshot_;
