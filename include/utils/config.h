@@ -4,7 +4,8 @@
 // Comunicacao serial
 // ============================================================
 
-#define SERIAL_BAUDRATE 460800
+//#define SERIAL_BAUDRATE 460800
+#define SERIAL_BAUDRATE 921600
 
 // ============================================================
 // PWM e canais LEDC
