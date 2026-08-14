@@ -89,8 +89,8 @@
 // Encoders e estimativa de movimento longitudinal
 // ============================================================
 
-#define ENC_REAR_TICKS_PER_REV 100.0f
-#define ENC_FRONT_TICKS_PER_REV 100.0f
+#define ENC_REAR_TICKS_PER_REV 1440.0f
+#define ENC_FRONT_TICKS_PER_REV 730.0f
 #define DRIVE_WHEEL_DIAMETER_M 0.366f
 #define DRIVE_VELOCITY_FILTER_ALPHA 0.05f
 #define DRIVE_ACCEL_FILTER_ALPHA 0.01f
