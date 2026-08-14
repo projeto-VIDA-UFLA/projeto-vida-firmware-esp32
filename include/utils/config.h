@@ -78,7 +78,7 @@
 
 
 
-#define STEERING_FILTER_ALPHA 0.08f
+#define STEERING_FILTER_ALPHA 0.05f
 #define STEERING_VELOCITY_FILTER_ALPHA 0.01f
 
 // Sem uso: permanecem documentadas para uma futura conversao ADC/tensao.
@@ -108,8 +108,8 @@
 // Controle direto de posicao do estercamento
 // ============================================================
 
-#define STEERING_POSITION_DEADBAND_DEG 0.7f
-#define STEERING_MIN_ACTUATION 0.08f
+#define STEERING_POSITION_DEADBAND_DEG 1.5f
+#define STEERING_MIN_ACTUATION 0.1f
 #define MAX_ABS_STEER_COMMAND 1.0f
 #define STEERING_CONTROL_MAX_DT_S 0.1f
 // Intervalo sem PWM entre sentidos opostos do motor de estercamento.
