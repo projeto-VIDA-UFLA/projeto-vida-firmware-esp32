@@ -34,7 +34,7 @@ void SteeringSensor::update()
 {
     const int64_t now_us = esp_timer_get_time();
     const int raw_adc = analogRead(adc_pin_);
-    const float raw_angle_deg = mapFloat((raw_adc-STEERING_CALIBRATE_ADC_1), calibration_A_, calibration_B_);
+    const float raw_angle_deg = mapFloat((raw_adc-150), calibration_A_, calibration_B_);
 
     const bool had_previous_sample = filter_initialized_;
     if (!had_previous_sample)
