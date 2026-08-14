@@ -12,6 +12,7 @@
 // Inclui classes utilitárias
 #include "utils/pinout.h"
 #include "utils/config.h"
+#include "utils/utils.h"
 
 // Inclui classes de sensores
 #include "sensors/EncoderReader.h"
@@ -141,8 +142,10 @@ void taskControl(void *parameter)
   while (true)
   {
     const int64_t now_us = esp_timer_get_time();
-    const CommandMailbox::SteeringReferenceSnapshot reference =
+    const CommandMailbox::SteeringReferenceSnapshot steering_reference =
         command_mailbox.getSteeringReferenceSnapshot();
+    const CommandMailbox::DriveReferenceSnapshot drive_reference =
+        command_mailbox.getDriveReferenceSnapshot();
 
     const SteeringSensor::Snapshot steering = steering_sensor.getSnapshot();
     constexpr int64_t steering_snapshot_timeout_us =
@@ -157,7 +160,7 @@ void taskControl(void *parameter)
                            : static_cast<float>(TASK_CONTROL_PERIOD_MS) / 1000.0f;
 
     const SteeringController::Input input{
-        reference.angle_deg,
+        steering_reference.angle_deg,
         steering_is_fresh ? steering.filtered_angle_deg : NAN,
         dt_s};
 
@@ -165,15 +168,35 @@ void taskControl(void *parameter)
 
     const SteeringController::Snapshot output =
         steering_controller.getLastOutput();
+
+    // Malha aberta longitudinal: a referencia ROS e um PWM assinado em
+    // [-255, 255]. O DriveMotor recebe comando normalizado em [-1, 1].
+    // Exemplo: referencia 255 -> 255 * 0.8 = 204 de PWM.
+    const float drive_command =
+        clampFloat(drive_reference.velocity_m_s *
+                       DRIVE_OPEN_LOOP_PROPORTIONAL_GAIN /
+                       DRIVE_OPEN_LOOP_REFERENCE_MAX_PWM,
+                   -1.0f,
+                   1.0f);
+    constexpr int64_t drive_reference_timeout_us =
+        static_cast<int64_t>(DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS) * 1000LL;
+    const bool drive_reference_is_fresh =
+        drive_reference.received &&
+        std::isfinite(drive_reference.velocity_m_s) &&
+        drive_reference.received_at_us > 0 &&
+        now_us >= drive_reference.received_at_us &&
+        (now_us - drive_reference.received_at_us) <=
+            drive_reference_timeout_us;
+
     // O encoder traseiro e a fonte longitudinal: ele mede a roda do eixo
     // motriz diretamente, sem combinar velocidades das rodas esterçantes.
     const EncoderReader::Snapshot rear =
         rear_encoder.getMeasurementSnapshot();
     const ActuatorManager::TimedCommand command{
-        0.0f, // Controlador longitudinal permanece deliberadamente inativo.
+        drive_command,
         output.output.normalized_command,
-        output.timestamp_us,
-        output.output.valid};
+        now_us,
+        output.output.valid && drive_reference_is_fresh};
     const DriveMotor::VelocityMeasurement drive_velocity{
         rear.filtered_velocity_m_s,
         rear.timestamp_us,
