@@ -147,7 +147,7 @@
 // Controle em malha aberta. A referencia recebida em velocity_m_s e tratada
 // temporariamente como um comando PWM assinado na faixa [-255, 255].
 #define DRIVE_OPEN_LOOP_REFERENCE_MAX_PWM 255.0f
-#define DRIVE_OPEN_LOOP_PROPORTIONAL_GAIN 0.8f
+#define DRIVE_OPEN_LOOP_PROPORTIONAL_GAIN 0.5f
 
 // #define DRIVE_MAX_TARGET_SPEED_M_S 2.0f
 // #define DRIVE_MIN_ACCEL_M_S2 0.05f
