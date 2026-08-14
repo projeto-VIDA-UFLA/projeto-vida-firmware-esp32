@@ -79,7 +79,7 @@
 
 
 #define STEERING_FILTER_ALPHA 0.08f
-#define STEERING_VELOCITY_FILTER_ALPHA 0.05f
+#define STEERING_VELOCITY_FILTER_ALPHA 0.01f
 
 // Sem uso: permanecem documentadas para uma futura conversao ADC/tensao.
 // #define ADC_MAX_VALUE 4095.0f
@@ -93,7 +93,7 @@
 #define ENC_FRONT_TICKS_PER_REV 100.0f
 #define DRIVE_WHEEL_DIAMETER_M 0.366f
 #define DRIVE_VELOCITY_FILTER_ALPHA 0.05f
-#define DRIVE_ACCEL_FILTER_ALPHA 0.1f
+#define DRIVE_ACCEL_FILTER_ALPHA 0.01f
 
 // Velocidade maxima realimentada para considerar o veiculo parado.
 #define DRIVE_STOP_SPEED_THRESHOLD_MPS 0.05f
