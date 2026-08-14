@@ -109,7 +109,7 @@
 // ============================================================
 
 #define STEERING_POSITION_DEADBAND_DEG 1.5f
-#define STEERING_MIN_ACTUATION 0.1f
+#define STEERING_MIN_ACTUATION 0.15f
 #define MAX_ABS_STEER_COMMAND 1.0f
 #define STEERING_CONTROL_MAX_DT_S 0.1f
 // Intervalo sem PWM entre sentidos opostos do motor de estercamento.
@@ -118,9 +118,9 @@
 // Kp: comando normalizado por grau.
 // Ki: comando normalizado por grau-segundo.
 // Kd: comando normalizado por grau por segundo.
-#define STEERING_DIRECT_KP 0.03f
-#define STEERING_DIRECT_KI 0.0f
-#define STEERING_DIRECT_KD 0.0f
+#define STEERING_DIRECT_KP 0.02f
+#define STEERING_DIRECT_KI 0.1f
+#define STEERING_DIRECT_KD 0.01f
 #define STEERING_DIRECT_INTEGRAL_MIN -10.0f
 #define STEERING_DIRECT_INTEGRAL_MAX 10.0f
 
