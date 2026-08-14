@@ -120,7 +120,7 @@
 // Kd: comando normalizado por grau por segundo.
 #define STEERING_DIRECT_KP 0.02f
 #define STEERING_DIRECT_KI 0.1f
-#define STEERING_DIRECT_KD 0.01f
+#define STEERING_DIRECT_KD 0.0f
 #define STEERING_DIRECT_INTEGRAL_MIN -10.0f
 #define STEERING_DIRECT_INTEGRAL_MAX 10.0f
 
