@@ -4,7 +4,8 @@
 // Comunicacao serial
 // ============================================================
 
-#define SERIAL_BAUDRATE 460800
+//#define SERIAL_BAUDRATE 460800
+#define SERIAL_BAUDRATE 921600
 
 // ============================================================
 // PWM e canais LEDC
@@ -66,14 +67,19 @@
 #define STEERING_MIN_DEG -30.0f
 #define STEERING_MAX_DEG 30.0f
 
-#define STEERING_CALIBRATE_DEG_1 0.0f
-#define STEERING_CALIBRATE_DEG_2 30.0f
 
-#define STEERING_CALIBRATE_ADC_1 2048
-#define STEERING_CALIBRATE_ADC_2 4095
+#define STEERING_CALIBRATE_OFFSET 150
 
-#define STEERING_FILTER_ALPHA 0.25f
-#define STEERING_VELOCITY_FILTER_ALPHA 0.25f
+#define STEERING_CALIBRATE_DEG_1 34.35f
+#define STEERING_CALIBRATE_DEG_2 -40.01f
+
+#define STEERING_CALIBRATE_ADC_1 150
+#define STEERING_CALIBRATE_ADC_2 4095 
+
+
+
+#define STEERING_FILTER_ALPHA 0.05f
+#define STEERING_VELOCITY_FILTER_ALPHA 0.01f
 
 // Sem uso: permanecem documentadas para uma futura conversao ADC/tensao.
 // #define ADC_MAX_VALUE 4095.0f
@@ -83,11 +89,11 @@
 // Encoders e estimativa de movimento longitudinal
 // ============================================================
 
-#define ENC_REAR_TICKS_PER_REV 100.0f
-#define ENC_FRONT_TICKS_PER_REV 100.0f
-#define DRIVE_WHEEL_DIAMETER_M 0.30f
-#define DRIVE_VELOCITY_FILTER_ALPHA 0.25f
-#define DRIVE_ACCEL_FILTER_ALPHA 0.20f
+#define ENC_REAR_TICKS_PER_REV 1440.0f
+#define ENC_FRONT_TICKS_PER_REV 730.0f
+#define DRIVE_WHEEL_DIAMETER_M 0.366f
+#define DRIVE_VELOCITY_FILTER_ALPHA 0.05f
+#define DRIVE_ACCEL_FILTER_ALPHA 0.01f
 
 // Velocidade maxima realimentada para considerar o veiculo parado.
 #define DRIVE_STOP_SPEED_THRESHOLD_MPS 0.05f
@@ -102,8 +108,8 @@
 // Controle direto de posicao do estercamento
 // ============================================================
 
-#define STEERING_POSITION_DEADBAND_DEG 0.7f
-#define STEERING_MIN_ACTUATION 0.08f
+#define STEERING_POSITION_DEADBAND_DEG 1.5f
+#define STEERING_MIN_ACTUATION 0.15f
 #define MAX_ABS_STEER_COMMAND 1.0f
 #define STEERING_CONTROL_MAX_DT_S 0.1f
 // Intervalo sem PWM entre sentidos opostos do motor de estercamento.
@@ -112,8 +118,8 @@
 // Kp: comando normalizado por grau.
 // Ki: comando normalizado por grau-segundo.
 // Kd: comando normalizado por grau por segundo.
-#define STEERING_DIRECT_KP 0.03f
-#define STEERING_DIRECT_KI 0.0f
+#define STEERING_DIRECT_KP 0.007f
+#define STEERING_DIRECT_KI 0.1f
 #define STEERING_DIRECT_KD 0.0f
 #define STEERING_DIRECT_INTEGRAL_MIN -10.0f
 #define STEERING_DIRECT_INTEGRAL_MAX 10.0f
@@ -137,6 +143,11 @@
 // ============================================================
 // Controle longitudinal (ainda nao integrado)
 // ============================================================
+
+// Controle em malha aberta. A referencia recebida em velocity_m_s e tratada
+// temporariamente como um comando PWM assinado na faixa [-255, 255].
+#define DRIVE_OPEN_LOOP_REFERENCE_MAX_PWM 255.0f
+#define DRIVE_OPEN_LOOP_PROPORTIONAL_GAIN 0.15f
 
 // #define DRIVE_MAX_TARGET_SPEED_M_S 2.0f
 // #define DRIVE_MIN_ACCEL_M_S2 0.05f

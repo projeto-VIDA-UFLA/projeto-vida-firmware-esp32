@@ -30,4 +30,4 @@
 // Enable físico de segurança
 // HIGH = painel/contator fisicamente habilitado
 // LOW  = painel fisicamente desabilitado (causa não identificável pelo ESP32)
-#define PIN_ENABLE_SAFETY   23
+#define PIN_ENABLE_SAFETY   13
