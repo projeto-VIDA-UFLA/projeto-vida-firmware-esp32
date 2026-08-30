@@ -1,0 +1,23 @@
+uint8 STATE_DISABLED=0
+uint8 STATE_READY=1
+uint32 INHIBIT_NONE=0
+uint32 INHIBIT_PHYSICAL_ENABLE_OFF=1
+uint32 INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED=2
+uint32 INHIBIT_LOGICAL_ENABLE_FALSE=4
+uint32 INHIBIT_LOGICAL_ENABLE_TIMEOUT=8
+uint32 INHIBIT_DRIVE_REFERENCE_NOT_FRESH=16
+uint32 INHIBIT_STEERING_REFERENCE_NOT_FRESH=32
+uint32 INHIBIT_SENSOR_TASK_TIMEOUT=64
+uint32 INHIBIT_STEERING_SENSOR_NOT_FRESH=128
+uint32 INHIBIT_CONTROL_OUTPUT_TIMEOUT=256
+
+builtin_interfaces/Time timestamp
+uint8 state
+bool physical_enable
+bool logical_enable
+bool logical_enable_received
+bool logical_enable_fresh
+bool drive_reference_fresh
+bool steering_reference_fresh
+bool motion_permitted
+uint32 inhibit_flags

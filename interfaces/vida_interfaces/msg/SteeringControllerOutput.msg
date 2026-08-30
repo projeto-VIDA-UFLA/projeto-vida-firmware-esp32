@@ -1,0 +1,16 @@
+builtin_interfaces/Time timestamp
+
+float32 target_angle_deg
+float32 measured_angle_deg
+float32 angle_error_deg
+
+float32 proportional_term
+float32 integral_term
+float32 derivative_term
+
+float32 normalized_command
+bool inside_deadband
+bool saturated
+bool target_clamped
+bool position_limit_active
+bool valid

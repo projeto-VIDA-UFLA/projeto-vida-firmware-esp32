@@ -28,6 +28,6 @@
 #define PIN_DRIVE_REVERSE   14
 
 // Enable físico de segurança
-// HIGH = sistema habilitado
-// LOW  = emergência / sistema desabilitado
-#define PIN_ENABLE_SAFETY   23
+// HIGH = painel/contator fisicamente habilitado
+// LOW  = painel fisicamente desabilitado (causa não identificável pelo ESP32)
+#define PIN_ENABLE_SAFETY   13

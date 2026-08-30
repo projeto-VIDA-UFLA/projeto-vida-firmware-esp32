@@ -140,6 +140,57 @@ struct vida_interfaces__msg__Comands
     int16_t pwm;
 };
 
+struct vida_interfaces__msg__SteeringReference
+{
+    builtin_interfaces__msg__Time timestamp;
+    float angle_deg;
+    float angular_velocity_deg_s;
+};
+
+struct vida_interfaces__msg__DriveReference
+{
+    builtin_interfaces__msg__Time timestamp;
+    float velocity_m_s;
+    float acceleration_m_s2;
+};
+
+struct vida_interfaces__msg__LogicalEnable
+{
+    builtin_interfaces__msg__Time timestamp;
+    bool enabled;
+};
+
+struct vida_interfaces__msg__SafetyStatus
+{
+    builtin_interfaces__msg__Time timestamp;
+    uint8_t state;
+    bool physical_enable;
+    bool logical_enable;
+    bool logical_enable_received;
+    bool logical_enable_fresh;
+    bool drive_reference_fresh;
+    bool steering_reference_fresh;
+    bool motion_permitted;
+    uint32_t inhibit_flags;
+};
+
+struct vida_interfaces__msg__SteeringControllerOutput
+{
+    builtin_interfaces__msg__Time timestamp;
+    float target_angle_deg;
+    float measured_angle_deg;
+    float angle_error_deg;
+    float proportional_term;
+    float integral_term;
+    float derivative_term;
+    float normalized_command;
+    bool inside_deadband;
+    bool saturated;
+    bool target_clamped;
+    bool position_limit_active;
+    bool valid;
+};
+
 extern rmw_qos_profile_t rmw_qos_profile_default;
 
 #define RCL_MS_TO_NS(ms) ((int64_t)(ms) * 1000000LL)
