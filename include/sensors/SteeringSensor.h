@@ -25,10 +25,12 @@ public:
     float getAngularVelocity() const;
     Snapshot getSnapshot();
 
+    // Converte a leitura bruta do ADC (0-4095) no angulo da roda virtual do
+    // modelo de bicicleta, em graus, na convencao de STEERING_INVERT_SIGN.
+    static float adcToAngleDeg(int raw_adc);
+
 private:
     uint8_t adc_pin_;
-    float calibration_A_;
-    float calibration_B_;
 
     int raw_adc_;
     float raw_angle_deg_;

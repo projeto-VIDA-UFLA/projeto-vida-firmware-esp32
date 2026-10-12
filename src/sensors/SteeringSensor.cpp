@@ -17,8 +17,21 @@ SteeringSensor::SteeringSensor(uint8_t adc_pin)
       measurement_valid_(false),
       mux_(portMUX_INITIALIZER_UNLOCKED)
 {
-    calibration_A_ = (STEERING_CALIBRATE_DEG_2 - STEERING_CALIBRATE_DEG_1) / (STEERING_CALIBRATE_ADC_2 - STEERING_CALIBRATE_ADC_1);
-    calibration_B_ = STEERING_CALIBRATE_DEG_1 - STEERING_CALIBRATE_ADC_1 * calibration_A_;
+}
+
+float SteeringSensor::adcToAngleDeg(int raw_adc)
+{
+    // Sinal aplicado aos coeficientes em tempo de compilacao.
+    constexpr float a = STEERING_ANGLE_SIGN * STEERING_POLY_A;
+    constexpr float b = STEERING_ANGLE_SIGN * STEERING_POLY_B;
+    constexpr float c = STEERING_ANGLE_SIGN * STEERING_POLY_C;
+
+    // Subtracao inteira: no centro d e exatamente 0.
+    const float d = static_cast<float>(raw_adc - STEERING_ADC_CENTER);
+
+    // Horner: a*d + b*d^2 + c*d^3 = d*(a + d*(b + d*c)).
+    // O "+ 0.0f" normaliza o -0.0 do centro para +0.0.
+    return d * (a + d * (b + d * c)) + 0.0f;
 }
 
 void SteeringSensor::begin()
@@ -34,7 +47,7 @@ void SteeringSensor::update()
 {
     const int64_t now_us = esp_timer_get_time();
     const int raw_adc = analogRead(adc_pin_);
-    const float raw_angle_deg = mapFloat((raw_adc), calibration_A_, calibration_B_);
+    const float raw_angle_deg = adcToAngleDeg(raw_adc);
 
     const bool had_previous_sample = filter_initialized_;
     if (!had_previous_sample)

@@ -68,15 +68,23 @@
 #define STEERING_MAX_DEG 30.0f
 
 
-#define STEERING_CALIBRATE_OFFSET 150
+// Conversao ADC -> angulo da roda virtual do modelo de bicicleta (graus).
+// Polinomio cubico ancorado no centro, com d = adc - STEERING_ADC_CENTER:
+//   delta = A*d + B*d^2 + C*d^3
+// A curva e assimetrica: nao assumir simetria em torno do centro.
+#define STEERING_ADC_CENTER 2046
+#define STEERING_POLY_A -2.14862e-2f
+#define STEERING_POLY_B -3.09559e-7f
+#define STEERING_POLY_C 1.42370e-9f
 
-#define STEERING_CALIBRATE_DEG_1 34.35f
-#define STEERING_CALIBRATE_DEG_2 -40.01f
-
-#define STEERING_CALIBRATE_ADC_1 150
-#define STEERING_CALIBRATE_ADC_2 4095 
-
-
+// Convencao de sinal do angulo de estercamento em todo o sistema.
+// 0: convencao dos dados de calibracao (esquerda negativo, direita positivo).
+// 1: REP-103 (esquerda positivo, direita negativo).
+// A mesma flag inverte o angulo medido e o sentido do comando do motor, de
+// modo que referencia ROS, medicao e atuacao fiquem sempre na mesma
+// convencao. STEERING_MIN_DEG/STEERING_MAX_DEG seguem a convencao escolhida.
+#define STEERING_INVERT_SIGN 0
+#define STEERING_ANGLE_SIGN (STEERING_INVERT_SIGN ? -1.0f : 1.0f)
 
 #define STEERING_FILTER_ALPHA 0.05f
 #define STEERING_VELOCITY_FILTER_ALPHA 0.01f

@@ -192,9 +192,11 @@ void taskControl(void *parameter)
     // motriz diretamente, sem combinar velocidades das rodas esterçantes.
     const EncoderReader::Snapshot rear =
         rear_encoder.getMeasurementSnapshot();
+    // O controlador opera na convencao de STEERING_INVERT_SIGN; o motor
+    // aciona o PWM da direita com comando positivo. O sinal converte de volta.
     const ActuatorManager::TimedCommand command{
         drive_command,
-        output.output.normalized_command,
+        STEERING_ANGLE_SIGN * output.output.normalized_command,
         now_us,
         output.output.valid && drive_reference_is_fresh};
     const DriveMotor::VelocityMeasurement drive_velocity{
