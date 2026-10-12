@@ -129,7 +129,7 @@
 // Largura de pulso para freio solto e freio total, medidas no veiculo.
 // O pulso diminui para frear: o servo puxa o cabo no sentido de 2500 -> 1600.
 #define BRAKE_RELEASED_US 2500
-#define BRAKE_APPLIED_US 1600
+#define BRAKE_APPLIED_US 1700
 
 // Rampa usada somente em falhas: fracao do curso por segundo (1.0 = 1 s de
 // solto a freio total). Na operacao normal o freio segue a referencia.
