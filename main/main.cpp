@@ -21,6 +21,7 @@
 // Inclui classes de atuadores
 #include "actuators/SteeringMotor.h"
 #include "actuators/DriveMotor.h"
+#include "actuators/BrakeServo.h"
 #include "actuators/ActuatorManager.h"
 
 // Inclui classes de segurança
@@ -48,7 +49,8 @@ SteeringSensor steering_sensor(PIN_LVDT);
 // Instanciando objetos que representam os atuadores
 SteeringMotor steering_motor(PIN_STEER_RIGHT_PWM, PIN_STEER_LEFT_PWM, PWM_CH_STEER_RIGHT, PWM_CH_STEER_LEFT);
 DriveMotor drive_motor(PIN_DRIVE_PWM, PIN_DRIVE_REVERSE, PWM_CH_DRIVE);
-ActuatorManager actuator_manager(drive_motor, steering_motor);
+BrakeServo brake_servo(PIN_BRAKE_SERVO, PWM_CH_BRAKE);
+ActuatorManager actuator_manager(drive_motor, steering_motor, brake_servo);
 
 // Instanciando Controladores
 SteeringController steering_controller;
@@ -128,6 +130,7 @@ void taskSafety(void *parameter)
   while (true)
   {
     safety_manager.update();
+    actuator_manager.updateBrake();
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_SAFETY_PERIOD_MS));
   }
 }
@@ -197,6 +200,7 @@ void taskControl(void *parameter)
     const ActuatorManager::TimedCommand command{
         drive_command,
         STEERING_ANGLE_SIGN * output.output.normalized_command,
+        drive_reference.brake_command,
         now_us,
         output.output.valid && drive_reference_is_fresh};
     const DriveMotor::VelocityMeasurement drive_velocity{
@@ -226,7 +230,8 @@ void setup()
   left_encoder.begin();
   steering_sensor.begin();
 
-  // Inicializa atuadores
+  // Inicializa atuadores. O freio vem primeiro: parte acionado.
+  brake_servo.begin();
   drive_motor.begin();
   steering_motor.begin();
   actuator_manager.begin();

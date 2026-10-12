@@ -152,6 +152,7 @@ struct vida_interfaces__msg__DriveReference
     builtin_interfaces__msg__Time timestamp;
     float velocity_m_s;
     float acceleration_m_s2;
+    float brake_command;
 };
 
 struct vida_interfaces__msg__LogicalEnable

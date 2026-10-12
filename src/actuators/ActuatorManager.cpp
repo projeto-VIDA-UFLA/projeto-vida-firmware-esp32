@@ -5,9 +5,11 @@
 #include "utils/config.h"
 
 ActuatorManager::ActuatorManager(DriveMotor &drive_motor,
-                                 SteeringMotor &steering_motor)
+                                 SteeringMotor &steering_motor,
+                                 BrakeServo &brake_servo)
     : drive_motor_(drive_motor),
       steering_motor_(steering_motor),
+      brake_servo_(brake_servo),
       mutex_(nullptr),
       motion_permitted_(false),
       emergency_latched_(false)
@@ -25,6 +27,7 @@ bool ActuatorManager::begin()
     {
         drive_motor_.stop();
         steering_motor_.stop();
+        brake_servo_.applyFaultRamp();
         return false;
     }
 
@@ -56,8 +59,10 @@ bool ActuatorManager::applyCommands(
         output_is_fresh &&
         std::isfinite(command.drive_command) &&
         std::isfinite(command.steering_command) &&
+        std::isfinite(command.brake_command) &&
         command.drive_command >= -1.0f && command.drive_command <= 1.0f &&
-        command.steering_command >= -1.0f && command.steering_command <= 1.0f;
+        command.steering_command >= -1.0f && command.steering_command <= 1.0f &&
+        command.brake_command >= 0.0f && command.brake_command <= 1.0f;
 
     if (!commands_are_valid || !motion_permitted_ || emergency_latched_)
     {
@@ -66,8 +71,19 @@ bool ActuatorManager::applyCommands(
         return false;
     }
 
-    drive_motor_.setCommand(command.drive_command, drive_velocity);
+    brake_servo_.setCommand(command.brake_command);
     steering_motor_.setCommand(command.steering_command);
+
+    // Intertravamento: com o freio acionado a tracao nao briga com ele.
+    if (brake_servo_.getPosition() > BRAKE_DRIVE_CUTOFF)
+    {
+        drive_motor_.stop();
+    }
+    else
+    {
+        drive_motor_.setCommand(command.drive_command, drive_velocity);
+    }
+
     giveMutex();
     return true;
 }
@@ -98,6 +114,7 @@ void ActuatorManager::stop()
     {
         drive_motor_.stop();
         steering_motor_.stop();
+        brake_servo_.applyFaultRamp();
         return;
     }
 
@@ -111,12 +128,24 @@ void ActuatorManager::emergencyStop()
     {
         drive_motor_.stop();
         steering_motor_.stop();
+        brake_servo_.applyFaultRamp();
         return;
     }
 
     emergency_latched_ = true;
     motion_permitted_ = false;
     stopUnlocked();
+    giveMutex();
+}
+
+void ActuatorManager::updateBrake()
+{
+    if (!takeMutex())
+    {
+        return;
+    }
+
+    brake_servo_.update();
     giveMutex();
 }
 
@@ -152,6 +181,7 @@ ActuatorManager::Snapshot ActuatorManager::getSnapshot() const
     {
         snapshot.drive = drive_motor_.getSnapshot();
         snapshot.steering = steering_motor_.getSnapshot();
+        snapshot.brake = brake_servo_.getSnapshot();
         snapshot.motion_permitted = false;
         snapshot.emergency_latched = false;
         return snapshot;
@@ -159,6 +189,7 @@ ActuatorManager::Snapshot ActuatorManager::getSnapshot() const
 
     snapshot.drive = drive_motor_.getSnapshot();
     snapshot.steering = steering_motor_.getSnapshot();
+    snapshot.brake = brake_servo_.getSnapshot();
     snapshot.motion_permitted = motion_permitted_;
     snapshot.emergency_latched = emergency_latched_;
     giveMutex();
@@ -177,6 +208,8 @@ void ActuatorManager::giveMutex() const
 
 void ActuatorManager::stopUnlocked()
 {
+    // Parar motores zera PWM; parar o freio significa aplica-lo em rampa.
     drive_motor_.stop();
     steering_motor_.stop();
+    brake_servo_.applyFaultRamp();
 }

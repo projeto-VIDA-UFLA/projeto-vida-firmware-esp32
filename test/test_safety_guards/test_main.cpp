@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "actuators/ActuatorManager.h"
+#include "actuators/BrakeServo.h"
 #include "actuators/DriveMotor.h"
 #include "actuators/MotorHardware.h"
 #include "actuators/SteeringMotor.h"
@@ -19,6 +20,7 @@ namespace
     public:
         void configureOutput(uint8_t) override {}
         void configurePwm(uint8_t, uint8_t) override {}
+        void configureServo(uint8_t, uint8_t) override {}
         void writeDirection(uint8_t, bool high) override { direction = high; }
         void writePwm(uint8_t channel, int duty) override
         {
@@ -95,14 +97,15 @@ namespace
         FakeHardware hw;
         DriveMotor drive(12, 13, 0, &hw);
         SteeringMotor steering(10, 11, 1, 2, &hw);
-        ActuatorManager manager(drive, steering);
+        BrakeServo brake(4, 4, &hw);
+        ActuatorManager manager(drive, steering, brake);
         drive.begin();
         steering.begin();
         TEST_ASSERT_TRUE(manager.begin());
         manager.setMotionPermit(true);
         const int64_t now = esp_timer_get_time();
         TEST_ASSERT_TRUE(manager.applyCommands(
-            {0.0f, 0.5f, now, true}, {0.0f, now, true}));
+            {0.0f, 0.5f, 0.0f, now, true}, {0.0f, now, true}));
         manager.emergencyStop();
         TEST_ASSERT_EQUAL(0, drive.getLastPwm());
         TEST_ASSERT_EQUAL(0, steering.getRightPwm());
@@ -201,13 +204,14 @@ namespace
         FakeHardware hw;
         DriveMotor drive(12, 13, 0, &hw);
         SteeringMotor steering(10, 11, 1, 2, &hw);
-        ActuatorManager manager(drive, steering);
+        BrakeServo brake(4, 4, &hw);
+        ActuatorManager manager(drive, steering, brake);
         drive.begin();
         steering.begin();
         TEST_ASSERT_TRUE(manager.begin());
         const int64_t now = esp_timer_get_time();
         const DriveMotor::VelocityMeasurement stopped{0.0f, now, true};
-        ActuatorManager::TimedCommand recent{0.0f, 0.5f, now, true};
+        ActuatorManager::TimedCommand recent{0.0f, 0.5f, 0.0f, now, true};
 
         TEST_ASSERT_FALSE(manager.applyCommands(recent, stopped));
         TEST_ASSERT_EQUAL(0, steering.getRightPwm());
@@ -217,7 +221,7 @@ namespace
         TEST_ASSERT_GREATER_THAN(0, steering.getRightPwm());
 
         const ActuatorManager::TimedCommand expired{
-            0.0f, 0.5f,
+            0.0f, 0.5f, 0.0f,
             now - static_cast<int64_t>(
                       CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS + 1) *
                       1000LL,
@@ -225,6 +229,95 @@ namespace
         TEST_ASSERT_FALSE(manager.applyCommands(expired, stopped));
         TEST_ASSERT_EQUAL(0, steering.getRightPwm());
         TEST_ASSERT_EQUAL(0, steering.getLeftPwm());
+    }
+
+    void testBrakeStartsAppliedAndFollowsCommand()
+    {
+        FakeHardware hw;
+        BrakeServo brake(4, 4, &hw);
+        brake.begin();
+        TEST_ASSERT_EQUAL_FLOAT(1.0f, brake.getPosition());
+        brake.setCommand(0.0f);
+        TEST_ASSERT_EQUAL_FLOAT(0.0f, brake.getPosition());
+        brake.setCommand(0.4f);
+        TEST_ASSERT_EQUAL_FLOAT(0.4f, brake.getPosition());
+        TEST_ASSERT_FALSE(brake.getSnapshot().fault_ramp_active);
+    }
+
+    void testBrakeFaultRampsToFullAtConfiguredRate()
+    {
+        FakeHardware hw;
+        BrakeServo brake(4, 4, &hw);
+        brake.begin();
+        brake.setCommand(0.0f);
+        brake.applyFaultRamp();
+        hw.advanceMs(100);
+        brake.update();
+        TEST_ASSERT_FLOAT_WITHIN(1e-4f, BRAKE_FAULT_RATE_PER_S * 0.1f,
+                                 brake.getPosition());
+        // Repetir a falha nao reinicia nem acelera a rampa.
+        brake.applyFaultRamp();
+        hw.advanceMs(100);
+        brake.update();
+        TEST_ASSERT_FLOAT_WITHIN(1e-4f, BRAKE_FAULT_RATE_PER_S * 0.2f,
+                                 brake.getPosition());
+        hw.advanceMs(static_cast<int64_t>(2000.0f / BRAKE_FAULT_RATE_PER_S));
+        brake.update();
+        TEST_ASSERT_EQUAL_FLOAT(1.0f, brake.getPosition());
+    }
+
+    void testBrakeInvalidCommandStartsFaultRamp()
+    {
+        const float invalid[] = {NAN, INFINITY, -0.1f, 1.1f};
+        for (float command : invalid)
+        {
+            FakeHardware hw;
+            BrakeServo brake(4, 4, &hw);
+            brake.begin();
+            brake.setCommand(0.0f);
+            brake.setCommand(command);
+            TEST_ASSERT_EQUAL_FLOAT(0.0f, brake.getPosition());
+            TEST_ASSERT_TRUE(brake.getSnapshot().fault_ramp_active);
+        }
+    }
+
+    void testBrakeCutsDriveAndRampsWhenMotionBlocked()
+    {
+        FakeHardware hw;
+        DriveMotor drive(12, 13, 0, &hw);
+        SteeringMotor steering(10, 11, 1, 2, &hw);
+        BrakeServo brake(4, 4, &hw);
+        ActuatorManager manager(drive, steering, brake);
+        drive.begin();
+        steering.begin();
+        brake.begin();
+        TEST_ASSERT_TRUE(manager.begin());
+        manager.setMotionPermit(true);
+        const DriveMotor::VelocityMeasurement stopped{0.0f, hw.nowUs(), true};
+
+        TEST_ASSERT_TRUE(manager.applyCommands(
+            {0.5f, 0.0f, 0.0f, esp_timer_get_time(), true}, stopped));
+        TEST_ASSERT_GREATER_THAN(0, drive.getLastPwm());
+
+        // Freio acionado: tracao zerada, esterçamento continua.
+        TEST_ASSERT_TRUE(manager.applyCommands(
+            {0.5f, 0.5f, 0.5f, esp_timer_get_time(), true}, stopped));
+        TEST_ASSERT_EQUAL(0, drive.getLastPwm());
+        TEST_ASSERT_GREATER_THAN(0, steering.getRightPwm());
+
+        // Freio fora da faixa invalida o comando inteiro.
+        TEST_ASSERT_FALSE(manager.applyCommands(
+            {0.5f, 0.0f, 1.5f, esp_timer_get_time(), true}, stopped));
+        TEST_ASSERT_EQUAL(0, drive.getLastPwm());
+
+        // Bloqueio de seguranca: freio em rampa ate total.
+        TEST_ASSERT_TRUE(manager.applyCommands(
+            {0.0f, 0.0f, 0.0f, esp_timer_get_time(), true}, stopped));
+        manager.setMotionPermit(false);
+        TEST_ASSERT_TRUE(brake.getSnapshot().fault_ramp_active);
+        hw.advanceMs(static_cast<int64_t>(2000.0f / BRAKE_FAULT_RATE_PER_S));
+        manager.updateBrake();
+        TEST_ASSERT_EQUAL_FLOAT(1.0f, brake.getPosition());
     }
 }
 
@@ -240,6 +333,10 @@ void setup()
     RUN_TEST(testSensorHeartbeatAndSteeringSnapshotWatchdogs);
     RUN_TEST(testControlOutputWatchdogAndDisabledPolicy);
     RUN_TEST(testActuatorPathAcceptsRecentAndZerosExpiredOutput);
+    RUN_TEST(testBrakeStartsAppliedAndFollowsCommand);
+    RUN_TEST(testBrakeFaultRampsToFullAtConfiguredRate);
+    RUN_TEST(testBrakeInvalidCommandStartsFaultRamp);
+    RUN_TEST(testBrakeCutsDriveAndRampsWhenMotionBlocked);
     UNITY_END();
 }
 

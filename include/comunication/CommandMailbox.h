@@ -18,6 +18,7 @@ public:
     {
         float velocity_m_s;
         float acceleration_m_s2;
+        float brake_command;
         int64_t source_timestamp_ns;
         int64_t received_at_us;
         bool received;
@@ -38,6 +39,7 @@ public:
                                  int64_t source_timestamp_ns);
     void updateDriveReference(float velocity_m_s,
                               float acceleration_m_s2,
+                              float brake_command,
                               int64_t source_timestamp_ns);
     void updateLogicalEnable(bool enabled, int64_t source_timestamp_ns);
 

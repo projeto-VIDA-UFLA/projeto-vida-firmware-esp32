@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
+#include "actuators/BrakeServo.h"
 #include "actuators/DriveMotor.h"
 #include "actuators/SteeringMotor.h"
 
@@ -14,6 +15,7 @@ public:
     {
         float drive_command;
         float steering_command;
+        float brake_command;
         int64_t produced_at_us;
         bool valid;
     };
@@ -22,11 +24,13 @@ public:
     {
         DriveMotor::Snapshot drive;
         SteeringMotor::Snapshot steering;
+        BrakeServo::Snapshot brake;
         bool motion_permitted;
         bool emergency_latched;
     };
 
-    ActuatorManager(DriveMotor &drive_motor, SteeringMotor &steering_motor);
+    ActuatorManager(DriveMotor &drive_motor, SteeringMotor &steering_motor,
+                    BrakeServo &brake_servo);
 
     bool begin();
 
@@ -36,6 +40,10 @@ public:
     void setMotionPermit(bool permitted);
     void stop();
     void emergencyStop();
+
+    // Avanca a rampa de falha do freio. Chamado periodicamente pela task de
+    // seguranca para nao depender da task de controle.
+    void updateBrake();
 
     bool isMotionPermitted() const;
     bool isEmergencyLatched() const;
@@ -48,6 +56,7 @@ private:
 
     DriveMotor &drive_motor_;
     SteeringMotor &steering_motor_;
+    BrakeServo &brake_servo_;
 
     mutable SemaphoreHandle_t mutex_;
     bool motion_permitted_;

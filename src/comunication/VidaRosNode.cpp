@@ -17,6 +17,7 @@ namespace
     // tópicos de atuadores
     constexpr char CMD_STEERING_TOPIC[] = "/vida/actuators/steering";
     constexpr char CMD_DRIVE_TOPIC[] = "/vida/actuators/drive";
+    constexpr char CMD_BRAKE_TOPIC[] = "/vida/actuators/brake";
 
     // tópicos de segurança
     constexpr char SAFETY_STATUS_TOPIC[] = "/vida/safety/status";
@@ -50,6 +51,7 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
       steering_publisher_(rcl_get_zero_initialized_publisher()),
       cmd_steering_publisher_(rcl_get_zero_initialized_publisher()),
       cmd_drive_publisher_(rcl_get_zero_initialized_publisher()),
+      cmd_brake_publisher_(rcl_get_zero_initialized_publisher()),
       safety_status_publisher_(rcl_get_zero_initialized_publisher()),
       steering_reference_subscription_(rcl_get_zero_initialized_subscription()),
       drive_reference_subscription_(rcl_get_zero_initialized_subscription()),
@@ -61,6 +63,7 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
       steering_output_message_{},
       cmd_drive_message_{},
       cmd_steering_message_{},
+      cmd_brake_message_{},
       safety_status_message_{},
       steering_reference_message_{},
       drive_reference_message_{},
@@ -133,6 +136,14 @@ bool VidaRosNode::configure()
             cmd_drive_publisher_,
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Comands),
             CMD_DRIVE_TOPIC))
+    {
+        return false;
+    }
+
+    if (!communication_.addPublisher(
+            cmd_brake_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Comands),
+            CMD_BRAKE_TOPIC))
     {
         return false;
     }
@@ -229,7 +240,8 @@ void VidaRosNode::driveReferenceCallback(const void *message)
         static_cast<const vida_interfaces__msg__DriveReference *>(message);
 
     if (!std::isfinite(reference->velocity_m_s) ||
-        !std::isfinite(reference->acceleration_m_s2))
+        !std::isfinite(reference->acceleration_m_s2) ||
+        !std::isfinite(reference->brake_command))
     {
         return;
     }
@@ -237,6 +249,7 @@ void VidaRosNode::driveReferenceCallback(const void *message)
     instance_->command_mailbox_.updateDriveReference(
         reference->velocity_m_s,
         reference->acceleration_m_s2,
+        reference->brake_command,
         timestampToNanoseconds(reference->timestamp));
 }
 
@@ -275,6 +288,7 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
     const ActuatorManager::Snapshot actuators = actuator_manager_.getSnapshot();
     const SteeringMotor::Snapshot &steering_pwm = actuators.steering;
     const DriveMotor::Snapshot &drive_pwm = actuators.drive;
+    const BrakeServo::Snapshot &brake = actuators.brake;
 
     const EncoderReader::Snapshot left = left_encoder_.getMeasurementSnapshot();
     const EncoderReader::Snapshot right = right_encoder_.getMeasurementSnapshot();
@@ -313,6 +327,13 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
     {
         cmd_drive_message_.pwm = !drive_pwm.reverse ? drive_pwm.pwm : -drive_pwm.pwm;
         communication_.publish(cmd_drive_publisher_, &cmd_drive_message_);
+    }
+
+    // No campo pwm vai a largura de pulso do servo em us (0 = sem pulsos).
+    if (setTimestamp(cmd_brake_message_.timestamp, brake.timestamp_us))
+    {
+        cmd_brake_message_.pwm = static_cast<int16_t>(brake.pulse_us);
+        communication_.publish(cmd_brake_publisher_, &cmd_brake_message_);
     }
 
     if (setTimestamp(safety_status_message_.timestamp, safety.timestamp_us))

@@ -61,6 +61,7 @@ private:
     // Publisher de atuadores
     rcl_publisher_t cmd_drive_publisher_;
     rcl_publisher_t cmd_steering_publisher_;
+    rcl_publisher_t cmd_brake_publisher_;
 
     // Publisher de segurança
     rcl_publisher_t safety_status_publisher_;
@@ -81,6 +82,7 @@ private:
     vida_interfaces__msg__Steering steering_message_;
     vida_interfaces__msg__Comands cmd_steering_message_;
     vida_interfaces__msg__Comands cmd_drive_message_;
+    vida_interfaces__msg__Comands cmd_brake_message_;
     vida_interfaces__msg__SafetyStatus safety_status_message_;
     vida_interfaces__msg__SteeringReference steering_reference_message_;
     vida_interfaces__msg__DriveReference drive_reference_message_;

@@ -19,6 +19,12 @@ namespace
             ledcAttachPin(pin, channel);
         }
 
+        void configureServo(uint8_t pin, uint8_t channel) override
+        {
+            ledcSetup(channel, BRAKE_SERVO_FREQUENCY_HZ, BRAKE_SERVO_RESOLUTION_BITS);
+            ledcAttachPin(pin, channel);
+        }
+
         void writeDirection(uint8_t pin, bool high) override
         {
             digitalWrite(pin, high ? HIGH : LOW);

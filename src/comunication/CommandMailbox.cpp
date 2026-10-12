@@ -29,6 +29,7 @@ void CommandMailbox::updateSteeringReference(float angle_deg,
 
 void CommandMailbox::updateDriveReference(float velocity_m_s,
                                           float acceleration_m_s2,
+                                          float brake_command,
                                           int64_t source_timestamp_ns)
 {
     const int64_t received_at_us = esp_timer_get_time();
@@ -36,6 +37,7 @@ void CommandMailbox::updateDriveReference(float velocity_m_s,
     portENTER_CRITICAL(&drive_mux_);
     drive_reference_.velocity_m_s = velocity_m_s;
     drive_reference_.acceleration_m_s2 = acceleration_m_s2;
+    drive_reference_.brake_command = brake_command;
     drive_reference_.source_timestamp_ns = source_timestamp_ns;
     drive_reference_.received_at_us = received_at_us;
     drive_reference_.received = true;

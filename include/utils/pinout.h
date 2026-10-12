@@ -27,6 +27,9 @@
 // Sugestão inicial. Altere se houver conflito no hardware.
 #define PIN_DRIVE_REVERSE   14
 
+// Servo do freio (cabo de aco)
+#define PIN_BRAKE_SERVO     4
+
 // Enable físico de segurança
 // HIGH = painel/contator fisicamente habilitado
 // LOW  = painel fisicamente desabilitado (causa não identificável pelo ESP32)

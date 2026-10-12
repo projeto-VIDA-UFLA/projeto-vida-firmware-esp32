@@ -17,6 +17,9 @@
 #define PWM_CH_DRIVE 0
 #define PWM_CH_STEER_RIGHT 1
 #define PWM_CH_STEER_LEFT 2
+// Canal 4: timer LEDC proprio. Os canais 0/1 e 2/3 compartilham timer, entao
+// usar o 3 mudaria a frequencia do estercamento para 50 Hz.
+#define PWM_CH_BRAKE 4
 
 // Sem uso: a conversao de comando para duty nao consulta esta constante.
 // #define PWM_MAX_DUTY 255
@@ -111,6 +114,29 @@
 #define DRIVE_VELOCITY_MEASUREMENT_TIMEOUT_MS 50
 // Tempo sem torque depois de alterar DIR antes de reaplicar PWM.
 #define DRIVE_DIRECTION_DEADTIME_MS 20
+
+// ============================================================
+// Freio (servo de hobby que puxa o cabo de aco)
+// ============================================================
+
+#define BRAKE_SERVO_FREQUENCY_HZ 50
+#define BRAKE_SERVO_RESOLUTION_BITS 16
+
+// 0: freio nao calibrado. Nenhum pulso e enviado ao servo (freio inoperante).
+// So passar para 1 depois de medir BRAKE_APPLIED_US no veiculo.
+#define BRAKE_CALIBRATED 0
+
+// Largura de pulso para freio solto (posicao 0 do servo) e freio total.
+#define BRAKE_RELEASED_US 1000
+// DESCONHECIDO: medir antes de habilitar BRAKE_CALIBRATED.
+#define BRAKE_APPLIED_US 1000
+
+// Rampa usada somente em falhas: fracao do curso por segundo (1.0 = 1 s de
+// solto a freio total). Na operacao normal o freio segue a referencia.
+#define BRAKE_FAULT_RATE_PER_S 1.0f
+
+// Acima desta posicao do freio (0 a 1) o PWM de tracao e zerado.
+#define BRAKE_DRIVE_CUTOFF 0.05f
 
 // ============================================================
 // Controle direto de posicao do estercamento
