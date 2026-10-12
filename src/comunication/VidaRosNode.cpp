@@ -311,9 +311,9 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
     if (setTimestamp(steering_message_.timestamp, steering.timestamp_us))
     {
         steering_message_.raw_adc = steering.raw_adc;
-        steering_message_.raw_angle_deg = steering.raw_angle_deg;
-        steering_message_.filtered_angle_deg = steering.filtered_angle_deg;
-        steering_message_.filtered_angular_velocity_deg_s = steering.filtered_angular_velocity_deg_s;
+        steering_message_.raw_angle_deg = -steering.raw_angle_deg;
+        steering_message_.filtered_angle_deg = -steering.filtered_angle_deg;
+        steering_message_.filtered_angular_velocity_deg_s = -steering.filtered_angular_velocity_deg_s;
         communication_.publish(steering_publisher_, &steering_message_);
     }
 
