@@ -124,12 +124,21 @@
 
 // 0: freio nao calibrado. Nenhum pulso e enviado ao servo (freio inoperante).
 // So passar para 1 depois de medir BRAKE_APPLIED_US no veiculo.
-#define BRAKE_CALIBRATED 0
+#define BRAKE_CALIBRATED 1
 
 // Largura de pulso para freio solto e freio total, medidas no veiculo.
 // O pulso diminui para frear: o servo puxa o cabo no sentido de 2500 -> 1600.
 #define BRAKE_RELEASED_US 2500
 #define BRAKE_APPLIED_US 1600
+
+// Com o veiculo parado o servo puxa no maximo ate este pulso, para nao forcar
+// o servo mantendo o freio. Deve ficar entre BRAKE_RELEASED_US e
+// BRAKE_APPLIED_US. Volta ao freio total assim que houver movimento.
+#define BRAKE_HOLD_US 1700
+// Tempo continuo com os tres encoders abaixo de DRIVE_STOP_SPEED_THRESHOLD_MPS
+// antes de aliviar para BRAKE_HOLD_US. Os dianteiros nao sao freados, entao
+// detectam o veiculo deslizando com a roda traseira travada.
+#define BRAKE_HOLD_CONFIRMATION_MS 1000
 
 // Rampa usada somente em falhas: fracao do curso por segundo (1.0 = 1 s de
 // solto a freio total). Na operacao normal o freio segue a referencia.

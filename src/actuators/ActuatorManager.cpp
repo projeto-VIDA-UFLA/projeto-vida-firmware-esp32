@@ -138,14 +138,14 @@ void ActuatorManager::emergencyStop()
     giveMutex();
 }
 
-void ActuatorManager::updateBrake()
+void ActuatorManager::updateBrake(bool vehicle_stopped)
 {
     if (!takeMutex())
     {
         return;
     }
 
-    brake_servo_.update();
+    brake_servo_.update(vehicle_stopped);
     giveMutex();
 }
 

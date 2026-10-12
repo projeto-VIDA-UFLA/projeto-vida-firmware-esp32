@@ -121,6 +121,19 @@ void taskSensors(void *parameter)
   }
 }
 
+// Parado exige leitura recente, finita e abaixo do limiar. Leitura invalida
+// ou velha conta como movimento.
+bool encoderReportsStopped(const EncoderReader::Snapshot &snapshot, int64_t now_us)
+{
+  constexpr int64_t timeout_us =
+      static_cast<int64_t>(DRIVE_VELOCITY_MEASUREMENT_TIMEOUT_MS) * 1000LL;
+  return snapshot.timestamp_us > 0 &&
+         now_us >= snapshot.timestamp_us &&
+         (now_us - snapshot.timestamp_us) <= timeout_us &&
+         std::isfinite(snapshot.filtered_velocity_m_s) &&
+         std::fabs(snapshot.filtered_velocity_m_s) < DRIVE_STOP_SPEED_THRESHOLD_MPS;
+}
+
 void taskSafety(void *parameter)
 {
   (void)parameter;
@@ -130,7 +143,17 @@ void taskSafety(void *parameter)
   while (true)
   {
     safety_manager.update();
-    actuator_manager.updateBrake();
+
+    // O freio atua so na traseira: as rodas dianteiras confirmam que o
+    // veiculo parou mesmo com a roda traseira travada.
+    const EncoderReader::Snapshot rear = rear_encoder.getMeasurementSnapshot();
+    const EncoderReader::Snapshot right = right_encoder.getMeasurementSnapshot();
+    const EncoderReader::Snapshot left = left_encoder.getMeasurementSnapshot();
+    const int64_t now_us = esp_timer_get_time();
+    const bool vehicle_stopped = encoderReportsStopped(rear, now_us) &&
+                                 encoderReportsStopped(right, now_us) &&
+                                 encoderReportsStopped(left, now_us);
+    actuator_manager.updateBrake(vehicle_stopped);
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_SAFETY_PERIOD_MS));
   }
 }

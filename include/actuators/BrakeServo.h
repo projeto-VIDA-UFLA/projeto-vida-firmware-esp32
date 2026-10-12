@@ -14,6 +14,7 @@ public:
         float position;
         int pulse_us; // 0 quando nenhum pulso e enviado (nao calibrado)
         bool fault_ramp_active;
+        bool hold_active; // veiculo parado: pulso limitado a BRAKE_HOLD_US
         int64_t timestamp_us;
     };
 
@@ -29,13 +30,16 @@ public:
     // Inicia a rampa ate freio total. Chamadas repetidas mantem a rampa.
     void applyFaultRamp();
 
-    // Avanca a rampa de falha. Deve ser chamado periodicamente.
-    void update();
+    // Avanca a rampa de falha e atualiza o alivio de veiculo parado.
+    // Deve ser chamado periodicamente. vehicle_stopped deve ser false
+    // quando a medicao de velocidade for invalida ou velha.
+    void update(bool vehicle_stopped);
 
     float getPosition() const;
     Snapshot getSnapshot() const;
 
 private:
+    void updateHold(bool vehicle_stopped, int64_t now_us);
     void writePosition(float position, int64_t now_us);
 
     uint8_t pin_;
@@ -45,6 +49,8 @@ private:
     int pulse_us_;
     bool fault_ramp_active_;
     int64_t last_ramp_update_us_;
+    bool hold_active_;
+    int64_t stopped_since_us_; // 0 = veiculo em movimento
     int64_t timestamp_us_;
     MotorHardware &hardware_;
 

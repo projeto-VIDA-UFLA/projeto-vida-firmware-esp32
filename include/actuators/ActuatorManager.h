@@ -41,9 +41,10 @@ public:
     void stop();
     void emergencyStop();
 
-    // Avanca a rampa de falha do freio. Chamado periodicamente pela task de
-    // seguranca para nao depender da task de controle.
-    void updateBrake();
+    // Avanca a rampa de falha do freio e o alivio de veiculo parado.
+    // Chamado periodicamente pela task de seguranca para nao depender da
+    // task de controle.
+    void updateBrake(bool vehicle_stopped);
 
     bool isMotionPermitted() const;
     bool isEmergencyLatched() const;

@@ -252,18 +252,43 @@ namespace
         brake.setCommand(0.0f);
         brake.applyFaultRamp();
         hw.advanceMs(100);
-        brake.update();
+        brake.update(false);
         TEST_ASSERT_FLOAT_WITHIN(1e-4f, BRAKE_FAULT_RATE_PER_S * 0.1f,
                                  brake.getPosition());
         // Repetir a falha nao reinicia nem acelera a rampa.
         brake.applyFaultRamp();
         hw.advanceMs(100);
-        brake.update();
+        brake.update(false);
         TEST_ASSERT_FLOAT_WITHIN(1e-4f, BRAKE_FAULT_RATE_PER_S * 0.2f,
                                  brake.getPosition());
         hw.advanceMs(static_cast<int64_t>(2000.0f / BRAKE_FAULT_RATE_PER_S));
-        brake.update();
+        brake.update(false);
         TEST_ASSERT_EQUAL_FLOAT(1.0f, brake.getPosition());
+    }
+
+    void testBrakeHoldNeedsConfirmedStopAndDropsOnMotion()
+    {
+        FakeHardware hw;
+        BrakeServo brake(4, 4, &hw);
+        brake.begin();
+        brake.update(true);
+        TEST_ASSERT_FALSE(brake.getSnapshot().hold_active);
+        hw.advanceMs(BRAKE_HOLD_CONFIRMATION_MS - 1);
+        brake.update(true);
+        TEST_ASSERT_FALSE(brake.getSnapshot().hold_active);
+        hw.advanceMs(1);
+        brake.update(true);
+        TEST_ASSERT_TRUE(brake.getSnapshot().hold_active);
+        // O alivio limita so o pulso: a posicao comandada continua total.
+        TEST_ASSERT_EQUAL_FLOAT(1.0f, brake.getPosition());
+
+        // Movimento volta ao freio total imediatamente e reinicia a contagem.
+        brake.update(false);
+        TEST_ASSERT_FALSE(brake.getSnapshot().hold_active);
+        brake.update(true);
+        hw.advanceMs(BRAKE_HOLD_CONFIRMATION_MS - 1);
+        brake.update(true);
+        TEST_ASSERT_FALSE(brake.getSnapshot().hold_active);
     }
 
     void testBrakeInvalidCommandStartsFaultRamp()
@@ -316,7 +341,7 @@ namespace
         manager.setMotionPermit(false);
         TEST_ASSERT_TRUE(brake.getSnapshot().fault_ramp_active);
         hw.advanceMs(static_cast<int64_t>(2000.0f / BRAKE_FAULT_RATE_PER_S));
-        manager.updateBrake();
+        manager.updateBrake(false);
         TEST_ASSERT_EQUAL_FLOAT(1.0f, brake.getPosition());
     }
 }
@@ -335,6 +360,7 @@ void setup()
     RUN_TEST(testActuatorPathAcceptsRecentAndZerosExpiredOutput);
     RUN_TEST(testBrakeStartsAppliedAndFollowsCommand);
     RUN_TEST(testBrakeFaultRampsToFullAtConfiguredRate);
+    RUN_TEST(testBrakeHoldNeedsConfirmedStopAndDropsOnMotion);
     RUN_TEST(testBrakeInvalidCommandStartsFaultRamp);
     RUN_TEST(testBrakeCutsDriveAndRampsWhenMotionBlocked);
     UNITY_END();
