@@ -124,7 +124,7 @@
 
 // 0: freio nao calibrado. Nenhum pulso e enviado ao servo (freio inoperante).
 // So passar para 1 depois de medir BRAKE_APPLIED_US no veiculo.
-#define BRAKE_CALIBRATED 0
+#define BRAKE_CALIBRATED 1
 
 // Largura de pulso para freio solto e freio total, medidas no veiculo.
 // O pulso diminui para frear: o servo puxa o cabo no sentido de 2500 -> 1600.
