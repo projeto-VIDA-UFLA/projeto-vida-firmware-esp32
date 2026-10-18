@@ -5,6 +5,7 @@
 #include "actuators/ActuatorManager.h"
 #include "comunication/CommandMailbox.h"
 #include "control/SteeringController.h"
+#include "safety/EncoderPlausibility.h"
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
 
@@ -27,7 +28,9 @@ enum SafetyInhibitFlag : uint32_t
     INHIBIT_STEERING_REFERENCE_NOT_FRESH = 1U << 5,
     INHIBIT_SENSOR_TASK_TIMEOUT = 1U << 6,
     INHIBIT_STEERING_SENSOR_NOT_FRESH = 1U << 7,
-    INHIBIT_CONTROL_OUTPUT_TIMEOUT = 1U << 8
+    INHIBIT_CONTROL_OUTPUT_TIMEOUT = 1U << 8,
+    // Bits 9-11 reservados (mesma numeracao do SafetyStatus.msg do Odroid).
+    INHIBIT_ENCODERS_DISAGREE = 1U << 12 // retida ate rearme
 };
 
 /**
@@ -40,9 +43,12 @@ enum SafetyInhibitFlag : uint32_t
  * - TaskSensors viva (heartbeat <= SENSOR_TASK_WATCHDOG_TIMEOUT_MS);
  * - leitura do LVDT valida e recente (STEERING_SENSOR_SNAPSHOT_TIMEOUT_MS);
  * - saida do SteeringController valida e recente (CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS).
+ * - encoders concordantes (EncoderPlausibility).
  * Cada condicao falsa gera uma SafetyInhibitFlag. Nas transicoes de estado
- * chama ActuatorManager::setMotionPermit(). Nao ha retencao de falhas: o
- * estado volta a READY assim que as condicoes voltam.
+ * chama ActuatorManager::setMotionPermit(). As falhas de tempo nao sao
+ * retidas: o estado volta a READY assim que as condicoes voltam. A falha de
+ * encoders discordantes e retida ate o rearme (enable fisico desligado ou
+ * enable logico false).
  */
 class SafetyManager
 {
@@ -59,6 +65,7 @@ public:
         bool sensor_task_healthy;
         bool steering_sensor_fresh;
         bool control_output_fresh;
+        bool encoders_disagree; // falha retida
         bool motion_permitted;
         uint32_t inhibit_flags;
         int64_t timestamp_us;
@@ -103,9 +110,14 @@ private:
         int64_t heartbeat_us;
         bool steering_snapshot_valid;
         int64_t steering_snapshot_us;
+        bool encoder_speeds_valid;
+        float rear_velocity_m_s;
+        float front_velocity_m_s; // media das dianteiras
     };
 
     SensorHealthSnapshot sensor_health_;
+    EncoderPlausibility encoder_plausibility_;
+    bool encoders_disagree_latched_;
     mutable portMUX_TYPE health_mux_ = portMUX_INITIALIZER_UNLOCKED;
 
     Snapshot snapshot_;

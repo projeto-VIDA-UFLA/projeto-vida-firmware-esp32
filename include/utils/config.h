@@ -64,6 +64,15 @@
 // Idade maxima de uma saida concluida e valida do controlador.
 #define CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS 20
 
+// Encoders discordantes: com tracao aplicada, roda traseira mais rapida que a
+// media das dianteiras por mais que MARGIN durante TIME -> falha retida
+// (encoder dianteiro sem sinal ou roda traseira girando no ar). Rearme:
+// enable fisico desligado ou enable logico false.
+// Nos testes de 12/10 e 16/08/2026 a diferenca chegou a 0,49 m/s e, por
+// 0,18 s, a 1,35 m/s (patinagem na arrancada): sem disparo com 0,8 m/s/0,5 s.
+#define ENCODER_DISAGREE_MARGIN_M_S 0.8f
+#define ENCODER_DISAGREE_TIME_MS 500
+
 // ============================================================
 // Sensor de estercamento
 // ============================================================

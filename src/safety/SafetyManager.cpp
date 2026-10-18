@@ -13,7 +13,9 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
       command_mailbox_(command_mailbox),
       actuator_manager_(actuator_manager),
       steering_controller_(steering_controller),
-      sensor_health_{0, 0, false, 0},
+      sensor_health_{0, 0, false, 0, false, 0.0f, 0.0f},
+      encoder_plausibility_(),
+      encoders_disagree_latched_(false),
       snapshot_()
 {
     snapshot_.state = SafetyState::STATE_DISABLED;
@@ -26,6 +28,7 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
     snapshot_.sensor_task_healthy = false;
     snapshot_.steering_sensor_fresh = false;
     snapshot_.control_output_fresh = false;
+    snapshot_.encoders_disagree = false;
     snapshot_.motion_permitted = false;
     snapshot_.inhibit_flags =
         INHIBIT_PHYSICAL_ENABLE_OFF |
@@ -46,12 +49,16 @@ void SafetyManager::begin()
     const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
 
     portENTER_CRITICAL(&health_mux_);
-    sensor_health_ = SensorHealthSnapshot{now_us, 0, false, 0};
+    sensor_health_ = SensorHealthSnapshot{now_us, 0, false, 0, false, 0.0f, 0.0f};
     portEXIT_CRITICAL(&health_mux_);
+
+    encoder_plausibility_.reset();
+    encoders_disagree_latched_ = false;
 
     const Snapshot initial_snapshot{
         SafetyState::STATE_DISABLED,
         physical_enable,
+        false,
         false,
         false,
         false,
@@ -97,6 +104,10 @@ void SafetyManager::reportSensorTaskCycle(
     sensor_health_.heartbeat_us = now_us;
     sensor_health_.steering_snapshot_valid = steering_snapshot.valid;
     sensor_health_.steering_snapshot_us = steering_snapshot.timestamp_us;
+    sensor_health_.encoder_speeds_valid = true;
+    sensor_health_.rear_velocity_m_s = rear_snapshot.filtered_velocity_m_s;
+    sensor_health_.front_velocity_m_s =
+        0.5f * (right_snapshot.filtered_velocity_m_s + left_snapshot.filtered_velocity_m_s);
     portEXIT_CRITICAL(&health_mux_);
 }
 
@@ -207,6 +218,33 @@ void SafetyManager::update()
         inhibit_flags |= INHIBIT_CONTROL_OUTPUT_TIMEOUT;
     }
 
+    // Encoders discordantes: falha retida ate acao explicita do operador
+    // (enable fisico desligado ou enable logico false).
+    const bool rearm_requested =
+        !physical_enable ||
+        (logical_enable.received && logical_enable_fresh && !logical_enable.enabled);
+    if (rearm_requested)
+    {
+        encoders_disagree_latched_ = false;
+        encoder_plausibility_.reset();
+    }
+    else
+    {
+        const ActuatorManager::Snapshot actuators = actuator_manager_.getSnapshot();
+        const bool disagree = encoder_plausibility_.update(
+            EncoderPlausibility::Input{
+                now_us,
+                actuators.drive.pwm > 0,
+                sensor_task_healthy && sensor_health.encoder_speeds_valid,
+                sensor_health.rear_velocity_m_s,
+                sensor_health.front_velocity_m_s});
+        encoders_disagree_latched_ = encoders_disagree_latched_ || disagree;
+    }
+    if (encoders_disagree_latched_)
+    {
+        inhibit_flags |= INHIBIT_ENCODERS_DISAGREE;
+    }
+
     const bool motion_permitted =
         physical_enable &&
         logical_enable.received &&
@@ -216,7 +254,8 @@ void SafetyManager::update()
         steering_reference_fresh &&
         sensor_task_healthy &&
         steering_sensor_fresh &&
-        control_output_fresh;
+        control_output_fresh &&
+        !encoders_disagree_latched_;
     const SafetyState new_state = motion_permitted
                                       ? SafetyState::STATE_READY
                                       : SafetyState::STATE_DISABLED;
@@ -242,6 +281,7 @@ void SafetyManager::update()
         sensor_task_healthy,
         steering_sensor_fresh,
         control_output_fresh,
+        encoders_disagree_latched_,
         motion_permitted,
         inhibit_flags,
         now_us};
