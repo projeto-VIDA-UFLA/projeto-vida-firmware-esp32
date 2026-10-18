@@ -5,10 +5,12 @@
 /**
  * Leitor de encoder incremental em quadratura (decodificacao x4).
  *
- * A ISR (handleInterrupt, nos dois canais) so atualiza a contagem. update(),
- * chamado pela TaskSensors a cada TASK_SENSOR_PERIOD_MS, converte o delta de
- * ticks em velocidade linear da roda (DRIVE_WHEEL_DIAMETER_M) e aceleracao,
- * com filtros passa-baixa de primeira ordem.
+ * A ISR (handleInterrupt, nos dois canais) atualiza a contagem e o instante
+ * da ultima borda. update(), chamado pela TaskSensors a cada
+ * TASK_SENSOR_PERIOD_MS, estima a velocidade linear da roda
+ * (DRIVE_WHEEL_DIAMETER_M) pelo metodo M/T: ticks de uma janela de pelo menos
+ * ENCODER_VELOCITY_WINDOW_MS divididos pelo tempo exato entre bordas. Depois
+ * aplica filtros passa-baixa de primeira ordem a velocidade e a aceleracao.
  *
  * Velocidade positiva = sentido de contagem positivo do encoder.
  */
@@ -20,7 +22,7 @@ public:
     {
         int64_t timestamp_us; // instante do update() (esp_timer)
         int64_t count;        // ticks acumulados
-        float raw_velocity_m_s;
+        float raw_velocity_m_s;          // M/T, atualizada a cada janela
         float filtered_velocity_m_s;     // DRIVE_VELOCITY_FILTER_ALPHA
         float raw_acceleration_m_s2;     // derivada da velocidade filtrada
         float filtered_acceleration_m_s2; // DRIVE_ACCEL_FILTER_ALPHA
@@ -64,7 +66,7 @@ private:
     // Dados atualizados pela interrupção
     volatile int64_t count_;
     volatile long delta_;
-    volatile int64_t last_timestamp_;
+    volatile int64_t last_timestamp_; // instante da ultima borda valida
     volatile uint8_t last_state_;
 
     // Dados para cálculo de velocidade/aceleração
@@ -77,6 +79,11 @@ private:
     float previous_velocity_;
     bool has_previous_update_;
     int64_t measurement_timestamp_us_;
+
+    // Janela do metodo M/T
+    bool window_active_;      // false: parado, espera a proxima borda
+    int64_t window_count_;    // contagem na borda que abriu a janela
+    int64_t window_edge_us_;  // instante dessa borda
     int64_t measurement_count_;
 
     // Proteção para acesso entre ISR e task
@@ -87,6 +94,7 @@ private:
     float ticksToDistance(int64_t ticks) const; // Converte ticks em distância
 
     float calculateVelocity(int64_t delta_ticks, float dt) const;                                 // Calcula velocidade
+    float estimateVelocity(int64_t count, int64_t edge_us, int64_t now_us);                     // Velocidade M/T
     float calculateAcceleration(float current_velocity, float previous_velocity, float dt) const; // Calcula aceleração
 
     float applyLowPassFilter(float raw_value, float filtered_value, float alpha) const; // Aplica filtro passa-baixa

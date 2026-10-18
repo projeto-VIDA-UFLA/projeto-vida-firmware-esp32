@@ -134,7 +134,20 @@
 #define ENC_REAR_TICKS_PER_REV 1440.0f
 #define ENC_FRONT_TICKS_PER_REV 730.0f
 #define DRIVE_WHEEL_DIAMETER_M 0.366f
-#define DRIVE_VELOCITY_FILTER_ALPHA 0.05f
+
+// Velocidade pelo metodo M/T: ticks contados numa janela de pelo menos
+// ENCODER_VELOCITY_WINDOW_MS, divididos pelo tempo exato entre a primeira e a
+// ultima borda (instante gravado na ISR). Atraso ~metade da janela.
+#define ENCODER_VELOCITY_WINDOW_MS 20
+// Sem nenhuma borda por este tempo a velocidade e zero (1 tick em 200 ms:
+// ~8 mm/s nos dianteiros, ~4 mm/s no traseiro).
+#define ENCODER_ZERO_VELOCITY_TIMEOUT_MS 200
+
+// Filtro apos o M/T: so suaviza os degraus entre janelas. Em simulacao
+// (bordas de quadratura desiguais e jitter na ISR), janela de 20 ms + alpha
+// 0,5 da atraso de 25-28 ms, contra 39 ms do estimador antigo (delta de ticks
+// em 2 ms + alpha 0,05), sem ruido de quantizacao.
+#define DRIVE_VELOCITY_FILTER_ALPHA 0.5f
 #define DRIVE_ACCEL_FILTER_ALPHA 0.01f
 
 // Velocidade maxima realimentada para considerar o veiculo parado.

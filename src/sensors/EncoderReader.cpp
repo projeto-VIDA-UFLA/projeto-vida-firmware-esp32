@@ -2,6 +2,7 @@
 #include "utils/config.h"
 
 #include "esp_timer.h"
+#include <cmath>
 
 // ============================================================
 // Construtor
@@ -45,6 +46,9 @@ EncoderReader::EncoderReader(uint8_t pin_a, uint8_t pin_b, float tick_per_rev, c
       has_previous_update_(false),
       measurement_timestamp_us_(0),
       measurement_count_(0),
+      window_active_(false),
+      window_count_(0),
+      window_edge_us_(0),
 
       // Proteção para acesso concorrente entre ISR e task
       mux_(portMUX_INITIALIZER_UNLOCKED)
@@ -89,6 +93,7 @@ void EncoderReader::begin(void (*isr)())
     has_previous_update_ = false;
     measurement_timestamp_us_ = previous_update_us_;
     measurement_count_ = 0;
+    window_active_ = false;
 
     if (isr != nullptr)
     {
@@ -192,8 +197,8 @@ void EncoderReader::handleInterrupt()
  *
  * Essa função deve ser chamada periodicamente por uma task.
  *
- * Ela lê a contagem atual do encoder, calcula quantos ticks ocorreram desde
- * a última atualização e converte essa variação em velocidade linear.
+ * Ela lê a contagem e o instante da última borda e estima a velocidade
+ * linear pelo método M/T (ver estimateVelocity()).
  *
  * Depois, calcula a aceleração com base na diferença entre a velocidade atual
  * e a velocidade anterior.
@@ -204,11 +209,13 @@ void EncoderReader::handleInterrupt()
 void EncoderReader::update()
 {
     int64_t count = 0;
+    int64_t edge_us = 0;
     int64_t now_us = esp_timer_get_time();
 
-    // Lê a contagem de forma protegida, pois count_ é alterado pela ISR
+    // Contagem e instante da ultima borda lidos juntos, pois a ISR altera ambos
     portENTER_CRITICAL(&mux_);
     count = count_;
+    edge_us = last_timestamp_;
     portEXIT_CRITICAL(&mux_);
 
     // Na primeira execução, apenas cria a referência inicial
@@ -216,6 +223,8 @@ void EncoderReader::update()
     {
         previous_count_ = count;
         previous_update_us_ = now_us;
+        window_active_ = false;
+        window_count_ = count;
         has_previous_update_ = true;
         return;
     }
@@ -227,10 +236,8 @@ void EncoderReader::update()
         return;
     }
 
-    int64_t delta_ticks = count - previous_count_;
-
-    // Velocidade bruta calculada diretamente pelos ticks
-    const float raw_velocity = calculateVelocity(delta_ticks, dt_s);
+    // Velocidade bruta pelo metodo M/T
+    const float raw_velocity = estimateVelocity(count, edge_us, now_us);
 
     // Velocidade filtrada para uso em controle
     const float filtered_velocity = applyLowPassFilter(raw_velocity, velocity_, DRIVE_VELOCITY_FILTER_ALPHA);
@@ -253,6 +260,90 @@ void EncoderReader::update()
     previous_velocity_ = filtered_velocity;
     previous_count_ = count;
     previous_update_us_ = now_us;
+}
+
+/**
+ * @brief Estima a velocidade pelo método M/T.
+ *
+ * A janela começa numa borda e só fecha numa borda posterior, com pelo menos
+ * ENCODER_VELOCITY_WINDOW_MS de duração. A velocidade é a distância dos ticks
+ * da janela dividida pelo tempo exato entre as duas bordas (gravado na ISR),
+ * o que elimina a quantização de contar ticks num intervalo fixo. Entre o
+ * fechamento de duas janelas a última velocidade é mantida.
+ *
+ * A janela só fecha com um número de ticks múltiplo de 4 (ciclos completos
+ * de quadratura), porque as quatro bordas de um ciclo não são igualmente
+ * espaçadas.
+ *
+ * Desaceleração: sem borda nova há mais tempo do que dois ticks levariam na
+ * velocidade atual, a velocidade real é menor; ela é limitada a
+ * "2 ticks desde a última borda" e cai suavemente. Sem bordas por
+ * ENCODER_ZERO_VELOCITY_TIMEOUT_MS a velocidade é zero e a próxima janela
+ * começa na próxima borda.
+ *
+ * @param count Contagem atual.
+ * @param edge_us Instante da última borda.
+ * @param now_us Instante atual.
+ *
+ * @return Velocidade bruta em m/s.
+ */
+float EncoderReader::estimateVelocity(int64_t count, int64_t edge_us, int64_t now_us)
+{
+    constexpr int64_t window_us =
+        static_cast<int64_t>(ENCODER_VELOCITY_WINDOW_MS) * 1000LL;
+    constexpr int64_t zero_velocity_us =
+        static_cast<int64_t>(ENCODER_ZERO_VELOCITY_TIMEOUT_MS) * 1000LL;
+
+    const int64_t since_edge_us = now_us - edge_us;
+
+    // Parado: a janela recomeca na proxima borda.
+    if (since_edge_us > zero_velocity_us)
+    {
+        window_active_ = false;
+        window_count_ = count;
+        return 0.0f;
+    }
+
+    // Primeira borda depois de parado: abre a janela sem medir ainda.
+    if (!window_active_)
+    {
+        if (count != window_count_)
+        {
+            window_active_ = true;
+            window_count_ = count;
+            window_edge_us_ = edge_us;
+        }
+        return 0.0f;
+    }
+
+    float velocity = raw_velocity_;
+    const int64_t window_ticks = count - window_count_;
+    const int64_t window_dt_us = edge_us - window_edge_us_;
+
+    // So fecha com ciclos completos de quadratura (multiplo de 4 ticks): as
+    // quatro bordas de um ciclo nao sao igualmente espacadas.
+    if (window_dt_us >= window_us && (window_ticks % 4) == 0)
+    {
+        // Ticks em sentidos opostos que se anulam contam como parado.
+        velocity = window_ticks != 0
+                       ? calculateVelocity(window_ticks, window_dt_us / 1000000.0f)
+                       : 0.0f;
+        window_count_ = count;
+        window_edge_us_ = edge_us;
+    }
+
+    // Margem de 2 ticks: com bordas desiguais o intervalo real ate a proxima
+    // borda pode passar de 1 tick nominal sem que a velocidade tenha caido.
+    if (since_edge_us > 0)
+    {
+        const float bound = ticksToDistance(2) / (since_edge_us / 1000000.0f);
+        if (std::fabs(velocity) > bound)
+        {
+            velocity = std::copysign(bound, velocity);
+        }
+    }
+
+    return velocity;
 }
 
 
@@ -311,6 +402,7 @@ void EncoderReader::reset()
     previous_velocity_ = 0.0f;
 
     has_previous_update_ = false;
+    window_active_ = false;
 
     portENTER_CRITICAL(&mux_);
     measurement_timestamp_us_ = now_us;

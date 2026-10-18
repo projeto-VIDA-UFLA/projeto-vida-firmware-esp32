@@ -77,8 +77,7 @@ DriveController drive_controller;
 CommandMailbox command_mailbox;
 
 // Instanciando Objeto de gerenciamento de segurança
-SafetyManager safety_manager(PIN_ENABLE_SAFETY, command_mailbox,
-                             actuator_manager, steering_controller);
+SafetyManager safety_manager(PIN_ENABLE_SAFETY, command_mailbox, actuator_manager, steering_controller);
 
 // Instanciando nó do ROS
 VidaRosNode ros_node(rear_encoder, right_encoder, left_encoder, steering_sensor, safety_manager, actuator_manager, command_mailbox);
@@ -156,8 +155,8 @@ void taskControl(void *parameter)
         steering_controller.update(command_mailbox.getSteeringReferenceSnapshot(),
                                    steering_sensor.getSnapshot(),
                                    actuator_manager.isMotionPermitted());
-    const DriveController::Output drive =
-        drive_controller.update(command_mailbox.getDriveReferenceSnapshot());
+
+    const DriveController::Output drive = drive_controller.update(command_mailbox.getDriveReferenceSnapshot());
 
     const ActuatorManager::TimedCommand command{
         drive.normalized_command,
@@ -165,8 +164,8 @@ void taskControl(void *parameter)
         drive.brake_command,
         esp_timer_get_time(),
         steering.valid && drive.valid};
-    (void)actuator_manager.applyCommands(command,
-                                         vehicle_motion.getStopDetectionVelocity());
+
+    (void)actuator_manager.applyCommands(command, vehicle_motion.getStopDetectionVelocity());
 
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_CONTROL_PERIOD_MS));
   }
@@ -178,7 +177,7 @@ void taskControl(void *parameter)
 
 void setup()
 {
-  // O freio vem antes de tudo: sem pulsos o servo fica solto.
+  // Inicializa servo motor do freio
   brake_servo.begin();
 
   // Inicia comunicação serial
