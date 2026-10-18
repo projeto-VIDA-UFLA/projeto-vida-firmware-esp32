@@ -1,5 +1,6 @@
 #include "sensors/VehicleMotion.h"
 
+#include <algorithm>
 #include <cmath>
 #include "esp_timer.h"
 #include "utils/config.h"
@@ -19,6 +20,22 @@ bool VehicleMotion::isStopped()
     return encoderReportsStopped(rear_encoder_.getMeasurementSnapshot(), now_us) &&
            encoderReportsStopped(right_encoder_.getMeasurementSnapshot(), now_us) &&
            encoderReportsStopped(left_encoder_.getMeasurementSnapshot(), now_us);
+}
+
+DriveMotor::VelocityMeasurement VehicleMotion::getVehicleSpeed()
+{
+    const EncoderReader::Snapshot right = right_encoder_.getMeasurementSnapshot();
+    const EncoderReader::Snapshot left = left_encoder_.getMeasurementSnapshot();
+
+    const bool valid = std::isfinite(right.filtered_velocity_m_s) &&
+                       std::isfinite(left.filtered_velocity_m_s) &&
+                       right.timestamp_us > 0 &&
+                       left.timestamp_us > 0;
+
+    return DriveMotor::VelocityMeasurement{
+        0.5f * (right.filtered_velocity_m_s + left.filtered_velocity_m_s),
+        std::min(right.timestamp_us, left.timestamp_us),
+        valid};
 }
 
 DriveMotor::VelocityMeasurement VehicleMotion::getStopDetectionVelocity()

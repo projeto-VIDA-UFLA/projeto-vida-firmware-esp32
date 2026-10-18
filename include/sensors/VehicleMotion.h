@@ -22,6 +22,12 @@ public:
     // Veiculo parado: os tres encoders com leitura recente e abaixo do limiar.
     bool isStopped();
 
+    // Velocidade longitudinal do veiculo para o controle de tracao: media das
+    // rodas dianteiras (nao sao tracionadas nem freadas, entao nao patinam nem
+    // travam). Sem compensacao de curva: em curva fica ~1/cos(delta) acima da
+    // velocidade do eixo traseiro. timestamp_us = amostra mais antiga.
+    DriveMotor::VelocityMeasurement getVehicleSpeed();
+
     // Medicao usada pelo DriveMotor para autorizar a troca do pino DIR.
     // Combina os tres encoders pelo pior caso: maior velocidade em modulo e
     // amostra mais antiga.
