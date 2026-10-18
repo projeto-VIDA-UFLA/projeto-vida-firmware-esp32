@@ -5,6 +5,7 @@
 #include "actuators/ActuatorManager.h"
 #include "comunication/CommandMailbox.h"
 #include "control/SteeringController.h"
+#include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
 
 enum class SafetyState : uint8_t
@@ -54,13 +55,18 @@ public:
 
     void begin();
     void update();
+    // Heartbeat da task de sensores, chamado ao fim de cada ciclo completo.
+    // So e registrado se todas as leituras do ciclo forem validas.
     void reportSensorTaskCycle(
-        bool cycle_valid,
-        const SteeringSensor::Snapshot &steering_snapshot);
+        const SteeringSensor::Snapshot &steering_snapshot,
+        const EncoderReader::Snapshot &rear_snapshot,
+        const EncoderReader::Snapshot &right_snapshot,
+        const EncoderReader::Snapshot &left_snapshot);
 
     Snapshot getSnapshot() const;
 
 private:
+    static bool encoderSnapshotValid(const EncoderReader::Snapshot &snapshot);
     static bool isFresh(bool received,
                         int64_t received_at_us,
                         int64_t now_us,

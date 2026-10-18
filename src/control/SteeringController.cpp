@@ -23,12 +23,38 @@ SteeringController::SteeringController()
     : integral_(0.0f),
       previous_error_deg_(0.0f),
       initialized_(false),
+      previous_update_us_(0),
       last_output_{},
       last_output_timestamp_us_(0)
 {
 }
 
-SteeringController::Output SteeringController::update(const Input &input)
+SteeringController::Output SteeringController::update(
+    const CommandMailbox::SteeringReferenceSnapshot &reference,
+    const SteeringSensor::Snapshot &sensor)
+{
+    const int64_t now_us = esp_timer_get_time();
+    constexpr int64_t sensor_timeout_us =
+        static_cast<int64_t>(STEERING_SENSOR_SNAPSHOT_TIMEOUT_MS) * 1000LL;
+
+    const bool sensor_is_fresh =
+        sensor.valid &&
+        sensor.timestamp_us > 0 &&
+        now_us >= sensor.timestamp_us &&
+        (now_us - sensor.timestamp_us) <= sensor_timeout_us;
+
+    // No primeiro ciclo nao ha medida anterior: usa o periodo nominal.
+    const float dt_s = previous_update_us_ > 0
+                           ? static_cast<float>(now_us - previous_update_us_) / 1000000.0f
+                           : static_cast<float>(TASK_CONTROL_PERIOD_MS) / 1000.0f;
+    previous_update_us_ = now_us;
+
+    return compute(Input{reference.angle_deg,
+                         sensor_is_fresh ? sensor.filtered_angle_deg : NAN,
+                         dt_s});
+}
+
+SteeringController::Output SteeringController::compute(const Input &input)
 {
     Output output{};
     output.target_angle_deg = input.target_angle_deg;
@@ -192,15 +218,18 @@ SteeringController::Snapshot SteeringController::getLastOutput() const
 
 SteeringController::Output SteeringController::storeOutput(const Output &output)
 {
+    Output stored = output;
+    stored.motor_command = STEERING_ANGLE_SIGN * output.normalized_command;
+
     const bool valid_output =
-        output.valid && std::isfinite(output.normalized_command);
+        stored.valid && std::isfinite(stored.normalized_command);
     const int64_t timestamp_us = valid_output ? esp_timer_get_time() : 0;
 
     portENTER_CRITICAL(&output_mux_);
-    last_output_ = output;
+    last_output_ = stored;
     last_output_timestamp_us_ = timestamp_us;
     portEXIT_CRITICAL(&output_mux_);
-    return output;
+    return stored;
 }
 
 void SteeringController::reset()

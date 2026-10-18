@@ -28,7 +28,9 @@ public:
      */
     EncoderReader(uint8_t pin_a, uint8_t pin_b, float tick_per_rev, const char *name);
 
-    void begin();  // Inicializa pinos e estados internos
+    // Inicializa pinos e estados internos. Com isr, liga a interrupcao dos
+    // dois canais (CHANGE) a ela; a isr deve chamar handleInterrupt().
+    void begin(void (*isr)() = nullptr);
     void update(); // Atualiza velocidade e aceleração
 
     Snapshot getMeasurementSnapshot(); // Dados do mesmo ciclo de calculo.

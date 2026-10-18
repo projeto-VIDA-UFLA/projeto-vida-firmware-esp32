@@ -7,16 +7,15 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include <cmath>
 
 // Inclui classes utilitárias
 #include "utils/pinout.h"
 #include "utils/config.h"
-#include "utils/utils.h"
 
 // Inclui classes de sensores
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
+#include "sensors/VehicleMotion.h"
 
 // Inclui classes de atuadores
 #include "actuators/SteeringMotor.h"
@@ -28,6 +27,7 @@
 #include "safety/SafetyManager.h"
 
 // Inclui classes de controle
+#include "control/DriveController.h"
 #include "control/SteeringController.h"
 
 // Inclui classes de comunicação
@@ -43,6 +43,9 @@ EncoderReader right_encoder(ENC_RIGHT_A, ENC_RIGHT_B, ENC_FRONT_TICKS_PER_REV, "
 EncoderReader left_encoder(ENC_LEFT_A, ENC_LEFT_B, ENC_FRONT_TICKS_PER_REV, "front_left");
 EncoderReader rear_encoder(ENC_REAR_A, ENC_REAR_B, ENC_REAR_TICKS_PER_REV, "rear");
 
+// Estado de movimento do veiculo a partir dos tres encoders
+VehicleMotion vehicle_motion(rear_encoder, right_encoder, left_encoder);
+
 // Instanciando objeto do sensor de esterçamento
 SteeringSensor steering_sensor(PIN_LVDT);
 
@@ -54,6 +57,7 @@ ActuatorManager actuator_manager(drive_motor, steering_motor, brake_servo);
 
 // Instanciando Controladores
 SteeringController steering_controller;
+DriveController drive_controller;
 
 CommandMailbox command_mailbox;
 
@@ -99,95 +103,26 @@ void taskSensors(void *parameter)
     right_encoder.update();
     left_encoder.update();
 
-    const SteeringSensor::Snapshot steering = steering_sensor.getSnapshot();
-    const EncoderReader::Snapshot rear = rear_encoder.getMeasurementSnapshot();
-    const EncoderReader::Snapshot right = right_encoder.getMeasurementSnapshot();
-    const EncoderReader::Snapshot left = left_encoder.getMeasurementSnapshot();
-
-    // Validando leitura dos sensores
-    const bool cycle_valid =
-        steering.valid &&
-        std::isfinite(rear.filtered_velocity_m_s) &&
-        std::isfinite(right.filtered_velocity_m_s) &&
-        std::isfinite(left.filtered_velocity_m_s) &&
-        rear.timestamp_us > 0 &&
-        right.timestamp_us > 0 &&
-        left.timestamp_us > 0;
-
     // Heartbeat registrado somente depois do ciclo completo.
-    safety_manager.reportSensorTaskCycle(cycle_valid, steering);
+    safety_manager.reportSensorTaskCycle(steering_sensor.getSnapshot(),
+                                         rear_encoder.getMeasurementSnapshot(),
+                                         right_encoder.getMeasurementSnapshot(),
+                                         left_encoder.getMeasurementSnapshot());
 
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_SENSOR_PERIOD_MS));
   }
 }
 
-// Parado exige leitura recente, finita e abaixo do limiar. Leitura invalida
-// ou velha conta como movimento.
-bool encoderReportsStopped(const EncoderReader::Snapshot &snapshot, int64_t now_us)
-{
-  constexpr int64_t timeout_us =
-      static_cast<int64_t>(DRIVE_VELOCITY_MEASUREMENT_TIMEOUT_MS) * 1000LL;
-  return snapshot.timestamp_us > 0 &&
-         now_us >= snapshot.timestamp_us &&
-         (now_us - snapshot.timestamp_us) <= timeout_us &&
-         std::isfinite(snapshot.filtered_velocity_m_s) &&
-         std::fabs(snapshot.filtered_velocity_m_s) < DRIVE_STOP_SPEED_THRESHOLD_MPS;
-}
-
-// Medicao usada pelo DriveMotor para autorizar a troca do pino DIR. Combina
-// os tres encoders pelo pior caso: maior velocidade em modulo e amostra mais
-// antiga. O veiculo so conta como parado se nenhum encoder indicar movimento,
-// mesmo com a roda traseira travada pelo freio ou um encoder sem sinal.
-DriveMotor::VelocityMeasurement stopDetectionVelocity(
-    const EncoderReader::Snapshot &rear,
-    const EncoderReader::Snapshot &right,
-    const EncoderReader::Snapshot &left)
-{
-  const EncoderReader::Snapshot *encoders[] = {&rear, &right, &left};
-
-  DriveMotor::VelocityMeasurement measurement{0.0f, rear.timestamp_us, true};
-  for (const EncoderReader::Snapshot *encoder : encoders)
-  {
-    const float velocity_m_s = encoder->filtered_velocity_m_s;
-    if (!std::isfinite(velocity_m_s) || encoder->timestamp_us <= 0)
-    {
-      measurement.valid = false;
-      continue;
-    }
-
-    if (std::fabs(velocity_m_s) > std::fabs(measurement.velocity_m_s))
-    {
-      measurement.velocity_m_s = velocity_m_s;
-    }
-    if (encoder->timestamp_us < measurement.timestamp_us)
-    {
-      measurement.timestamp_us = encoder->timestamp_us;
-    }
-  }
-
-  return measurement;
-}
-
 void taskSafety(void *parameter)
 {
   (void)parameter;
-
   TickType_t last_wake_time = xTaskGetTickCount();
 
   while (true)
   {
     safety_manager.update();
+    actuator_manager.updateBrake(vehicle_motion.isStopped());
 
-    // O freio atua so na traseira: as rodas dianteiras confirmam que o
-    // veiculo parou mesmo com a roda traseira travada.
-    const EncoderReader::Snapshot rear = rear_encoder.getMeasurementSnapshot();
-    const EncoderReader::Snapshot right = right_encoder.getMeasurementSnapshot();
-    const EncoderReader::Snapshot left = left_encoder.getMeasurementSnapshot();
-    const int64_t now_us = esp_timer_get_time();
-    const bool vehicle_stopped = encoderReportsStopped(rear, now_us) &&
-                                 encoderReportsStopped(right, now_us) &&
-                                 encoderReportsStopped(left, now_us);
-    actuator_manager.updateBrake(vehicle_stopped);
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_SAFETY_PERIOD_MS));
   }
 }
@@ -195,74 +130,25 @@ void taskSafety(void *parameter)
 void taskControl(void *parameter)
 {
   (void)parameter;
-
   TickType_t last_wake_time = xTaskGetTickCount();
-  int64_t previous_update_us = 0;
 
   while (true)
   {
-    const int64_t now_us = esp_timer_get_time();
-    const CommandMailbox::SteeringReferenceSnapshot steering_reference =
-        command_mailbox.getSteeringReferenceSnapshot();
-    const CommandMailbox::DriveReferenceSnapshot drive_reference =
-        command_mailbox.getDriveReferenceSnapshot();
+    const SteeringController::Output steering =
+        steering_controller.update(command_mailbox.getSteeringReferenceSnapshot(),
+                                   steering_sensor.getSnapshot());
+    const DriveController::Output drive =
+        drive_controller.update(command_mailbox.getDriveReferenceSnapshot());
 
-    const SteeringSensor::Snapshot steering = steering_sensor.getSnapshot();
-    constexpr int64_t steering_snapshot_timeout_us =
-        static_cast<int64_t>(STEERING_SENSOR_SNAPSHOT_TIMEOUT_MS) * 1000LL;
-    const bool steering_is_fresh =
-        steering.valid &&
-        steering.timestamp_us > 0 &&
-        now_us >= steering.timestamp_us &&
-        (now_us - steering.timestamp_us) <= steering_snapshot_timeout_us;
-    const float dt_s = previous_update_us > 0
-                           ? static_cast<float>(now_us - previous_update_us) / 1000000.0f
-                           : static_cast<float>(TASK_CONTROL_PERIOD_MS) / 1000.0f;
-
-    const SteeringController::Input input{
-        steering_reference.angle_deg,
-        steering_is_fresh ? steering.filtered_angle_deg : NAN,
-        dt_s};
-
-    (void)steering_controller.update(input);
-
-    const SteeringController::Snapshot output =
-        steering_controller.getLastOutput();
-
-    // Malha aberta longitudinal: a referencia ROS e um PWM assinado em
-    // [-255, 255]. O DriveMotor recebe comando normalizado em [-1, 1].
-    // Exemplo: referencia 255 -> 255 * 0.15 = 38 de PWM.
-    const float drive_command =
-        clampFloat(drive_reference.velocity_m_s *
-                       DRIVE_OPEN_LOOP_PROPORTIONAL_GAIN /
-                       DRIVE_OPEN_LOOP_REFERENCE_MAX_PWM,
-                   -1.0f,
-                   1.0f);
-    constexpr int64_t drive_reference_timeout_us =
-        static_cast<int64_t>(DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS) * 1000LL;
-    const bool drive_reference_is_fresh =
-        drive_reference.received &&
-        std::isfinite(drive_reference.velocity_m_s) &&
-        drive_reference.received_at_us > 0 &&
-        now_us >= drive_reference.received_at_us &&
-        (now_us - drive_reference.received_at_us) <=
-            drive_reference_timeout_us;
-
-    // O controlador opera na convencao de STEERING_INVERT_SIGN; o motor
-    // aciona o PWM da direita com comando positivo. O sinal converte de volta.
     const ActuatorManager::TimedCommand command{
-        drive_command,
-        STEERING_ANGLE_SIGN * output.output.normalized_command,
-        drive_reference.brake_command,
-        now_us,
-        output.output.valid && drive_reference_is_fresh};
-    const DriveMotor::VelocityMeasurement drive_velocity =
-        stopDetectionVelocity(rear_encoder.getMeasurementSnapshot(),
-                              right_encoder.getMeasurementSnapshot(),
-                              left_encoder.getMeasurementSnapshot());
-    (void)actuator_manager.applyCommands(command, drive_velocity);
+        drive.normalized_command,
+        steering.motor_command,
+        drive.brake_command,
+        esp_timer_get_time(),
+        steering.valid && drive.valid};
+    (void)actuator_manager.applyCommands(command,
+                                         vehicle_motion.getStopDetectionVelocity());
 
-    previous_update_us = now_us;
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_CONTROL_PERIOD_MS));
   }
 }
@@ -277,10 +163,10 @@ void setup()
   Serial.begin(SERIAL_BAUDRATE);
   delay(1000);
 
-  // Inicializa sensores
-  rear_encoder.begin();
-  right_encoder.begin();
-  left_encoder.begin();
+  // Inicializa sensores e as interrupções dos encoders
+  rear_encoder.begin(isrRearEncoder);
+  right_encoder.begin(isrRightEncoder);
+  left_encoder.begin(isrLeftEncoder);
   steering_sensor.begin();
 
   // Inicializa atuadores. O freio vem primeiro: parte acionado.
@@ -291,14 +177,6 @@ void setup()
 
   // Inicializa gerenciador de segurança
   safety_manager.begin();
-
-  // Inicializa interrupções
-  attachInterrupt(digitalPinToInterrupt(ENC_REAR_A), isrRearEncoder, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENC_REAR_B), isrRearEncoder, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENC_RIGHT_A), isrRightEncoder, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENC_RIGHT_B), isrRightEncoder, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENC_LEFT_A), isrLeftEncoder, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENC_LEFT_B), isrLeftEncoder, CHANGE);
 
   // Inicializa TASKs
   xTaskCreatePinnedToCore(taskSensors, "TaskSensors", 4096, nullptr, PRIORITY_SENSORS, nullptr, 1);

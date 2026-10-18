@@ -3,6 +3,7 @@
 
 #include "utils/config.h"
 #include "esp_timer.h"
+#include <cmath>
 
 SafetyManager::SafetyManager(uint8_t physical_enable_pin,
                              CommandMailbox &command_mailbox,
@@ -72,12 +73,19 @@ void SafetyManager::begin()
 }
 
 void SafetyManager::reportSensorTaskCycle(
-    bool cycle_valid,
-    const SteeringSensor::Snapshot &steering_snapshot)
+    const SteeringSensor::Snapshot &steering_snapshot,
+    const EncoderReader::Snapshot &rear_snapshot,
+    const EncoderReader::Snapshot &right_snapshot,
+    const EncoderReader::Snapshot &left_snapshot)
 {
-    if (!cycle_valid ||
-        !steering_snapshot.valid ||
-        steering_snapshot.timestamp_us <= 0)
+    const bool cycle_valid =
+        steering_snapshot.valid &&
+        steering_snapshot.timestamp_us > 0 &&
+        encoderSnapshotValid(rear_snapshot) &&
+        encoderSnapshotValid(right_snapshot) &&
+        encoderSnapshotValid(left_snapshot);
+
+    if (!cycle_valid)
     {
         return;
     }
@@ -248,6 +256,12 @@ SafetyManager::Snapshot SafetyManager::getSnapshot() const
     const Snapshot snapshot = snapshot_;
     portEXIT_CRITICAL(&snapshot_mux_);
     return snapshot;
+}
+
+bool SafetyManager::encoderSnapshotValid(const EncoderReader::Snapshot &snapshot)
+{
+    return std::isfinite(snapshot.filtered_velocity_m_s) &&
+           snapshot.timestamp_us > 0;
 }
 
 bool SafetyManager::isFresh(bool received,

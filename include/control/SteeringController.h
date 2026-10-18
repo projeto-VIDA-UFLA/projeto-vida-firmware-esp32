@@ -2,16 +2,12 @@
 
 #include <Arduino.h>
 
+#include "comunication/CommandMailbox.h"
+#include "sensors/SteeringSensor.h"
+
 class SteeringController
 {
 public:
-    struct Input
-    {
-        float target_angle_deg;
-        float measured_angle_deg;
-        float dt_s;
-    };
-
     struct Output
     {
         float target_angle_deg;
@@ -22,7 +18,10 @@ public:
         float integral_term;
         float derivative_term;
 
+        // Comando na convencao do angulo (STEERING_INVERT_SIGN).
         float normalized_command;
+        // Mesmo comando na convencao do motor: > 0 aciona o PWM da direita.
+        float motor_command;
         bool inside_deadband;
         bool saturated;
         bool target_clamped;
@@ -38,16 +37,27 @@ public:
 
     SteeringController();
 
-    Output update(const Input &input);
+    // Sensor com leitura invalida ou velha invalida a saida.
+    Output update(const CommandMailbox::SteeringReferenceSnapshot &reference,
+                  const SteeringSensor::Snapshot &sensor);
     Snapshot getLastOutput() const;
     void reset();
 
 private:
+    struct Input
+    {
+        float target_angle_deg;
+        float measured_angle_deg;
+        float dt_s;
+    };
+
+    Output compute(const Input &input);
     Output storeOutput(const Output &output);
 
     float integral_;
     float previous_error_deg_;
     bool initialized_;
+    int64_t previous_update_us_;
 
     Output last_output_;
     int64_t last_output_timestamp_us_;

@@ -63,8 +63,13 @@ EncoderReader::EncoderReader(uint8_t pin_a, uint8_t pin_b, float tick_per_rev, c
  *
  * Ela configura os canais A e B como entrada, lê o estado inicial do encoder
  * e inicializa os valores usados nos cálculos de velocidade e aceleração.
+ *
+ * A interrupção é ligada por último, depois de o estado inicial estar pronto.
+ *
+ * @param isr Rotina de interrupção dos canais A e B (CHANGE), que deve chamar
+ *            handleInterrupt(). Com nullptr nenhuma interrupção é ligada.
  */
-void EncoderReader::begin()
+void EncoderReader::begin(void (*isr)())
 {
     pinMode(pin_a_, INPUT);
     pinMode(pin_b_, INPUT);
@@ -84,6 +89,12 @@ void EncoderReader::begin()
     has_previous_update_ = false;
     measurement_timestamp_us_ = previous_update_us_;
     measurement_count_ = 0;
+
+    if (isr != nullptr)
+    {
+        attachInterrupt(digitalPinToInterrupt(pin_a_), isr, CHANGE);
+        attachInterrupt(digitalPinToInterrupt(pin_b_), isr, CHANGE);
+    }
 }
 
 // ============================================================

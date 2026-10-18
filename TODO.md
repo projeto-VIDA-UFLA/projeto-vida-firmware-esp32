@@ -8,7 +8,7 @@
 - [ ] **Controle longitudinal em malha fechada.** Hoje e malha aberta: o campo
   `velocity_m_s` de `DriveReference` carrega PWM em [-255, 255].
 - [x] **Criterio de "parado" unico.** A troca de DIR agora exige os 3 encoders
-  parados (`stopDetectionVelocity` em `main.cpp`), como o alivio do freio.
+  parados (`VehicleMotion::getStopDetectionVelocity`), como o alivio do freio.
 - [ ] **Plausibilidade comando x movimento** (conceito da branch Whilker):
   esterçamento travado/invertido, tracao sem movimento, encoders discordantes.
   Tratar a roda traseira travada pelo freio para nao gerar falso "encoders
