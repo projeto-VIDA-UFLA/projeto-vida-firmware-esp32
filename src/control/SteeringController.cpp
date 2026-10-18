@@ -18,6 +18,9 @@ namespace
         return value;
     }
 
+    static_assert(STEERING_REFERENCE_MIN_DEG >= STEERING_MIN_DEG &&
+                      STEERING_REFERENCE_MAX_DEG <= STEERING_MAX_DEG,
+                  "A faixa de referencia deve ficar dentro do limite de seguranca");
     static_assert(STEERING_DEADBAND_ENTER_DEG < STEERING_DEADBAND_EXIT_DEG,
                   "A entrada da zona morta deve ser menor que a saida");
 } // namespace
@@ -76,12 +79,12 @@ SteeringController::Output SteeringController::compute(const Input &input)
         return storeOutput(output);
     }
 
-    // A referencia nunca pode solicitar uma posicao fora do curso permitido.
-    // O valor limitado tambem e devolvido no Output para que a telemetria
-    // represente a referencia efetivamente usada pelo controlador.
+    // A referencia fica na faixa de trabalho, com margem ate o limite de
+    // seguranca. O valor limitado tambem e devolvido no Output para que a
+    // telemetria represente a referencia efetivamente usada pelo controlador.
     const float target_angle_deg = clampValue(input.target_angle_deg,
-                                              STEERING_MIN_DEG,
-                                              STEERING_MAX_DEG);
+                                              STEERING_REFERENCE_MIN_DEG,
+                                              STEERING_REFERENCE_MAX_DEG);
                                               
     output.target_clamped = target_angle_deg != input.target_angle_deg;
     output.target_angle_deg = target_angle_deg;

@@ -67,9 +67,15 @@
 
 #define ADC_RESOLUTION_BITS 12
 
+// Limite de seguranca: passando dele o controlador bloqueia o comando que
+// afastaria ainda mais (fim de curso mecanico ~35 graus para cada lado).
 #define STEERING_MIN_DEG -30.0f
 #define STEERING_MAX_DEG 30.0f
 
+// Faixa de trabalho: referencias fora dela sao limitadas. Fica abaixo do
+// limite de seguranca para deixar margem (gamepad hoje: 15; Stanley: ate 22).
+#define STEERING_REFERENCE_MIN_DEG -22.0f
+#define STEERING_REFERENCE_MAX_DEG 22.0f
 
 // Conversao ADC -> angulo da roda virtual do modelo de bicicleta (graus).
 // Polinomio cubico ancorado no centro, com d = adc - STEERING_ADC_CENTER:
