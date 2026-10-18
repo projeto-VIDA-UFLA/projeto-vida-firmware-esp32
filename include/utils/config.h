@@ -104,6 +104,21 @@
 #define STEERING_FILTER_ALPHA 0.05f
 #define STEERING_VELOCITY_FILTER_ALPHA 0.01f
 
+// Validacao da leitura do LVDT (amostras a 500 Hz).
+// Fundo/fim de escala: em operacao o ADC nunca chega aos extremos (no teste
+// de 12/10/2026 ficou entre 1079 e 2815; ADC 40 ~ -28,5 graus, 4055 ~ +34,5).
+// Leitura fora da faixa por mais que RAIL_TIME indica sensor desconectado,
+// em curto ou alem do curso.
+#define STEERING_ADC_VALID_MIN 40
+#define STEERING_ADC_VALID_MAX 4055
+#define STEERING_ADC_RAIL_TIME_MS 10
+// Leitura travada: o LVDT sempre oscila (desvio-padrao ~25 counts parado; a
+// menor variacao em 500 ms no teste foi de 30 counts). Ficar dentro de
+// +-STUCK_TOLERANCE por STUCK_TIME indica sinal perdido. Rever se o ruido do
+// sensor for reduzido no hardware.
+#define STEERING_ADC_STUCK_TOLERANCE 3
+#define STEERING_ADC_STUCK_TIME_MS 500
+
 // Sem uso: permanecem documentadas para uma futura conversao ADC/tensao.
 // #define ADC_MAX_VALUE 4095.0f
 // #define ADC_REF_VOLTAGE 3.3f

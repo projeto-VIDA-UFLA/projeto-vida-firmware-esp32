@@ -12,7 +12,10 @@
 - [ ] **Plausibilidade comando x movimento** (conceito da branch Whilker):
   esterçamento travado/invertido, tracao sem movimento, encoders discordantes.
   Tratar a roda traseira travada pelo freio para nao gerar falso "encoders
-  discordam".
+  discordam". Cobre o LVDT desconectado com entrada flutuante (le ruido, nao
+  fica travado nem no extremo), que a validacao do SteeringSensor nao pega.
+- [ ] Validar no veiculo a zona morta com histerese (0,4 / 1,2 grau) e a
+  deteccao de LVDT travado / fundo de escala.
 
 ## Calibracao (teste de 12/10/2026)
 
