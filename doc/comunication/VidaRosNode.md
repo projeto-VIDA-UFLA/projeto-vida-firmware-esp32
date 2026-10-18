@@ -40,7 +40,7 @@ Hoje quem publica as referências é o gamepad (`control_pkg`, no notebook, a 25
 | Tópico | Mensagem | Conteúdo |
 |---|---|---|
 | `/vida/sensors/encoders` | `Encoders` | Medição dos três encoders (só publica se os três tiverem timestamp) |
-| `/vida/sensors/steering` | `Steering` | ADC bruto e ângulos em REP-103 (esquerda +) |
+| `/vida/sensors/steering` | `Steering` | ADC bruto e ângulos em REP-103 (esquerda +). Publicado também com a leitura inválida, para diagnóstico; a invalidade aparece em `/vida/safety/status` (flag 128) |
 | `/vida/actuators/steering` | `Comands` | PWM do esterçamento, **positivo = esterçar para ângulo positivo (esquerda)** |
 | `/vida/actuators/drive` | `Comands` | PWM da tração, negativo = ré |
 | `/vida/actuators/brake` | `Comands` | **Largura de pulso do servo em µs** (0 = sem pulsos) |
@@ -107,4 +107,3 @@ uint32 inhibit_flags            # ver SafetyManager
 ## Pontos de atenção
 
 - Ao mudar qualquer `.msg`, a biblioteca micro-ROS precisa ser recompilada (`pio run -t clean_microros` e depois `pio run`). Os pacotes `vida_interfaces` do Odroid e do notebook precisam ter a mesma definição.
-- Com o LVDT inválido, `timestamp_us` da leitura é 0 e a mensagem `Steering` sai com o instante do boot convertido para o relógio do agente.

@@ -74,7 +74,8 @@ public:
     // Reavalia as condicoes e aplica a transicao de estado, se houver.
     void update();
     // Heartbeat da task de sensores, chamado ao fim de cada ciclo completo.
-    // So e registrado se todas as leituras do ciclo forem validas.
+    // Registrado com os tres encoders validos; a validade e o instante da
+    // leitura do LVDT sao guardados junto, para o watchdog do sensor.
     void reportSensorTaskCycle(
         const SteeringSensor::Snapshot &steering_snapshot,
         const EncoderReader::Snapshot &rear_snapshot,

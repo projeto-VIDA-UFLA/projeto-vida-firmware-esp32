@@ -30,7 +30,8 @@ Leitura do **LVDT** que mede o ângulo de esterçamento das rodas dianteiras, li
 
 | Campo | Unidade | Descrição |
 |---|---|---|
-| `timestamp_us` | µs | Instante da leitura **válida**; `0` se a leitura é inválida |
+| `timestamp_us` | µs | Instante da leitura **válida**; `0` se a leitura é inválida (usado pelo controle e pela segurança) |
+| `sample_timestamp_us` | µs | Instante da leitura, válida ou não (usado na telemetria) |
 | `raw_adc` | counts | Leitura bruta do ADC, **antes** da mediana |
 | `raw_angle_deg` | ° | Ângulo da mediana, sem filtro |
 | `filtered_angle_deg` | ° | Ângulo filtrado (é o que o controlador usa) |

@@ -78,14 +78,15 @@ void SafetyManager::reportSensorTaskCycle(
     const EncoderReader::Snapshot &right_snapshot,
     const EncoderReader::Snapshot &left_snapshot)
 {
-    const bool cycle_valid =
-        steering_snapshot.valid &&
-        steering_snapshot.timestamp_us > 0 &&
+    // O heartbeat indica a task viva com encoders validos. A validade do LVDT
+    // e acompanhada a parte (INHIBIT_STEERING_SENSOR_NOT_FRESH), para que um
+    // sensor invalido nao apareca como task de sensores parada.
+    const bool encoders_valid =
         encoderSnapshotValid(rear_snapshot) &&
         encoderSnapshotValid(right_snapshot) &&
         encoderSnapshotValid(left_snapshot);
 
-    if (!cycle_valid)
+    if (!encoders_valid)
     {
         return;
     }

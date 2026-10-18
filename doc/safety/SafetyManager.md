@@ -57,7 +57,7 @@ stateDiagram-v2
 
 ### Heartbeat da TaskSensors
 
-`reportSensorTaskCycle()` considera o ciclo válido se o LVDT for válido e os três encoders tiverem velocidade finita e uma medição já feita. Ciclos inválidos **não** atualizam o heartbeat. A avaliação dos tempos é feita pelo [SafetyWatchdogs](SafetyWatchdogs.md).
+`reportSensorTaskCycle()` atualiza o heartbeat quando os três encoders têm velocidade finita e uma medição já feita. Junto, guarda a validade e o instante da leitura do LVDT. Um LVDT inválido **não** interrompe o heartbeat: aparece só como flag 128, e a flag 64 fica reservada para a task parada ou encoders inválidos. A avaliação dos tempos é feita pelo [SafetyWatchdogs](SafetyWatchdogs.md).
 
 ## Snapshot
 
@@ -89,5 +89,4 @@ O heartbeat (escrito pela `TaskSensors`) e o snapshot (escrito pela `TaskSafety`
 
 ## Pontos de atenção
 
-- Uma leitura inválida do LVDT (por exemplo, sensor desconectado) também deixa de atualizar o heartbeat. Nesse caso aparecem juntas as flags 64 e 128, embora a task esteja viva.
 - O `SafetyStatus.msg` publica as flags, mas não os campos `sensor_task_healthy`, `steering_sensor_fresh` e `control_output_fresh`.

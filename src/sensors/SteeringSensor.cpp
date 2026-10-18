@@ -16,6 +16,7 @@ SteeringSensor::SteeringSensor(uint8_t adc_pin)
       filter_initialized_(false),
       previous_update_us_(0),
       measurement_timestamp_us_(0),
+      sample_timestamp_us_(0),
       measurement_valid_(false),
       rail_fault_(false),
       stuck_fault_(false),
@@ -96,6 +97,7 @@ void SteeringSensor::update()
     angle_deg_ = filtered_angle_deg_;
     angular_velocity_ = angular_velocity;
     measurement_timestamp_us_ = measurement_valid ? now_us : 0;
+    sample_timestamp_us_ = now_us;
     measurement_valid_ = measurement_valid;
     rail_fault_ = rail_fault;
     stuck_fault_ = stuck_fault;
@@ -178,6 +180,7 @@ SteeringSensor::Snapshot SteeringSensor::getSnapshot()
     Snapshot snapshot{};
     portENTER_CRITICAL(&mux_);
     snapshot.timestamp_us = measurement_timestamp_us_;
+    snapshot.sample_timestamp_us = sample_timestamp_us_;
     snapshot.raw_adc = static_cast<uint16_t>(raw_adc_);
     snapshot.raw_angle_deg = raw_angle_deg_;
     snapshot.filtered_angle_deg = angle_deg_;

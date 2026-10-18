@@ -283,7 +283,10 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         communication_.publish(encoders_publisher_, &encoders_message_);
     }
 
-    if (setTimestamp(steering_message_.timestamp, steering.timestamp_us))
+    // Instante real da leitura, mesmo invalida: a telemetria do ADC ajuda a
+    // diagnosticar falhas do LVDT (a invalidade aparece em /vida/safety/status).
+    if (steering.sample_timestamp_us > 0 &&
+        setTimestamp(steering_message_.timestamp, steering.sample_timestamp_us))
     {
         steering_message_.raw_adc = steering.raw_adc;
         steering_message_.raw_angle_deg = steering.raw_angle_deg;
