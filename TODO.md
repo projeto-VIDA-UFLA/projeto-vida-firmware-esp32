@@ -7,9 +7,12 @@
   por periodo entre pulsos (`last_timestamp_` ja e gravado na ISR e nao e usado).
 - [ ] **Controle longitudinal em malha fechada.** Hoje e malha aberta: o campo
   `velocity_m_s` de `DriveReference` carrega PWM em [-255, 255].
-- [ ] **Criterio de "parado" unico.** `DriveMotor` autoriza a troca de DIR so
-  pelo encoder traseiro; o alivio do freio usa os 3 encoders. A inversao de
-  sentido deve exigir os 3 (`encoderReportsStopped` em `main.cpp`).
+- [x] **Criterio de "parado" unico.** A troca de DIR agora exige os 3 encoders
+  parados (`stopDetectionVelocity` em `main.cpp`), como o alivio do freio.
+- [ ] **Plausibilidade comando x movimento** (conceito da branch Whilker):
+  esterçamento travado/invertido, tracao sem movimento, encoders discordantes.
+  Tratar a roda traseira travada pelo freio para nao gerar falso "encoders
+  discordam".
 
 ## Calibracao (teste de 12/10/2026)
 

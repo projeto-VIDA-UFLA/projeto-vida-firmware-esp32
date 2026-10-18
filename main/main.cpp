@@ -134,6 +134,40 @@ bool encoderReportsStopped(const EncoderReader::Snapshot &snapshot, int64_t now_
          std::fabs(snapshot.filtered_velocity_m_s) < DRIVE_STOP_SPEED_THRESHOLD_MPS;
 }
 
+// Medicao usada pelo DriveMotor para autorizar a troca do pino DIR. Combina
+// os tres encoders pelo pior caso: maior velocidade em modulo e amostra mais
+// antiga. O veiculo so conta como parado se nenhum encoder indicar movimento,
+// mesmo com a roda traseira travada pelo freio ou um encoder sem sinal.
+DriveMotor::VelocityMeasurement stopDetectionVelocity(
+    const EncoderReader::Snapshot &rear,
+    const EncoderReader::Snapshot &right,
+    const EncoderReader::Snapshot &left)
+{
+  const EncoderReader::Snapshot *encoders[] = {&rear, &right, &left};
+
+  DriveMotor::VelocityMeasurement measurement{0.0f, rear.timestamp_us, true};
+  for (const EncoderReader::Snapshot *encoder : encoders)
+  {
+    const float velocity_m_s = encoder->filtered_velocity_m_s;
+    if (!std::isfinite(velocity_m_s) || encoder->timestamp_us <= 0)
+    {
+      measurement.valid = false;
+      continue;
+    }
+
+    if (std::fabs(velocity_m_s) > std::fabs(measurement.velocity_m_s))
+    {
+      measurement.velocity_m_s = velocity_m_s;
+    }
+    if (encoder->timestamp_us < measurement.timestamp_us)
+    {
+      measurement.timestamp_us = encoder->timestamp_us;
+    }
+  }
+
+  return measurement;
+}
+
 void taskSafety(void *parameter)
 {
   (void)parameter;
@@ -214,10 +248,6 @@ void taskControl(void *parameter)
         (now_us - drive_reference.received_at_us) <=
             drive_reference_timeout_us;
 
-    // O encoder traseiro e a fonte longitudinal: ele mede a roda do eixo
-    // motriz diretamente, sem combinar velocidades das rodas esterçantes.
-    const EncoderReader::Snapshot rear =
-        rear_encoder.getMeasurementSnapshot();
     // O controlador opera na convencao de STEERING_INVERT_SIGN; o motor
     // aciona o PWM da direita com comando positivo. O sinal converte de volta.
     const ActuatorManager::TimedCommand command{
@@ -226,10 +256,10 @@ void taskControl(void *parameter)
         drive_reference.brake_command,
         now_us,
         output.output.valid && drive_reference_is_fresh};
-    const DriveMotor::VelocityMeasurement drive_velocity{
-        rear.filtered_velocity_m_s,
-        rear.timestamp_us,
-        std::isfinite(rear.filtered_velocity_m_s)};
+    const DriveMotor::VelocityMeasurement drive_velocity =
+        stopDetectionVelocity(rear_encoder.getMeasurementSnapshot(),
+                              right_encoder.getMeasurementSnapshot(),
+                              left_encoder.getMeasurementSnapshot());
     (void)actuator_manager.applyCommands(command, drive_velocity);
 
     previous_update_us = now_us;
