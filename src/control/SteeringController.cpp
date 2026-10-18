@@ -17,12 +17,16 @@ namespace
         }
         return value;
     }
+
+    static_assert(STEERING_DEADBAND_ENTER_DEG < STEERING_DEADBAND_EXIT_DEG,
+                  "A entrada da zona morta deve ser menor que a saida");
 } // namespace
 
 SteeringController::SteeringController()
     : integral_(0.0f),
       previous_error_deg_(0.0f),
       initialized_(false),
+      inside_deadband_(false),
       previous_update_us_(0),
       last_output_{},
       last_output_timestamp_us_(0)
@@ -115,7 +119,14 @@ SteeringController::Output SteeringController::compute(const Input &input)
     output.proportional_term = STEERING_DIRECT_KP * error_deg;
     output.derivative_term = STEERING_DIRECT_KD * derivative_deg_s;
 
-    if (std::fabs(error_deg) <= STEERING_POSITION_DEADBAND_DEG)
+    // Histerese: dentro da zona morta so sai acima de EXIT; fora dela so
+    // entra abaixo de ENTER.
+    const float absolute_error_deg = std::fabs(error_deg);
+    inside_deadband_ = inside_deadband_
+                           ? absolute_error_deg <= STEERING_DEADBAND_EXIT_DEG
+                           : absolute_error_deg <= STEERING_DEADBAND_ENTER_DEG;
+
+    if (inside_deadband_)
     {
         integral_ = 0.0f;
         previous_error_deg_ = error_deg;
@@ -248,4 +259,5 @@ void SteeringController::reset()
     integral_ = 0.0f;
     previous_error_deg_ = 0.0f;
     initialized_ = false;
+    inside_deadband_ = false;
 }

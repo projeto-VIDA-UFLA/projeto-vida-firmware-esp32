@@ -157,7 +157,13 @@
 // Controle direto de posicao do estercamento
 // ============================================================
 
-#define STEERING_POSITION_DEADBAND_DEG 1.5f
+// Zona morta com histerese. Dentro dela o comando e zero e a integral e
+// zerada. O controlador entra quando |erro| <= ENTER e so volta a atuar
+// quando |erro| > EXIT. A faixa entre os dois (0,8 grau) cobre o ruido do
+// angulo filtrado parado (pico a pico ~0,76 grau no teste de 12/10/2026),
+// evitando o liga-desliga na borda. Valores iniciais: ajustar em ensaio.
+#define STEERING_DEADBAND_ENTER_DEG 0.4f
+#define STEERING_DEADBAND_EXIT_DEG 1.2f
 #define STEERING_MIN_ACTUATION 0.15f
 #define MAX_ABS_STEER_COMMAND 1.0f
 #define STEERING_CONTROL_MAX_DT_S 0.1f

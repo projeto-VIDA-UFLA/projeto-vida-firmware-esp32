@@ -61,6 +61,7 @@ private:
     float integral_;
     float previous_error_deg_;
     bool initialized_;
+    bool inside_deadband_;
     int64_t previous_update_us_;
 
     Output last_output_;
