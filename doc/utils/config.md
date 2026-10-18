@@ -67,7 +67,9 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `ENC_REAR_TICKS_PER_REV` | 1440 | Ticks x4 por volta (traseiro) |
 | `ENC_FRONT_TICKS_PER_REV` | 730 | Ticks x4 por volta (dianteiros) |
 | `DRIVE_WHEEL_DIAMETER_M` | 0,366 | Diâmetro das rodas |
-| `DRIVE_VELOCITY_FILTER_ALPHA` | 0,05 | Filtro da velocidade |
+| `ENCODER_VELOCITY_WINDOW_MS` | 20 | Duração mínima da janela M/T |
+| `ENCODER_ZERO_VELOCITY_TIMEOUT_MS` | 200 | Sem bordas por este tempo: velocidade zero |
+| `DRIVE_VELOCITY_FILTER_ALPHA` | 0,5 | Filtro após o M/T |
 | `DRIVE_ACCEL_FILTER_ALPHA` | 0,01 | Filtro da aceleração |
 | `DRIVE_STOP_SPEED_THRESHOLD_MPS` | 0,05 | Limiar de "parado" |
 | `DRIVE_STOP_CONFIRMATION_TIME_MS` | 200 | Tempo contínuo parado antes de trocar DIR |
@@ -104,7 +106,17 @@ As constantes `STEERING_POS_*`/`STEERING_VEL_*` comentadas são do controlador e
 
 | Parâmetro | Valor | Descrição |
 |---|---|---|
-| `DRIVE_OPEN_LOOP_REFERENCE_MAX_PWM` | 255 | Escala da referência em malha aberta |
-| `DRIVE_OPEN_LOOP_PROPORTIONAL_GAIN` | 0,15 | Fração do PWM máximo liberada (PWM máximo 38) |
-
-As constantes `DRIVE_VEL_*`/`DRIVE_ACCEL_*` comentadas são do controlador antigo e ficam como referência para a malha fechada.
+| `DRIVE_MAX_TARGET_SPEED_M_S` | 3,0 m/s | Limite da referência |
+| `DRIVE_DEFAULT_MAX_ACCEL_M_S2` | 0,4 m/s² | Rampa de subida quando `acceleration_m_s2` = 0 |
+| `DRIVE_MAX_ACCEL_M_S2` | 0,8 m/s² | Teto da rampa de subida |
+| `DRIVE_MAX_DECEL_M_S2` | 1,0 m/s² | Rampa de descida |
+| `DRIVE_VEL_KP` / `DRIVE_VEL_KI` | 0,10 / 0,025 | Ganhos do PI de velocidade |
+| `DRIVE_CONTROL_MAX_DT_S` | 0,1 s | `dt` máximo antes de resetar |
+| `DRIVE_MAX_TRACTION_COMMAND` | 0,15 | Tração máxima (PWM 38) |
+| `DRIVE_BRAKE_COAST_BAND` | 0,02 | Faixa de roda livre |
+| `DRIVE_BRAKE_EFFORT_GAIN` | 3,0 | Escala esforço → freio (calibrar) |
+| `DRIVE_BRAKE_ENGAGE_POSITION` | 0,2 | Posição em que o freio começa a agir (calibrar) |
+| `DRIVE_STOP_REFERENCE_M_S` | 0,05 m/s | Referência considerada "parar" |
+| `DRIVE_STOP_BRAKE_POSITION` | 0,6 | Freio de parada |
+| `DRIVE_HOLD_BRAKE_POSITION` | 1,0 | Freio de estacionamento |
+| `DRIVE_BRAKE_OVERRIDE_THRESHOLD` | 0,05 | `brake_command` que ativa o freio manual (L2) |

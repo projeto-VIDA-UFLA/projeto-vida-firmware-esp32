@@ -58,9 +58,9 @@ float32 angular_velocity_deg_s  # ainda nao usado
 
 # DriveReference.msg
 builtin_interfaces/Time timestamp
-float32 velocity_m_s            # hoje: PWM assinado [-255, 255]
-float32 acceleration_m_s2       # ainda nao usado
-float32 brake_command           # 0 = solto, 1 = freio total
+float32 velocity_m_s            # velocidade desejada (m/s), limitada a [0, 3]
+float32 acceleration_m_s2       # aceleracao maxima da rampa (0 = padrao 0,4 m/s2)
+float32 brake_command           # > 0,05: freio manual (zera a velocidade, freio total)
 
 # LogicalEnable.msg
 builtin_interfaces/Time timestamp

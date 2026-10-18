@@ -21,7 +21,7 @@ digraph G {
   <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" STYLE="rounded" BGCOLOR="#dce9f7" COLOR="#2a6fb0">
    <TR><TD ALIGN="LEFT"><B>TaskControl</B></TD></TR>
    <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">núcleo 1 · prioridade 3 · 5 ms (200 Hz)</FONT></TD></TR>
-   <TR><TD ALIGN="LEFT">1. steering_controller.update(ref. esterçamento,<BR ALIGN="LEFT"/>     snapshot LVDT, permissão de movimento)<BR ALIGN="LEFT"/>     → idade do sensor · dt · PI · motor_command<BR ALIGN="LEFT"/>2. drive_controller.update(ref. tração)<BR ALIGN="LEFT"/>     → comando malha aberta · freio · validade<BR ALIGN="LEFT"/>3. monta TimedCommand (só repasse)<BR ALIGN="LEFT"/>4. actuator_manager.applyCommands(<BR ALIGN="LEFT"/>     comando, vehicle_motion.getStopDetectionVelocity())<BR ALIGN="LEFT"/></TD></TR>
+   <TR><TD ALIGN="LEFT">1. steering_controller.update(ref. esterçamento,<BR ALIGN="LEFT"/>     snapshot LVDT, permissão de movimento)<BR ALIGN="LEFT"/>     → idade do sensor · dt · PI · motor_command<BR ALIGN="LEFT"/>2. drive_controller.update(ref. tração,<BR ALIGN="LEFT"/>     velocidade do veículo, permissão)<BR ALIGN="LEFT"/>     → PI de velocidade · tração · freio<BR ALIGN="LEFT"/>3. monta TimedCommand (só repasse)<BR ALIGN="LEFT"/>4. actuator_manager.applyCommands(<BR ALIGN="LEFT"/>     comando, vehicle_motion.getStopDetectionVelocity())<BR ALIGN="LEFT"/></TD></TR>
   </TABLE>>];
 
   saf [label=<

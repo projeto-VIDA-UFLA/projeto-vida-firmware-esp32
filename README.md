@@ -66,7 +66,7 @@ Tasks FreeRTOS (detalhes em [`doc/main.md`](doc/main.md)):
 
 **Controle:**
 - **Esterçamento:** PI de posição com zona morta com histerese, anti-windup e proteção de fim de curso. Faixa de trabalho de ±20° e limite de segurança de ±25°.
-- **Tração:** em **malha aberta** por enquanto. A referência carrega um PWM; a malha fechada de velocidade é o próximo passo.
+- **Tração:** PI de **velocidade** em malha fechada sobre a média das rodas dianteiras (velocidade estimada pelo método M/T). O ESP32 comanda tração e freio; até 3 m/s, com rampa de aceleração e freio manual pelo ROS.
 
 **Convenções:** ângulos em graus na convenção **REP-103 (esquerda positivo)**, comandos normalizados em `[-1, 1]`, freio de `0` (solto) a `1` (total).
 

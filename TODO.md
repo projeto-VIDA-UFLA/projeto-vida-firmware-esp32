@@ -2,11 +2,17 @@
 
 ## Proximos passos
 
-- [ ] **Estimador de velocidade dos encoders.** Com Δt de 2 ms, um tick vale
-  ~0,4 m/s no traseiro e ~0,8 m/s nos dianteiros. Medir por janela maior ou
-  por periodo entre pulsos (`last_timestamp_` ja e gravado na ISR e nao e usado).
-- [ ] **Controle longitudinal em malha fechada.** Hoje e malha aberta: o campo
-  `velocity_m_s` de `DriveReference` carrega PWM em [-255, 255].
+- [x] **Estimador de velocidade dos encoders:** metodo M/T (janela de 20 ms).
+- [x] **Controle longitudinal em malha fechada:** PI de velocidade com tracao
+  e freio (`DriveController`).
+- [ ] **Ensaios do controle longitudinal** (em trecho plano):
+  - validar a velocidade M/T contra o GPS;
+  - degraus de referencia 0,5 -> 1,0 m/s para ajustar Kp/Ki;
+  - calibrar o freio: a velocidade constante, posicoes fixas de freio e
+    desaceleracao medida -> `DRIVE_BRAKE_ENGAGE_POSITION` e
+    `DRIVE_BRAKE_EFFORT_GAIN`;
+  - identificacao em malha aberta com degraus de PWM (o modelo atual cobre
+    so PWM 0-38 e tem baixa precisao).
 - [x] **Criterio de "parado" unico.** A troca de DIR agora exige os 3 encoders
   parados (`VehicleMotion::getStopDetectionVelocity`), como o alivio do freio.
 - [ ] **Plausibilidade comando x movimento** (conceito da branch Whilker):

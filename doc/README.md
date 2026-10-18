@@ -21,9 +21,9 @@ A pasta `doc/` segue a mesma estrutura de `include/` e `src/`: uma página por c
 | — | [main.cpp](main.md) | Instâncias, tasks FreeRTOS e inicialização |
 | **sensors** | [EncoderReader](sensors/EncoderReader.md) | Encoder em quadratura: contagem, velocidade e aceleração |
 | | [SteeringSensor](sensors/SteeringSensor.md) | LVDT: ângulo de esterçamento e validação da leitura |
-| | [VehicleMotion](sensors/VehicleMotion.md) | Veículo parado / velocidade para inversão (3 encoders) |
+| | [VehicleMotion](sensors/VehicleMotion.md) | Velocidade do veículo, veículo parado e velocidade para inversão |
 | **control** | [SteeringController](control/SteeringController.md) | Controle de posição do esterçamento (PI) |
-| | [DriveController](control/DriveController.md) | Controle longitudinal (hoje em malha aberta) |
+| | [DriveController](control/DriveController.md) | Controle longitudinal de velocidade (tração e freio) |
 | **actuators** | [ActuatorManager](actuators/ActuatorManager.md) | Acesso único aos atuadores, permissão e intertravamento |
 | | [DriveMotor](actuators/DriveMotor.md) | Motor de tração: PWM + DIR, inversão só parado |
 | | [SteeringMotor](actuators/SteeringMotor.md) | Motor de esterçamento: dois PWMs com tempo morto |
@@ -59,6 +59,7 @@ flowchart TB
         SM[SafetyManager]
     end
     ENC --> VM[VehicleMotion]
+    VM -- velocidade --> DC
     CM --> SC & DC & SM
     SS --> SC
     SS -. heartbeat .-> SM
@@ -76,7 +77,7 @@ flowchart TB
 | Ângulo de esterçamento | Graus, ângulo da roda virtual do modelo de bicicleta, **REP-103: esquerda positivo** (`STEERING_INVERT_SIGN = 1`) |
 | Comandos de motor | Normalizados em `[-1, 1]`, convertidos para duty de 8 bits (0–255) |
 | Freio | `0` = solto, `1` = freio total |
-| Velocidade | m/s; positiva no sentido de contagem positivo do encoder |
+| Velocidade | m/s; positiva no sentido de contagem positivo do encoder. Velocidade do veículo = média das rodas dianteiras |
 | Tempo interno | `esp_timer_get_time()` em µs desde o boot (`*_us`) |
 | Tempo publicado no ROS | Relógio do agente (Odroid), após a sincronização |
 | Idade de um dado | `agora − instante da amostra/chegada`; os watchdogs comparam essa idade com um limite |

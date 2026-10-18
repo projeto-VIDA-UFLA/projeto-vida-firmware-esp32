@@ -57,7 +57,8 @@ actuator_manager.updateBrake(vehicle_motion.isStopped()); // rampa de falha / al
 ```cpp
 steering = steering_controller.update(ref. esterçamento, snapshot LVDT,
                                       actuator_manager.isMotionPermitted());
-drive    = drive_controller.update(ref. tração);
+drive    = drive_controller.update(ref. tração, vehicle_motion.getVehicleSpeed(),
+                                   actuator_manager.isMotionPermitted());
 command  = TimedCommand{drive.normalized_command, steering.motor_command,
                         drive.brake_command, agora, steering.valid && drive.valid};
 actuator_manager.applyCommands(command, vehicle_motion.getStopDetectionVelocity());
