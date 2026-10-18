@@ -35,6 +35,7 @@ DriveController::DriveController()
     : integral_term_(0.0f),
       target_velocity_m_s_(0.0f),
       target_initialized_(false),
+      bench_mode_(false),
       previous_update_us_(0)
 {
 }
@@ -42,7 +43,8 @@ DriveController::DriveController()
 DriveController::Output DriveController::update(
     const CommandMailbox::DriveReferenceSnapshot &reference,
     const DriveMotor::VelocityMeasurement &vehicle_speed,
-    bool motion_permitted)
+    bool motion_permitted,
+    bool bench_mode)
 {
     constexpr int64_t reference_timeout_us =
         static_cast<int64_t>(DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS) * 1000LL;
@@ -80,6 +82,13 @@ DriveController::Output DriveController::update(
         return output;
     }
 
+    // Troca de modo: a fonte da velocidade muda, recomeca do zero.
+    if (bench_mode != bench_mode_)
+    {
+        reset();
+        bench_mode_ = bench_mode;
+    }
+
     output.valid = true;
     const float measured_m_s = vehicle_speed.velocity_m_s;
 
@@ -112,9 +121,11 @@ DriveController::Output DriveController::update(
     }
 
     // Referencia limitada (sem re) e rampa de aceleracao/desaceleracao.
+    const float max_speed_m_s = bench_mode ? BENCH_MODE_MAX_SPEED_M_S
+                                           : DRIVE_MAX_TARGET_SPEED_M_S;
     const float requested_m_s = clampFloat(reference.velocity_m_s,
                                            0.0f,
-                                           DRIVE_MAX_TARGET_SPEED_M_S);
+                                           max_speed_m_s);
     const float max_accel_m_s2 = reference.acceleration_m_s2 > 0.0f
                                      ? std::fmin(reference.acceleration_m_s2,
                                                  DRIVE_MAX_ACCEL_M_S2)

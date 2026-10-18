@@ -73,6 +73,15 @@
 #define ENCODER_DISAGREE_MARGIN_M_S 0.8f
 #define ENCODER_DISAGREE_TIME_MS 500
 
+// Modo bancada (veiculo suspenso): pedido pelo gamepad em
+// /vida/safety/bench_mode_request. Entra so com o veiculo parado; sai assim
+// que o pedido for false ou deixar de chegar por REQUEST_TIMEOUT. Sempre
+// inicia em modo normal. Na bancada: velocidade realimentada pelo encoder
+// traseiro, verificacao de encoders discordantes desligada e velocidade
+// maxima reduzida.
+#define BENCH_MODE_REQUEST_TIMEOUT_MS 300
+#define BENCH_MODE_MAX_SPEED_M_S 1.0f
+
 // ============================================================
 // Sensor de estercamento
 // ============================================================

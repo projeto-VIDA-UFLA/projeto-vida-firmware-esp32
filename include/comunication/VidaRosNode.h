@@ -19,6 +19,7 @@
 #include <vida_interfaces/msg/drive_reference.h>
 #include <vida_interfaces/msg/logical_enable.h>
 #include <vida_interfaces/msg/safety_status.h>
+#include <std_msgs/msg/bool.h>
 #endif
 
 /**
@@ -29,6 +30,7 @@
  *   /vida/control/steering/reference  SteeringReference
  *   /vida/control/drive/reference     DriveReference
  *   /vida/safety/logical_enable       LogicalEnable
+ *   /vida/safety/bench_mode_request   std_msgs/Bool (pedido do modo bancada)
  *
  * Publica a cada TASK_COMUNICATION_PERIOD_MS (20 ms):
  *   /vida/sensors/encoders            Encoders
@@ -37,6 +39,7 @@
  *   /vida/actuators/drive             Comands (PWM, - = re)
  *   /vida/actuators/brake             Comands (largura de pulso do servo, us)
  *   /vida/safety/status               SafetyStatus
+ *   /vida/safety/bench_mode           std_msgs/Bool (modo bancada efetivo)
  *
  * Os timestamps publicados sao os instantes das amostras convertidos para o
  * relogio do agente; nada e publicado antes da sincronizacao de relogio.
@@ -60,6 +63,7 @@ private:
     static void steeringReferenceCallback(const void *message);
     static void driveReferenceCallback(const void *message);
     static void logicalEnableCallback(const void *message);
+    static void benchModeRequestCallback(const void *message);
 
     bool configure();
     void publishSensors(rcl_timer_t *timer);
@@ -83,6 +87,7 @@ private:
 
     // Publisher de segurança
     rcl_publisher_t safety_status_publisher_;
+    rcl_publisher_t bench_mode_publisher_;
 
     // Subscription de controle
     rcl_subscription_t steering_reference_subscription_;
@@ -90,6 +95,7 @@ private:
 
     // Subscription de Segurança
     rcl_subscription_t logical_enable_subscription_;
+    rcl_subscription_t bench_mode_request_subscription_;
 
     // Mensagens
     vida_interfaces__msg__Encoders encoders_message_;
@@ -101,6 +107,8 @@ private:
     vida_interfaces__msg__SteeringReference steering_reference_message_;
     vida_interfaces__msg__DriveReference drive_reference_message_;
     vida_interfaces__msg__LogicalEnable logical_enable_message_;
+    std_msgs__msg__Bool bench_mode_request_message_;
+    std_msgs__msg__Bool bench_mode_message_;
 
     // Timer
     rcl_timer_t publish_timer_;

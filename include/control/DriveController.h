@@ -49,9 +49,12 @@ public:
 
     DriveController();
 
+    // bench_mode limita a referencia a BENCH_MODE_MAX_SPEED_M_S; a troca de
+    // modo reinicia o controlador (a fonte da velocidade muda).
     Output update(const CommandMailbox::DriveReferenceSnapshot &reference,
                   const DriveMotor::VelocityMeasurement &vehicle_speed,
-                  bool motion_permitted);
+                  bool motion_permitted,
+                  bool bench_mode);
 
     // Zera integral e rampa (a rampa recomeca na velocidade medida).
     void reset();
@@ -63,5 +66,6 @@ private:
     float integral_term_;
     float target_velocity_m_s_;
     bool target_initialized_;
+    bool bench_mode_;
     int64_t previous_update_us_;
 };

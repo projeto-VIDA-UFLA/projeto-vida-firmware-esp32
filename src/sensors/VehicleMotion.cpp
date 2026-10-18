@@ -22,8 +22,17 @@ bool VehicleMotion::isStopped()
            encoderReportsStopped(left_encoder_.getMeasurementSnapshot(), now_us);
 }
 
-DriveMotor::VelocityMeasurement VehicleMotion::getVehicleSpeed()
+DriveMotor::VelocityMeasurement VehicleMotion::getVehicleSpeed(bool bench_mode)
 {
+    if (bench_mode)
+    {
+        const EncoderReader::Snapshot rear = rear_encoder_.getMeasurementSnapshot();
+        return DriveMotor::VelocityMeasurement{
+            rear.filtered_velocity_m_s,
+            rear.timestamp_us,
+            std::isfinite(rear.filtered_velocity_m_s) && rear.timestamp_us > 0};
+    }
+
     const EncoderReader::Snapshot right = right_encoder_.getMeasurementSnapshot();
     const EncoderReader::Snapshot left = left_encoder_.getMeasurementSnapshot();
 

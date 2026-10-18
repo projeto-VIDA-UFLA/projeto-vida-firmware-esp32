@@ -26,7 +26,9 @@ public:
     // rodas dianteiras (nao sao tracionadas nem freadas, entao nao patinam nem
     // travam). Sem compensacao de curva: em curva fica ~1/cos(delta) acima da
     // velocidade do eixo traseiro. timestamp_us = amostra mais antiga.
-    DriveMotor::VelocityMeasurement getVehicleSpeed();
+    // Em modo bancada (veiculo suspenso, dianteiras paradas) usa o encoder
+    // traseiro.
+    DriveMotor::VelocityMeasurement getVehicleSpeed(bool bench_mode = false);
 
     // Medicao usada pelo DriveMotor para autorizar a troca do pino DIR.
     // Combina os tres encoders pelo pior caso: maior velocidade em modulo e

@@ -44,6 +44,14 @@ public:
         bool received;
     };
 
+    // Ultimo /vida/safety/bench_mode_request recebido.
+    struct BenchModeRequestSnapshot
+    {
+        bool requested;
+        int64_t received_at_us;
+        bool received;
+    };
+
     CommandMailbox();
 
     // Escrita pelos callbacks ROS: registra o valor e o instante de chegada.
@@ -55,18 +63,22 @@ public:
                               float brake_command,
                               int64_t source_timestamp_ns);
     void updateLogicalEnable(bool enabled, int64_t source_timestamp_ns);
+    void updateBenchModeRequest(bool requested);
 
     // Leitura pelas tasks: copia coerente protegida por portMUX.
     SteeringReferenceSnapshot getSteeringReferenceSnapshot() const;
     DriveReferenceSnapshot getDriveReferenceSnapshot() const;
     LogicalEnableSnapshot getLogicalEnableSnapshot() const;
+    BenchModeRequestSnapshot getBenchModeRequestSnapshot() const;
 
 private:
     SteeringReferenceSnapshot steering_reference_;
     DriveReferenceSnapshot drive_reference_;
     LogicalEnableSnapshot logical_enable_;
+    BenchModeRequestSnapshot bench_mode_request_;
 
     mutable portMUX_TYPE steering_mux_;
     mutable portMUX_TYPE drive_mux_;
     mutable portMUX_TYPE logical_enable_mux_;
+    mutable portMUX_TYPE bench_mode_mux_;
 };

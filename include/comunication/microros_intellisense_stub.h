@@ -71,6 +71,11 @@ struct rosidl_runtime_c__String
     size_t capacity;
 };
 
+struct std_msgs__msg__Bool
+{
+    bool data;
+};
+
 struct std_msgs__msg__MultiArrayDimension
 {
     rosidl_runtime_c__String label;

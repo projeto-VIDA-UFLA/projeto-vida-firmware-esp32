@@ -136,8 +136,9 @@ void taskSafety(void *parameter)
 
   while (true)
   {
-    safety_manager.update();
-    actuator_manager.updateBrake(vehicle_motion.isStopped());
+    const bool vehicle_stopped = vehicle_motion.isStopped();
+    safety_manager.update(vehicle_stopped);
+    actuator_manager.updateBrake(vehicle_stopped);
 
     vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(TASK_SAFETY_PERIOD_MS));
   }
@@ -156,10 +157,12 @@ void taskControl(void *parameter)
                                    steering_sensor.getSnapshot(),
                                    actuator_manager.isMotionPermitted());
 
+    const bool bench_mode = safety_manager.isBenchModeActive();
     const DriveController::Output drive =
         drive_controller.update(command_mailbox.getDriveReferenceSnapshot(),
-                                vehicle_motion.getVehicleSpeed(),
-                                actuator_manager.isMotionPermitted());
+                                vehicle_motion.getVehicleSpeed(bench_mode),
+                                actuator_manager.isMotionPermitted(),
+                                bench_mode);
 
     const ActuatorManager::TimedCommand command{
         drive.normalized_command,

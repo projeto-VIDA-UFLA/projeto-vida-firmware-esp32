@@ -22,6 +22,8 @@ namespace
     // tópicos de segurança
     constexpr char SAFETY_STATUS_TOPIC[] = "/vida/safety/status";
     constexpr char LOGICAL_ENABLE_TOPIC[] = "/vida/safety/logical_enable";
+    constexpr char BENCH_MODE_REQUEST_TOPIC[] = "/vida/safety/bench_mode_request";
+    constexpr char BENCH_MODE_TOPIC[] = "/vida/safety/bench_mode";
 
     // tópicos de controle
     constexpr char STEERING_REFERENCE_TOPIC[] = "/vida/control/steering/reference";
@@ -50,9 +52,11 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
       cmd_drive_publisher_(rcl_get_zero_initialized_publisher()),
       cmd_brake_publisher_(rcl_get_zero_initialized_publisher()),
       safety_status_publisher_(rcl_get_zero_initialized_publisher()),
+      bench_mode_publisher_(rcl_get_zero_initialized_publisher()),
       steering_reference_subscription_(rcl_get_zero_initialized_subscription()),
       drive_reference_subscription_(rcl_get_zero_initialized_subscription()),
       logical_enable_subscription_(rcl_get_zero_initialized_subscription()),
+      bench_mode_request_subscription_(rcl_get_zero_initialized_subscription()),
       encoders_message_{},
       steering_message_{},
       cmd_drive_message_{},
@@ -62,6 +66,8 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
       steering_reference_message_{},
       drive_reference_message_{},
       logical_enable_message_{},
+      bench_mode_request_message_{},
+      bench_mode_message_{},
       publish_timer_(rcl_get_zero_initialized_timer()),
       actuator_manager_(actuator_manager),
       safety_manager_(safety_manager),
@@ -159,6 +165,24 @@ bool VidaRosNode::configure()
         return false;
     }
 
+    if (!communication_.addPublisher(
+            bench_mode_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+            BENCH_MODE_TOPIC))
+    {
+        return false;
+    }
+
+    if (!communication_.addSubscription(
+            bench_mode_request_subscription_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+            BENCH_MODE_REQUEST_TOPIC,
+            &bench_mode_request_message_,
+            benchModeRequestCallback))
+    {
+        return false;
+    }
+
     if (!communication_.addSubscription(
             steering_reference_subscription_,
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, SteeringReference),
@@ -245,6 +269,17 @@ void VidaRosNode::logicalEnableCallback(const void *message)
         timestampToNanoseconds(logical_enable->timestamp));
 }
 
+void VidaRosNode::benchModeRequestCallback(const void *message)
+{
+    if (instance_ == nullptr || message == nullptr)
+    {
+        return;
+    }
+
+    const auto *request = static_cast<const std_msgs__msg__Bool *>(message);
+    instance_->command_mailbox_.updateBenchModeRequest(request->data);
+}
+
 void VidaRosNode::publishSensorsCallback(rcl_timer_t *timer, int64_t last_call_time)
 {
     (void)last_call_time;
@@ -329,6 +364,9 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         safety_status_message_.inhibit_flags = safety.inhibit_flags;
         communication_.publish(safety_status_publisher_, &safety_status_message_);
     }
+
+    bench_mode_message_.data = safety.bench_mode_active;
+    communication_.publish(bench_mode_publisher_, &bench_mode_message_);
 }
 
 bool VidaRosNode::setTimestamp(builtin_interfaces__msg__Time &timestamp, int64_t local_time_us)

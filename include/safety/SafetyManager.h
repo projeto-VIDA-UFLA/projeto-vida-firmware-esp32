@@ -43,7 +43,7 @@ enum SafetyInhibitFlag : uint32_t
  * - TaskSensors viva (heartbeat <= SENSOR_TASK_WATCHDOG_TIMEOUT_MS);
  * - leitura do LVDT valida e recente (STEERING_SENSOR_SNAPSHOT_TIMEOUT_MS);
  * - saida do SteeringController valida e recente (CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS).
- * - encoders concordantes (EncoderPlausibility).
+ * - encoders concordantes (EncoderPlausibility), exceto em modo bancada.
  * Cada condicao falsa gera uma SafetyInhibitFlag. Nas transicoes de estado
  * chama ActuatorManager::setMotionPermit(). As falhas de tempo nao sao
  * retidas: o estado volta a READY assim que as condicoes voltam. A falha de
@@ -66,6 +66,7 @@ public:
         bool steering_sensor_fresh;
         bool control_output_fresh;
         bool encoders_disagree; // falha retida
+        bool bench_mode_active; // modo bancada efetivo
         bool motion_permitted;
         uint32_t inhibit_flags;
         int64_t timestamp_us;
@@ -79,7 +80,8 @@ public:
     // Configura o pino de enable e parte em STATE_DISABLED.
     void begin();
     // Reavalia as condicoes e aplica a transicao de estado, se houver.
-    void update();
+    // vehicle_stopped autoriza a entrada no modo bancada.
+    void update(bool vehicle_stopped);
     // Heartbeat da task de sensores, chamado ao fim de cada ciclo completo.
     // Registrado com os tres encoders validos; a validade e o instante da
     // leitura do LVDT sao guardados junto, para o watchdog do sensor.
@@ -90,6 +92,11 @@ public:
         const EncoderReader::Snapshot &left_snapshot);
 
     Snapshot getSnapshot() const;
+
+    // Modo bancada: entra a pedido do ROS (/vida/safety/bench_mode_request)
+    // so com o veiculo parado; sai com o pedido false ou sem pedido recente.
+    // Na bancada a verificacao de encoders discordantes fica desligada.
+    bool isBenchModeActive() const;
 
 private:
     static bool encoderSnapshotValid(const EncoderReader::Snapshot &snapshot);
@@ -118,6 +125,7 @@ private:
     SensorHealthSnapshot sensor_health_;
     EncoderPlausibility encoder_plausibility_;
     bool encoders_disagree_latched_;
+    bool bench_mode_active_;
     mutable portMUX_TYPE health_mux_ = portMUX_INITIALIZER_UNLOCKED;
 
     Snapshot snapshot_;

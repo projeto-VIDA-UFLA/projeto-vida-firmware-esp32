@@ -6,9 +6,11 @@ CommandMailbox::CommandMailbox()
     : steering_reference_{},
       drive_reference_{},
       logical_enable_{false, 0, 0, false},
+      bench_mode_request_{false, 0, false},
       steering_mux_(portMUX_INITIALIZER_UNLOCKED),
       drive_mux_(portMUX_INITIALIZER_UNLOCKED),
-      logical_enable_mux_(portMUX_INITIALIZER_UNLOCKED)
+      logical_enable_mux_(portMUX_INITIALIZER_UNLOCKED),
+      bench_mode_mux_(portMUX_INITIALIZER_UNLOCKED)
 {
 }
 
@@ -56,6 +58,17 @@ void CommandMailbox::updateLogicalEnable(bool enabled, int64_t source_timestamp_
     portEXIT_CRITICAL(&logical_enable_mux_);
 }
 
+void CommandMailbox::updateBenchModeRequest(bool requested)
+{
+    const int64_t received_at_us = esp_timer_get_time();
+
+    portENTER_CRITICAL(&bench_mode_mux_);
+    bench_mode_request_.requested = requested;
+    bench_mode_request_.received_at_us = received_at_us;
+    bench_mode_request_.received = true;
+    portEXIT_CRITICAL(&bench_mode_mux_);
+}
+
 CommandMailbox::SteeringReferenceSnapshot CommandMailbox::getSteeringReferenceSnapshot() const
 {
     portENTER_CRITICAL(&steering_mux_);
@@ -77,5 +90,13 @@ CommandMailbox::LogicalEnableSnapshot CommandMailbox::getLogicalEnableSnapshot()
     portENTER_CRITICAL(&logical_enable_mux_);
     const LogicalEnableSnapshot snapshot = logical_enable_;
     portEXIT_CRITICAL(&logical_enable_mux_);
+    return snapshot;
+}
+
+CommandMailbox::BenchModeRequestSnapshot CommandMailbox::getBenchModeRequestSnapshot() const
+{
+    portENTER_CRITICAL(&bench_mode_mux_);
+    const BenchModeRequestSnapshot snapshot = bench_mode_request_;
+    portEXIT_CRITICAL(&bench_mode_mux_);
     return snapshot;
 }

@@ -16,6 +16,7 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
       sensor_health_{0, 0, false, 0, false, 0.0f, 0.0f},
       encoder_plausibility_(),
       encoders_disagree_latched_(false),
+      bench_mode_active_(false),
       snapshot_()
 {
     snapshot_.state = SafetyState::STATE_DISABLED;
@@ -29,6 +30,7 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
     snapshot_.steering_sensor_fresh = false;
     snapshot_.control_output_fresh = false;
     snapshot_.encoders_disagree = false;
+    snapshot_.bench_mode_active = false;
     snapshot_.motion_permitted = false;
     snapshot_.inhibit_flags =
         INHIBIT_PHYSICAL_ENABLE_OFF |
@@ -54,10 +56,12 @@ void SafetyManager::begin()
 
     encoder_plausibility_.reset();
     encoders_disagree_latched_ = false;
+    bench_mode_active_ = false;
 
     const Snapshot initial_snapshot{
         SafetyState::STATE_DISABLED,
         physical_enable,
+        false,
         false,
         false,
         false,
@@ -111,7 +115,7 @@ void SafetyManager::reportSensorTaskCycle(
     portEXIT_CRITICAL(&health_mux_);
 }
 
-void SafetyManager::update()
+void SafetyManager::update(bool vehicle_stopped)
 {
     constexpr int64_t logical_enable_timeout_us =
         static_cast<int64_t>(LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS) * 1000LL;
@@ -218,14 +222,37 @@ void SafetyManager::update()
         inhibit_flags |= INHIBIT_CONTROL_OUTPUT_TIMEOUT;
     }
 
+    // Modo bancada: entra so parado; sai com pedido false ou sem pedido recente.
+    constexpr int64_t bench_request_timeout_us =
+        static_cast<int64_t>(BENCH_MODE_REQUEST_TIMEOUT_MS) * 1000LL;
+    const CommandMailbox::BenchModeRequestSnapshot bench_request =
+        command_mailbox_.getBenchModeRequestSnapshot();
+    const bool bench_requested =
+        bench_request.requested &&
+        isFresh(bench_request.received, bench_request.received_at_us,
+                now_us, bench_request_timeout_us);
+    if (!bench_requested)
+    {
+        bench_mode_active_ = false;
+    }
+    else if (!bench_mode_active_ && vehicle_stopped)
+    {
+        bench_mode_active_ = true;
+    }
+
     // Encoders discordantes: falha retida ate acao explicita do operador
-    // (enable fisico desligado ou enable logico false).
+    // (enable fisico desligado ou enable logico false). Desligada na bancada,
+    // onde so a roda traseira gira.
     const bool rearm_requested =
         !physical_enable ||
         (logical_enable.received && logical_enable_fresh && !logical_enable.enabled);
     if (rearm_requested)
     {
         encoders_disagree_latched_ = false;
+        encoder_plausibility_.reset();
+    }
+    else if (bench_mode_active_)
+    {
         encoder_plausibility_.reset();
     }
     else
@@ -282,6 +309,7 @@ void SafetyManager::update()
         steering_sensor_fresh,
         control_output_fresh,
         encoders_disagree_latched_,
+        bench_mode_active_,
         motion_permitted,
         inhibit_flags,
         now_us};
@@ -289,6 +317,14 @@ void SafetyManager::update()
     portENTER_CRITICAL(&snapshot_mux_);
     snapshot_ = new_snapshot;
     portEXIT_CRITICAL(&snapshot_mux_);
+}
+
+bool SafetyManager::isBenchModeActive() const
+{
+    portENTER_CRITICAL(&snapshot_mux_);
+    const bool active = snapshot_.bench_mode_active;
+    portEXIT_CRITICAL(&snapshot_mux_);
+    return active;
 }
 
 SafetyManager::Snapshot SafetyManager::getSnapshot() const
