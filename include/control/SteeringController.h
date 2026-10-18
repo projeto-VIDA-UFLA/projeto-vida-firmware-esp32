@@ -38,8 +38,11 @@ public:
     SteeringController();
 
     // Sensor com leitura invalida ou velha invalida a saida.
+    // Sem permissao de movimento o motor esta parado: a integral e mantida
+    // em zero para nao acumular erro (windup) ate a proxima habilitacao.
     Output update(const CommandMailbox::SteeringReferenceSnapshot &reference,
-                  const SteeringSensor::Snapshot &sensor);
+                  const SteeringSensor::Snapshot &sensor,
+                  bool motion_permitted);
     Snapshot getLastOutput() const;
     void reset();
 
@@ -49,6 +52,7 @@ private:
         float target_angle_deg;
         float measured_angle_deg;
         float dt_s;
+        bool motion_permitted;
     };
 
     Output compute(const Input &input);

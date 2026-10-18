@@ -136,7 +136,8 @@ void taskControl(void *parameter)
   {
     const SteeringController::Output steering =
         steering_controller.update(command_mailbox.getSteeringReferenceSnapshot(),
-                                   steering_sensor.getSnapshot());
+                                   steering_sensor.getSnapshot(),
+                                   actuator_manager.isMotionPermitted());
     const DriveController::Output drive =
         drive_controller.update(command_mailbox.getDriveReferenceSnapshot());
 

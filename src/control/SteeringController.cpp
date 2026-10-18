@@ -31,7 +31,8 @@ SteeringController::SteeringController()
 
 SteeringController::Output SteeringController::update(
     const CommandMailbox::SteeringReferenceSnapshot &reference,
-    const SteeringSensor::Snapshot &sensor)
+    const SteeringSensor::Snapshot &sensor,
+    bool motion_permitted)
 {
     const int64_t now_us = esp_timer_get_time();
     constexpr int64_t sensor_timeout_us =
@@ -51,7 +52,8 @@ SteeringController::Output SteeringController::update(
 
     return compute(Input{reference.angle_deg,
                          sensor_is_fresh ? sensor.filtered_angle_deg : NAN,
-                         dt_s});
+                         dt_s,
+                         motion_permitted});
 }
 
 SteeringController::Output SteeringController::compute(const Input &input)
@@ -123,32 +125,41 @@ SteeringController::Output SteeringController::compute(const Input &input)
         return storeOutput(output);
     }
 
-    float candidate_integral = 0.0f;
-    if (STEERING_DIRECT_KI != 0.0f)
+    if (!input.motion_permitted)
     {
-        candidate_integral = clampValue(integral_ + error_deg * input.dt_s,
-                                        STEERING_DIRECT_INTEGRAL_MIN,
-                                        STEERING_DIRECT_INTEGRAL_MAX);
+        // Atuador desconectado: integrar aqui acumularia erro com o motor
+        // parado e, ao habilitar, o esterçamento partiria saturado.
+        integral_ = 0.0f;
     }
-
-    const float candidate_integral_term = STEERING_DIRECT_KI * candidate_integral;
-    const float candidate_command = output.proportional_term +
-                                    candidate_integral_term +
-                                    output.derivative_term;
-
-    // Anti-windup condicional: rejeita apenas a parcela integral que empurraria
-    // uma saida ja saturada ainda mais na mesma direcao. Uma parcela que ajude
-    // a sair da saturacao continua permitida.
-    const float integral_command_delta =
-        STEERING_DIRECT_KI * (candidate_integral - integral_);
-    const bool worsens_positive_saturation =
-        candidate_command > MAX_ABS_STEER_COMMAND && integral_command_delta > 0.0f;
-    const bool worsens_negative_saturation =
-        candidate_command < -MAX_ABS_STEER_COMMAND && integral_command_delta < 0.0f;
-
-    if (!worsens_positive_saturation && !worsens_negative_saturation)
+    else
     {
-        integral_ = candidate_integral;
+        float candidate_integral = 0.0f;
+        if (STEERING_DIRECT_KI != 0.0f)
+        {
+            candidate_integral = clampValue(integral_ + error_deg * input.dt_s,
+                                            STEERING_DIRECT_INTEGRAL_MIN,
+                                            STEERING_DIRECT_INTEGRAL_MAX);
+        }
+
+        const float candidate_integral_term = STEERING_DIRECT_KI * candidate_integral;
+        const float candidate_command = output.proportional_term +
+                                        candidate_integral_term +
+                                        output.derivative_term;
+
+        // Anti-windup condicional: rejeita apenas a parcela integral que
+        // empurraria uma saida ja saturada ainda mais na mesma direcao. Uma
+        // parcela que ajude a sair da saturacao continua permitida.
+        const float integral_command_delta =
+            STEERING_DIRECT_KI * (candidate_integral - integral_);
+        const bool worsens_positive_saturation =
+            candidate_command > MAX_ABS_STEER_COMMAND && integral_command_delta > 0.0f;
+        const bool worsens_negative_saturation =
+            candidate_command < -MAX_ABS_STEER_COMMAND && integral_command_delta < 0.0f;
+
+        if (!worsens_positive_saturation && !worsens_negative_saturation)
+        {
+            integral_ = candidate_integral;
+        }
     }
 
     output.integral_term = STEERING_DIRECT_KI * integral_;
