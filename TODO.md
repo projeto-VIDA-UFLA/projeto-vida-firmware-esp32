@@ -1,0 +1,38 @@
+# TODO - Firmware ESP32
+
+## Proximos passos
+
+- [ ] **Estimador de velocidade dos encoders.** Com Δt de 2 ms, um tick vale
+  ~0,4 m/s no traseiro e ~0,8 m/s nos dianteiros. Medir por janela maior ou
+  por periodo entre pulsos (`last_timestamp_` ja e gravado na ISR e nao e usado).
+- [ ] **Controle longitudinal em malha fechada.** Hoje e malha aberta: o campo
+  `velocity_m_s` de `DriveReference` carrega PWM em [-255, 255].
+- [ ] **Criterio de "parado" unico.** `DriveMotor` autoriza a troca de DIR so
+  pelo encoder traseiro; o alivio do freio usa os 3 encoders. A inversao de
+  sentido deve exigir os 3 (`encoderReportsStopped` em `main.cpp`).
+
+## Calibracao (teste de 12/10/2026)
+
+- [ ] Validar no veiculo o offset de zero `STEERING_ZERO_OFFSET_DEG` (1,6 graus).
+- [ ] Ganho do esterçamento: o modelo preve ~16% mais yaw rate (L efetivo
+  1,38 m contra 1,125 m). Medir o entre-eixos real antes de mexer no polinomio.
+- [ ] Encoders medem ~7% mais distancia que o GPS: conferir `DRIVE_WHEEL_DIAMETER_M`,
+  se as rodas dianteiras tem o mesmo diametro da traseira e se
+  `ENC_*_TICKS_PER_REV` sao contagens x4 (730 nao e multiplo de 4).
+
+## Adiado
+
+- [ ] Freio solto durante o boot: `brake_servo.begin()` roda depois do
+  `delay(1000)` do `setup()`, entao o servo fica sem pulsos por mais de 1 s.
+- [ ] `EncoderReader::handleInterrupt()` fora da IRAM (so importa com escrita
+  em flash durante a operacao).
+
+## Limpeza
+
+- [ ] README descreve uma versao antiga (SerialCommand, PidController, pinos, baud).
+- [ ] Envs `steering_sensor`, `steering_motor` e `encoder_teste` do `platformio.ini`
+  apontam para arquivos que nao existem mais.
+- [ ] `monitor_speed` (460800) diferente de `SERIAL_BAUDRATE` (921600).
+- [ ] `vida_interfaces` divergente entre os 3 repositorios (`SafetyStatus.msg`);
+  usar uma fonte unica. `SteeringControllerOutput.msg` nao e mais publicado e
+  pode sair na proxima recompilacao da libmicroros.

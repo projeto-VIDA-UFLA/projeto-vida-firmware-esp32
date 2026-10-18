@@ -25,13 +25,14 @@ float SteeringSensor::adcToAngleDeg(int raw_adc)
     constexpr float a = STEERING_ANGLE_SIGN * STEERING_POLY_A;
     constexpr float b = STEERING_ANGLE_SIGN * STEERING_POLY_B;
     constexpr float c = STEERING_ANGLE_SIGN * STEERING_POLY_C;
+    constexpr float offset = STEERING_ANGLE_SIGN * STEERING_ZERO_OFFSET_DEG;
 
     // Subtracao inteira: no centro d e exatamente 0.
     const float d = static_cast<float>(raw_adc - STEERING_ADC_CENTER);
 
     // Horner: a*d + b*d^2 + c*d^3 = d*(a + d*(b + d*c)).
-    // O "+ 0.0f" normaliza o -0.0 do centro para +0.0.
-    return d * (a + d * (b + d * c)) + 0.0f;
+    // O "+ 0.0f" normaliza um eventual -0.0 para +0.0.
+    return d * (a + d * (b + d * c)) - offset + 0.0f;
 }
 
 void SteeringSensor::begin()

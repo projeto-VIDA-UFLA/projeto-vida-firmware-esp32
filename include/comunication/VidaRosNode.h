@@ -5,7 +5,6 @@
 #include "comunication/CommandMailbox.h"
 #include "comunication/RosCommunication.h"
 #include "actuators/ActuatorManager.h"
-#include "control/SteeringController.h"
 #include "safety/SafetyManager.h"
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
@@ -20,7 +19,6 @@
 #include <vida_interfaces/msg/drive_reference.h>
 #include <vida_interfaces/msg/logical_enable.h>
 #include <vida_interfaces/msg/safety_status.h>
-#include <vida_interfaces/msg/steering_controller_output.h>
 #endif
 
 class VidaRosNode
@@ -32,14 +30,12 @@ public:
                 SteeringSensor &steering_sensor,
                 SafetyManager &safety_manager,
                 ActuatorManager &actuator_manager,
-                CommandMailbox &command_mailbox,
-                SteeringController &steering_controller);
+                CommandMailbox &command_mailbox);
 
     bool begin(Stream &transport);
 
 private:
     static void publishSensorsCallback(rcl_timer_t *timer, int64_t last_call_time);
-    static void publishSteeringOutputCallback(rcl_timer_t *timer, int64_t last_call_time);
     static void steeringReferenceCallback(const void *message);
     static void driveReferenceCallback(const void *message);
     static void logicalEnableCallback(const void *message);
@@ -66,10 +62,6 @@ private:
     // Publisher de segurança
     rcl_publisher_t safety_status_publisher_;
 
-    // Publisher de controle
-    rcl_publisher_t steering_output_publisher_;
-    rcl_publisher_t drive_output_publisher_;
-
     // Subscription de controle
     rcl_subscription_t steering_reference_subscription_;
     rcl_subscription_t drive_reference_subscription_;
@@ -87,7 +79,6 @@ private:
     vida_interfaces__msg__SteeringReference steering_reference_message_;
     vida_interfaces__msg__DriveReference drive_reference_message_;
     vida_interfaces__msg__LogicalEnable logical_enable_message_;
-    vida_interfaces__msg__SteeringControllerOutput steering_output_message_;
 
     // Timer
     rcl_timer_t publish_timer_;
@@ -104,7 +95,4 @@ private:
 
     // Comandos recebidos
     CommandMailbox &command_mailbox_;
-
-    // Atudarores e segurança
-    SteeringController &steering_controller_;
 };

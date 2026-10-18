@@ -86,8 +86,14 @@
 // A mesma flag inverte o angulo medido e o sentido do comando do motor, de
 // modo que referencia ROS, medicao e atuacao fiquem sempre na mesma
 // convencao. STEERING_MIN_DEG/STEERING_MAX_DEG seguem a convencao escolhida.
-#define STEERING_INVERT_SIGN 0
+#define STEERING_INVERT_SIGN 1
 #define STEERING_ANGLE_SIGN (STEERING_INVERT_SIGN ? -1.0f : 1.0f)
+
+// Offset de zero, na convencao dos dados de calibracao (direita positivo):
+// angulo que o polinomio indica com o veiculo andando reto. E subtraido do
+// polinomio antes da troca de sinal. Teste de 12/10/2026: curvatura nula com
+// -1,5 a -1,7 graus em REP-103, isto e, +1,6 graus na convencao da calibracao.
+#define STEERING_ZERO_OFFSET_DEG 1.6f
 
 #define STEERING_FILTER_ALPHA 0.05f
 #define STEERING_VELOCITY_FILTER_ALPHA 0.01f

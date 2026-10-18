@@ -62,7 +62,7 @@ SafetyManager safety_manager(PIN_ENABLE_SAFETY, command_mailbox,
                              actuator_manager, steering_controller);
 
 // Instanciando nó do ROS
-VidaRosNode ros_node(rear_encoder, right_encoder, left_encoder, steering_sensor, safety_manager, actuator_manager, command_mailbox, steering_controller);
+VidaRosNode ros_node(rear_encoder, right_encoder, left_encoder, steering_sensor, safety_manager, actuator_manager, command_mailbox);
 
 //======================================================================
 // DEFINIÇÃO DE ISRs DOS ENCODERS
@@ -197,7 +197,7 @@ void taskControl(void *parameter)
 
     // Malha aberta longitudinal: a referencia ROS e um PWM assinado em
     // [-255, 255]. O DriveMotor recebe comando normalizado em [-1, 1].
-    // Exemplo: referencia 255 -> 255 * 0.8 = 204 de PWM.
+    // Exemplo: referencia 255 -> 255 * 0.15 = 38 de PWM.
     const float drive_command =
         clampFloat(drive_reference.velocity_m_s *
                        DRIVE_OPEN_LOOP_PROPORTIONAL_GAIN /

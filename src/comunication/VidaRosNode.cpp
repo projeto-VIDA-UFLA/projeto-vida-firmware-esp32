@@ -25,9 +25,7 @@ namespace
 
     // tópicos de controle
     constexpr char STEERING_REFERENCE_TOPIC[] = "/vida/control/steering/reference";
-    constexpr char STEERING_OUTPUT_TOPIC[] = "/vida/control/steering/output";
     constexpr char DRIVE_REFERENCE_TOPIC[] = "/vida/control/drive/reference";
-    constexpr char DRIVE_OUTPUT_TOPIC[] = "/vida/control/drive/output";
 
     int64_t timestampToNanoseconds(const builtin_interfaces__msg__Time &timestamp)
     {
@@ -44,8 +42,7 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
                          SteeringSensor &steering_sensor,
                          SafetyManager &safety_manager,
                          ActuatorManager &actuator_manager,
-                         CommandMailbox &command_mailbox,
-                         SteeringController &steering_controller)
+                         CommandMailbox &command_mailbox)
     : communication_(NODE_NAME, NODE_NAMESPACE, ROS_DOMAIN_ID),
       encoders_publisher_(rcl_get_zero_initialized_publisher()),
       steering_publisher_(rcl_get_zero_initialized_publisher()),
@@ -56,11 +53,8 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
       steering_reference_subscription_(rcl_get_zero_initialized_subscription()),
       drive_reference_subscription_(rcl_get_zero_initialized_subscription()),
       logical_enable_subscription_(rcl_get_zero_initialized_subscription()),
-      steering_output_publisher_(rcl_get_zero_initialized_publisher()),
-      drive_output_publisher_(rcl_get_zero_initialized_publisher()),
       encoders_message_{},
       steering_message_{},
-      steering_output_message_{},
       cmd_drive_message_{},
       cmd_steering_message_{},
       cmd_brake_message_{},
@@ -75,8 +69,7 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
       rear_encoder_(rear_encoder),
       right_encoder_(right_encoder),
       left_encoder_(left_encoder),
-      command_mailbox_(command_mailbox),
-      steering_controller_(steering_controller)
+      command_mailbox_(command_mailbox)
 {
 }
 
@@ -186,22 +179,6 @@ bool VidaRosNode::configure()
         return false;
     }
 
-    if (!communication_.addPublisher(
-            steering_output_publisher_,
-            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, SteeringControllerOutput),
-            STEERING_OUTPUT_TOPIC))
-    {
-        return false;
-    }
-
-    /*if (!communication_.addPublisher(
-            steering_output_publisher_,
-            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, DriveControllerOutput),
-            DRIVE_OUTPUT_TOPIC))
-    {
-        return false;
-    }*/
-
     return communication_.addTimer(
         publish_timer_,
         TASK_COMUNICATION_PERIOD_MS,
@@ -296,8 +273,6 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
     const SteeringSensor::Snapshot steering = steering_sensor_.getSnapshot();
     const SafetyManager::Snapshot safety = safety_manager_.getSnapshot();
 
-    const SteeringController::Snapshot steering_controller = steering_controller_.getLastOutput();
-
     const bool encoders_valid =
         fillEncoderMeasurement(encoders_message_.left, left) &&
         fillEncoderMeasurement(encoders_message_.right, right) &&
@@ -311,15 +286,17 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
     if (setTimestamp(steering_message_.timestamp, steering.timestamp_us))
     {
         steering_message_.raw_adc = steering.raw_adc;
-        steering_message_.raw_angle_deg = -steering.raw_angle_deg;
-        steering_message_.filtered_angle_deg = -steering.filtered_angle_deg;
-        steering_message_.filtered_angular_velocity_deg_s = -steering.filtered_angular_velocity_deg_s;
+        steering_message_.raw_angle_deg = steering.raw_angle_deg;
+        steering_message_.filtered_angle_deg = steering.filtered_angle_deg;
+        steering_message_.filtered_angular_velocity_deg_s = steering.filtered_angular_velocity_deg_s;
         communication_.publish(steering_publisher_, &steering_message_);
     }
 
     if (setTimestamp(cmd_steering_message_.timestamp, steering_pwm.timestamp_us))
     {
-        cmd_steering_message_.pwm = steering_pwm.right_pwm - steering_pwm.left_pwm;
+        // Sinal na convencao do angulo: positivo esterca para angulo positivo.
+        cmd_steering_message_.pwm = static_cast<int16_t>(
+            STEERING_ANGLE_SIGN * (steering_pwm.right_pwm - steering_pwm.left_pwm));
         communication_.publish(cmd_steering_publisher_, &cmd_steering_message_);
     }
 
@@ -348,24 +325,6 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         safety_status_message_.motion_permitted = safety.motion_permitted;
         safety_status_message_.inhibit_flags = safety.inhibit_flags;
         communication_.publish(safety_status_publisher_, &safety_status_message_);
-    }
-
-    if (setTimestamp(steering_output_message_.timestamp, steering_controller.timestamp_us))
-    {
-        steering_output_message_.target_angle_deg = steering_controller.output.target_angle_deg;
-        steering_output_message_.measured_angle_deg = steering_controller.output.measured_angle_deg;
-        steering_output_message_.angle_error_deg = steering_controller.output.angle_error_deg;
-        steering_output_message_.proportional_term = steering_controller.output.proportional_term;
-        steering_output_message_.integral_term = steering_controller.output.integral_term;
-        steering_output_message_.derivative_term = steering_controller.output.derivative_term;
-        steering_output_message_.normalized_command = steering_controller.output.normalized_command;
-        steering_output_message_.inside_deadband = steering_controller.output.inside_deadband;
-        steering_output_message_.saturated = steering_controller.output.saturated;
-        steering_output_message_.target_clamped = steering_controller.output.target_clamped;
-        steering_output_message_.position_limit_active = steering_controller.output.position_limit_active;
-        steering_output_message_.valid = steering_controller.output.valid;
-
-        communication_.publish(steering_output_publisher_, &steering_output_message_);
     }
 }
 
