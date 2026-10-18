@@ -28,7 +28,8 @@ RosCommunication::RosCommunication(const char *node_name,
       executor_created_(false),
       last_agent_wait_ping_ms_(-1),
       last_agent_connected_ping_ms_(-1),
-      last_time_sync_ms_(-1)
+      last_time_sync_ms_(-1),
+      missed_agent_pings_(0)
 {
 }
 
@@ -153,6 +154,16 @@ void RosCommunication::taskLoop()
     constexpr uint32_t CONNECTED_SPIN_TIMEOUT_MS = 1;
     constexpr uint32_t CONNECTED_LOOP_DELAY_MS = 1;
     constexpr uint32_t TIME_SYNC_PERIOD_MS = 30000;
+    // Sem relogio sincronizado nenhum topico e publicado: tenta de novo logo.
+    constexpr uint32_t TIME_SYNC_RETRY_PERIOD_MS = 1000;
+
+    // Ping e sincronizacao bloqueiam esta task e, com ela, o executor que
+    // recebe as referencias. Os timeouts ficam abaixo dos watchdogs de
+    // referencia (200 ms) e no maximo uma chamada bloqueante roda por ciclo.
+    constexpr int CONNECTED_AGENT_PING_TIMEOUT_MS = 50;
+    constexpr int TIME_SYNC_TIMEOUT_MS = 100;
+    // Pings perdidos em sequencia antes de considerar o agente desconectado.
+    constexpr uint8_t MAX_MISSED_AGENT_PINGS = 3;
 
     for (;;)
     {
@@ -167,6 +178,7 @@ void RosCommunication::taskLoop()
             break;
 
         case State::AgentAvailable:
+            missed_agent_pings_ = 0;
             state_ = createEntities() ? State::AgentConnected : State::WaitingAgent;
             if (state_ == State::WaitingAgent)
             {
@@ -175,16 +187,26 @@ void RosCommunication::taskLoop()
             break;
 
         case State::AgentConnected:
-            if (shouldRunEvery(TIME_SYNC_PERIOD_MS, last_time_sync_ms_))
-            {
-                (void)rmw_uros_sync_session(1000);
-            }
+        {
+            const uint32_t time_sync_period_ms = rmw_uros_epoch_synchronized()
+                                                     ? TIME_SYNC_PERIOD_MS
+                                                     : TIME_SYNC_RETRY_PERIOD_MS;
 
-            if (shouldRunEvery(CONNECTED_AGENT_PING_PERIOD_MS, last_agent_connected_ping_ms_) &&
-                rmw_uros_ping_agent(100, 1) != RMW_RET_OK)
+            if (shouldRunEvery(time_sync_period_ms, last_time_sync_ms_))
             {
-                state_ = State::AgentDisconnected;
-                break;
+                (void)rmw_uros_sync_session(TIME_SYNC_TIMEOUT_MS);
+            }
+            else if (shouldRunEvery(CONNECTED_AGENT_PING_PERIOD_MS, last_agent_connected_ping_ms_))
+            {
+                if (rmw_uros_ping_agent(CONNECTED_AGENT_PING_TIMEOUT_MS, 1) == RMW_RET_OK)
+                {
+                    missed_agent_pings_ = 0;
+                }
+                else if (++missed_agent_pings_ >= MAX_MISSED_AGENT_PINGS)
+                {
+                    state_ = State::AgentDisconnected;
+                    break;
+                }
             }
 
             if (executor_created_)
@@ -194,6 +216,7 @@ void RosCommunication::taskLoop()
                     RCL_MS_TO_NS(CONNECTED_SPIN_TIMEOUT_MS));
             }
             break;
+        }
 
         case State::AgentDisconnected:
             destroyEntities();
@@ -201,6 +224,7 @@ void RosCommunication::taskLoop()
             last_agent_wait_ping_ms_ = -1;
             last_agent_connected_ping_ms_ = -1;
             last_time_sync_ms_ = -1;
+            missed_agent_pings_ = 0;
             break;
         }
 

@@ -111,4 +111,5 @@ private:
     int64_t last_agent_wait_ping_ms_;
     int64_t last_agent_connected_ping_ms_;
     int64_t last_time_sync_ms_;
+    uint8_t missed_agent_pings_;
 };
