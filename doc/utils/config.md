@@ -41,6 +41,8 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `SENSOR_TASK_STARTUP_GRACE_MS` | 500 | Tolerância para o primeiro ciclo após o boot |
 | `STEERING_SENSOR_SNAPSHOT_TIMEOUT_MS` | 20 | Idade máxima da leitura do LVDT |
 | `CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS` | 20 | Idade máxima da saída do controlador / do comando |
+| `ENCODER_DISAGREE_MARGIN_M_S` | 0,8 | Traseira acima das dianteiras que caracteriza discordância ([EncoderPlausibility](../safety/EncoderPlausibility.md)) |
+| `ENCODER_DISAGREE_TIME_MS` | 500 | Tempo contínuo para a falha |
 
 ## Sensor de esterçamento → [SteeringSensor](../sensors/SteeringSensor.md)
 

@@ -31,6 +31,7 @@ A pasta `doc/` segue a mesma estrutura de `include/` e `src/`: uma página por c
 | | [MotorHardware](actuators/MotorHardware.md) | Abstração do hardware de saída (injeção em testes) |
 | **safety** | [SafetyManager](safety/SafetyManager.md) | Permissão de movimento e motivos de bloqueio |
 | | [SafetyWatchdogs](safety/SafetyWatchdogs.md) | Avaliação dos watchdogs de tempo |
+| | [EncoderPlausibility](safety/EncoderPlausibility.md) | Roda traseira × dianteiras (encoder sem sinal, bancada) |
 | **comunication** | [CommandMailbox](comunication/CommandMailbox.md) | Últimas referências recebidas do ROS |
 | | [RosCommunication](comunication/RosCommunication.md) | Sessão micro-ROS, reconexão e sincronização de relógio |
 | | [VidaRosNode](comunication/VidaRosNode.md) | Tópicos ROS do firmware |

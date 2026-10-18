@@ -41,6 +41,7 @@ O estado é `STATE_READY` somente com **todas** as condições verdadeiras. Bast
 | 7 | `TaskSensors` viva (heartbeat) | 20 ms (500 ms no boot) | `INHIBIT_SENSOR_TASK_TIMEOUT` (64) |
 | 8 | Leitura do LVDT válida e recente | 20 ms | `INHIBIT_STEERING_SENSOR_NOT_FRESH` (128) |
 | 9 | Saída do [SteeringController](../control/SteeringController.md) válida e recente | 20 ms | `INHIBIT_CONTROL_OUTPUT_TIMEOUT` (256)¹ |
+| 10 | Encoders concordantes ([EncoderPlausibility](EncoderPlausibility.md)) — **falha retida** | 0,8 m/s por 0,5 s | `INHIBIT_ENCODERS_DISAGREE` (4096) |
 
 ¹ A flag 256 só é marcada quando as condições 1–6 estão ok, isto é, quando a saída do controlador é de fato necessária.
 
@@ -53,11 +54,11 @@ stateDiagram-v2
     READY --> DISABLED: qualquer condição falsa → setMotionPermit(false)
 ```
 
-`setMotionPermit()` é chamado **só nas transições**. Não há retenção de falhas: o estado volta a `READY` assim que todas as condições voltam.
+`setMotionPermit()` é chamado **só nas transições**. As condições 1–9 não são retidas: o estado volta a `READY` assim que elas voltam. A condição 10 fica **retida** até o rearme: enable físico desligado ou enable lógico `false`. Os bits 512, 1024 e 2048 estão reservados (mesma numeração do `SafetyStatus.msg` do Odroid).
 
 ### Heartbeat da TaskSensors
 
-`reportSensorTaskCycle()` atualiza o heartbeat quando os três encoders têm velocidade finita e uma medição já feita. Junto, guarda a validade e o instante da leitura do LVDT. Um LVDT inválido **não** interrompe o heartbeat: aparece só como flag 128, e a flag 64 fica reservada para a task parada ou encoders inválidos. A avaliação dos tempos é feita pelo [SafetyWatchdogs](SafetyWatchdogs.md).
+`reportSensorTaskCycle()` guarda também as velocidades da roda traseira e da média das dianteiras, usadas pela condição 10. Ele atualiza o heartbeat quando os três encoders têm velocidade finita e uma medição já feita. Junto, guarda a validade e o instante da leitura do LVDT. Um LVDT inválido **não** interrompe o heartbeat: aparece só como flag 128, e a flag 64 fica reservada para a task parada ou encoders inválidos. A avaliação dos tempos é feita pelo [SafetyWatchdogs](SafetyWatchdogs.md).
 
 ## Snapshot
 
@@ -67,6 +68,7 @@ stateDiagram-v2
 | `physical_enable`, `logical_enable`, `logical_enable_received`, `logical_enable_fresh` | Condições 1–4 |
 | `drive_reference_fresh`, `steering_reference_fresh` | Condições 5–6 |
 | `sensor_task_healthy`, `steering_sensor_fresh`, `control_output_fresh` | Condições 7–9 |
+| `encoders_disagree` | Condição 10 (falha retida) |
 | `motion_permitted` | Resultado |
 | `inhibit_flags` | Soma dos motivos de bloqueio |
 | `timestamp_us` | Instante do `update()` |

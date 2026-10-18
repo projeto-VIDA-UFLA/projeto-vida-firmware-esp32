@@ -15,10 +15,13 @@
     so PWM 0-38 e tem baixa precisao).
 - [x] **Criterio de "parado" unico.** A troca de DIR agora exige os 3 encoders
   parados (`VehicleMotion::getStopDetectionVelocity`), como o alivio do freio.
-- [ ] **Plausibilidade comando x movimento** (conceito da branch Whilker):
-  esterçamento travado/invertido, tracao sem movimento, encoders discordantes.
-  Tratar a roda traseira travada pelo freio para nao gerar falso "encoders
-  discordam". Cobre o LVDT desconectado com entrada flutuante (le ruido, nao
+- [x] **Encoders discordantes** (`EncoderPlausibility`): traseira > dianteiras
+  com tracao, falha retida.
+- [ ] **Modo bancada** para testar o controle de velocidade com o veiculo
+  suspenso (realimentacao pelo traseiro e sem a verificacao acima). Definir
+  como ativar com seguranca.
+- [ ] **Plausibilidade comando x movimento** (restante, conceito da branch
+  Whilker): esterçamento travado/invertido, tracao sem movimento. Cobre o LVDT desconectado com entrada flutuante (le ruido, nao
   fica travado nem no extremo), que a validacao do SteeringSensor nao pega.
 - [ ] Validar no veiculo a zona morta com histerese (0,4 / 1,2 grau) e a
   deteccao de LVDT travado / fundo de escala.
