@@ -3,19 +3,27 @@
 #include <Arduino.h>
 
 /**
- * Leitor de encoder incremental em quadratura.
+ * Leitor de encoder incremental em quadratura (decodificacao x4).
+ *
+ * A ISR (handleInterrupt, nos dois canais) so atualiza a contagem. update(),
+ * chamado pela TaskSensors a cada TASK_SENSOR_PERIOD_MS, converte o delta de
+ * ticks em velocidade linear da roda (DRIVE_WHEEL_DIAMETER_M) e aceleracao,
+ * com filtros passa-baixa de primeira ordem.
+ *
+ * Velocidade positiva = sentido de contagem positivo do encoder.
  */
 class EncoderReader
 {
 public:
+    // Medicao coerente de um mesmo update().
     struct Snapshot
     {
-        int64_t timestamp_us;
-        int64_t count;
+        int64_t timestamp_us; // instante do update() (esp_timer)
+        int64_t count;        // ticks acumulados
         float raw_velocity_m_s;
-        float filtered_velocity_m_s;
-        float raw_acceleration_m_s2;
-        float filtered_acceleration_m_s2;
+        float filtered_velocity_m_s;     // DRIVE_VELOCITY_FILTER_ALPHA
+        float raw_acceleration_m_s2;     // derivada da velocidade filtrada
+        float filtered_acceleration_m_s2; // DRIVE_ACCEL_FILTER_ALPHA
     };
 
     /**
@@ -23,7 +31,7 @@ public:
      *
      * @param pin_a Pino conectado ao canal A do encoder.
      * @param pin_b Pino conectado ao canal B do encoder.
-     * @param tick_per_rev Quantidade de ticks por revolução do encoder.
+     * @param tick_per_rev Ticks por revolucao da roda (contagem x4).
      * @param name Nome identificador do encoder.
      */
     EncoderReader(uint8_t pin_a, uint8_t pin_b, float tick_per_rev, const char *name);
@@ -41,7 +49,7 @@ public:
     float getRawVelocity() const;     // Retorna velocidade bruta em m/s
     float getVelocity() const;        // Retorna velocidade filtrada em m/s
     float getRawAcceleration() const; // Retorna aceleração bruta em m/s²
-    float getAcceleration() const;    // Retorna aceleração filtrada em m/²
+    float getAcceleration() const;    // Retorna aceleração filtrada em m/s²
 
     void handleInterrupt(); // Trata a interrupção do encoder
 
@@ -50,7 +58,7 @@ public:
 private:
     uint8_t pin_a_;      // Pino do canal A
     uint8_t pin_b_;      // Pino do canal B
-    float tick_per_rev_; // Qtd de pulso por resolução
+    float tick_per_rev_; // Ticks por revolução
     const char *name_;   // Nome do encoder
 
     // Dados atualizados pela interrupção

@@ -1,10 +1,13 @@
 #pragma once
 
+// Parametros do firmware. Pinos ficam em pinout.h.
+// Documentacao de cada parametro por modulo: doc/utils/config.md.
+
 // ============================================================
 // Comunicacao serial
 // ============================================================
 
-//#define SERIAL_BAUDRATE 460800
+// Transporte do micro-ROS; o agente no Odroid deve usar o mesmo baud rate.
 #define SERIAL_BAUDRATE 921600
 
 // ============================================================
@@ -31,7 +34,7 @@
 #define TASK_SENSOR_PERIOD_MS 2        // 500 Hz
 #define TASK_SAFETY_PERIOD_MS 5        // 200 Hz
 #define TASK_CONTROL_PERIOD_MS 5      // 200 Hz
-#define TASK_COMUNICATION_PERIOD_MS 20 // 50 Hz
+#define TASK_COMUNICATION_PERIOD_MS 20 // 50 Hz (periodo de publicacao ROS)
 
 // ============================================================
 // Prioridades das tarefas
@@ -186,8 +189,11 @@
 // evitando o liga-desliga na borda. Valores iniciais: ajustar em ensaio.
 #define STEERING_DEADBAND_ENTER_DEG 0.4f
 #define STEERING_DEADBAND_EXIT_DEG 1.2f
+// Piso de atuacao: fora da zona morta, |comando| menor que isto vira
+// +-STEERING_MIN_ACTUATION (vence o atrito estatico do mecanismo).
 #define STEERING_MIN_ACTUATION 0.15f
 #define MAX_ABS_STEER_COMMAND 1.0f
+// dt acima disto (task atrasada) reseta o controlador.
 #define STEERING_CONTROL_MAX_DT_S 0.1f
 // Intervalo sem PWM entre sentidos opostos do motor de estercamento.
 #define STEERING_DIRECTION_DEADTIME_US 1000
@@ -195,6 +201,7 @@
 // Kp: comando normalizado por grau.
 // Ki: comando normalizado por grau-segundo.
 // Kd: comando normalizado por grau por segundo.
+// INTEGRAL_MIN/MAX limitam a integral do erro (grau-segundo).
 #define STEERING_DIRECT_KP 0.007f
 #define STEERING_DIRECT_KI 0.1f
 #define STEERING_DIRECT_KD 0.0f
@@ -218,14 +225,17 @@
 // #define STEERING_VEL_KD 0.0f
 
 // ============================================================
-// Controle longitudinal (ainda nao integrado)
+// Controle longitudinal (malha aberta)
 // ============================================================
 
-// Controle em malha aberta. A referencia recebida em velocity_m_s e tratada
-// temporariamente como um comando PWM assinado na faixa [-255, 255].
+// A referencia recebida em velocity_m_s e tratada temporariamente como um
+// comando PWM assinado na faixa [-255, 255]. Comando de tracao =
+// referencia * GAIN / MAX_PWM (com ganho 0,15 o PWM maximo e 38).
 #define DRIVE_OPEN_LOOP_REFERENCE_MAX_PWM 255.0f
 #define DRIVE_OPEN_LOOP_PROPORTIONAL_GAIN 0.15f
 
+// Sem uso: constantes do controlador em cascata antigo (velocidade ->
+// aceleracao), mantidas como referencia para a malha fechada.
 // #define DRIVE_MAX_TARGET_SPEED_M_S 2.0f
 // #define DRIVE_MIN_ACCEL_M_S2 0.05f
 // #define DRIVE_DEFAULT_MAX_ACCEL_M_S2 0.40f

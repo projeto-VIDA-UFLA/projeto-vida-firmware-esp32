@@ -2,6 +2,11 @@
 
 #include <stdint.h>
 
+/**
+ * Avaliacao pura (sem estado nem hardware) dos watchdogs de tempo usados pelo
+ * SafetyManager: task de sensores, leitura do LVDT e saida do controlador.
+ * Separada para poder ser testada sem o restante do firmware.
+ */
 class SafetyWatchdogs
 {
 public:
@@ -12,7 +17,7 @@ public:
         int64_t sensor_task_heartbeat_us;
         bool steering_snapshot_valid;
         int64_t steering_snapshot_us;
-        bool control_required;
+        bool control_required; // demais condicoes ok: a saida precisa existir
         bool control_output_valid;
         float control_command;
         int64_t control_output_us;
@@ -20,7 +25,7 @@ public:
 
     struct Result
     {
-        bool sensor_task_timed_out;
+        bool sensor_task_timed_out; // inclui nunca ter rodado apos SENSOR_TASK_STARTUP_GRACE_MS
         bool sensor_task_healthy;
         bool steering_snapshot_fresh;
         bool control_output_fresh;

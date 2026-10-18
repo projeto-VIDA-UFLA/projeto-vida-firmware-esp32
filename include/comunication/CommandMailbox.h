@@ -2,28 +2,40 @@
 
 #include <Arduino.h>
 
+/**
+ * Caixa de correio entre a comunicacao ROS e as tasks de controle/seguranca.
+ *
+ * Os callbacks do VidaRosNode (TaskRosCommunication, nucleo 0) escrevem a
+ * ultima mensagem recebida de cada tipo junto com o instante local de
+ * chegada; TaskControl e TaskSafety (nucleo 1) leem copias coerentes. A idade
+ * (agora - received_at_us) e o que os watchdogs avaliam: o timestamp da
+ * mensagem (source_timestamp_ns) e guardado apenas para diagnostico.
+ */
 class CommandMailbox
 {
 public:
+    // Ultima /vida/control/steering/reference recebida.
     struct SteeringReferenceSnapshot
     {
-        float angle_deg;
-        float angular_velocity_deg_s;
-        int64_t source_timestamp_ns;
-        int64_t received_at_us;
-        bool received;
+        float angle_deg;              // REP-103: esquerda positivo
+        float angular_velocity_deg_s; // recebido, ainda nao usado
+        int64_t source_timestamp_ns;  // timestamp da mensagem (relogio ROS)
+        int64_t received_at_us;       // chegada no ESP32 (esp_timer)
+        bool received;                // false ate a primeira mensagem
     };
 
+    // Ultima /vida/control/drive/reference recebida.
     struct DriveReferenceSnapshot
     {
-        float velocity_m_s;
-        float acceleration_m_s2;
-        float brake_command;
+        float velocity_m_s;      // malha aberta: PWM assinado [-255, 255]
+        float acceleration_m_s2; // recebido, ainda nao usado
+        float brake_command;     // 0 = solto, 1 = freio total
         int64_t source_timestamp_ns;
         int64_t received_at_us;
         bool received;
     };
 
+    // Ultimo /vida/safety/logical_enable recebido.
     struct LogicalEnableSnapshot
     {
         bool enabled;
@@ -34,6 +46,7 @@ public:
 
     CommandMailbox();
 
+    // Escrita pelos callbacks ROS: registra o valor e o instante de chegada.
     void updateSteeringReference(float angle_deg,
                                  float angular_velocity_deg_s,
                                  int64_t source_timestamp_ns);
@@ -43,6 +56,7 @@ public:
                               int64_t source_timestamp_ns);
     void updateLogicalEnable(bool enabled, int64_t source_timestamp_ns);
 
+    // Leitura pelas tasks: copia coerente protegida por portMUX.
     SteeringReferenceSnapshot getSteeringReferenceSnapshot() const;
     DriveReferenceSnapshot getDriveReferenceSnapshot() const;
     LogicalEnableSnapshot getLogicalEnableSnapshot() const;

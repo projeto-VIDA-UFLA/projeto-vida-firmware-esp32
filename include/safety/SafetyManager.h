@@ -8,12 +8,14 @@
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
 
+// Estado publicado em /vida/safety/status (mesmos valores do SafetyStatus.msg).
 enum class SafetyState : uint8_t
 {
     STATE_DISABLED = 0,
     STATE_READY = 1
 };
 
+// Motivos de bloqueio do movimento; varios podem estar ativos ao mesmo tempo.
 enum SafetyInhibitFlag : uint32_t
 {
     INHIBIT_NONE = 0,
@@ -28,6 +30,20 @@ enum SafetyInhibitFlag : uint32_t
     INHIBIT_CONTROL_OUTPUT_TIMEOUT = 1U << 8
 };
 
+/**
+ * Decide se o veiculo pode se mover (TaskSafety, a cada TASK_SAFETY_PERIOD_MS).
+ *
+ * O movimento so e permitido (STATE_READY) com TODAS as condicoes:
+ * - enable fisico (pino) em nivel alto;
+ * - enable logico recebido, true e com idade <= LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS;
+ * - referencias de tracao e esterçamento recentes (*_REFERENCE_WATCHDOG_TIMEOUT_MS);
+ * - TaskSensors viva (heartbeat <= SENSOR_TASK_WATCHDOG_TIMEOUT_MS);
+ * - leitura do LVDT valida e recente (STEERING_SENSOR_SNAPSHOT_TIMEOUT_MS);
+ * - saida do SteeringController valida e recente (CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS).
+ * Cada condicao falsa gera uma SafetyInhibitFlag. Nas transicoes de estado
+ * chama ActuatorManager::setMotionPermit(). Nao ha retencao de falhas: o
+ * estado volta a READY assim que as condicoes voltam.
+ */
 class SafetyManager
 {
 public:
@@ -53,7 +69,9 @@ public:
                   ActuatorManager &actuator_manager,
                   SteeringController &steering_controller);
 
+    // Configura o pino de enable e parte em STATE_DISABLED.
     void begin();
+    // Reavalia as condicoes e aplica a transicao de estado, se houver.
     void update();
     // Heartbeat da task de sensores, chamado ao fim de cada ciclo completo.
     // So e registrado se todas as leituras do ciclo forem validas.

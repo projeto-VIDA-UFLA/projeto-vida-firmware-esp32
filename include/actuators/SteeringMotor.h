@@ -2,6 +2,15 @@
 #include <Arduino.h>
 #include "actuators/MotorHardware.h"
 
+/**
+ * Motor de estercamento 24 V em ponte H com dois PWMs independentes: um gira
+ * para a direita e o outro para a esquerda.
+ *
+ * Os dois PWMs nunca ficam ativos juntos. Ao inverter o sentido o motor passa
+ * por REVERSAL_DEADTIME, com ambos em zero por STEERING_DIRECTION_DEADTIME_US.
+ * Esta classe trabalha no sentido fisico do motor; a conversao a partir da
+ * convencao do angulo e feita pelo SteeringController (motor_command).
+ */
 class SteeringMotor
 {
 public:
@@ -25,14 +34,17 @@ public:
                   uint8_t right_channel, uint8_t left_channel,
                   MotorHardware *hardware = nullptr);
 
+    // Configura os dois canais PWM e parte parado.
     void begin();
 
-    // Comando normalizado:
+    // Comando normalizado [-1, 1]:
     // > 0: aciona direita
     // < 0: aciona esquerda
     // = 0: parado
+    // Comando nao finito para o motor.
     void setCommand(float normalized_command);
 
+    // Zera os dois PWMs imediatamente.
     void stop();
 
     float getLastCommand() const;

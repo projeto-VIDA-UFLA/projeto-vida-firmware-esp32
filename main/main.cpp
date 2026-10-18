@@ -1,4 +1,18 @@
 //======================================================================
+// FIRMWARE ESP32 - PROJETO VIDA (LMT/UFLA)
+//
+// Controle de baixo nivel do veiculo e ponte com o ROS 2 via micro-ROS.
+// As tasks apenas chamam os objetos e repassam snapshots por parametro; a
+// logica fica nas classes (ver doc/README.md).
+//
+//   Task                  Nucleo  Prioridade  Periodo
+//   TaskSafety            1       4           TASK_SAFETY_PERIOD_MS  (5 ms)
+//   TaskControl           1       3           TASK_CONTROL_PERIOD_MS (5 ms)
+//   TaskSensors           1       2           TASK_SENSOR_PERIOD_MS  (2 ms)
+//   TaskRosCommunication  0       2           laco de 1 ms, publica a cada 20 ms
+//======================================================================
+
+//======================================================================
 // BIBLIOTECAS
 //======================================================================
 
@@ -59,6 +73,7 @@ ActuatorManager actuator_manager(drive_motor, steering_motor, brake_servo);
 SteeringController steering_controller;
 DriveController drive_controller;
 
+// Referencias e enable logico recebidos do ROS
 CommandMailbox command_mailbox;
 
 // Instanciando Objeto de gerenciamento de segurança
@@ -91,6 +106,7 @@ void IRAM_ATTR isrLeftEncoder()
 // TASKs
 //======================================================================
 
+// Le LVDT e encoders e informa o heartbeat ao SafetyManager.
 void taskSensors(void *parameter)
 {
   (void)parameter;
@@ -113,6 +129,7 @@ void taskSensors(void *parameter)
   }
 }
 
+// Avalia a permissao de movimento e atualiza o freio (rampa / alivio parado).
 void taskSafety(void *parameter)
 {
   (void)parameter;
@@ -127,6 +144,7 @@ void taskSafety(void *parameter)
   }
 }
 
+// Calcula esterçamento e tracao e aplica nos atuadores.
 void taskControl(void *parameter)
 {
   (void)parameter;

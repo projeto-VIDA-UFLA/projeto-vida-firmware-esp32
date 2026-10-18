@@ -12,6 +12,21 @@
 #include <rmw_microros/rmw_microros.h>
 #endif
 
+/**
+ * Infraestrutura micro-ROS generica: sessao com o agente, criacao das
+ * entidades (no, publishers, subscriptions, timers) e reconexao automatica.
+ *
+ * As entidades sao registradas antes de startTask() e criadas a cada conexao
+ * com o agente. A propria task (TaskRosCommunication) executa a maquina de
+ * estados:
+ *   WaitingAgent  -- ping ok -->  AgentAvailable  -- entidades criadas -->
+ *   AgentConnected -- MAX_MISSED_AGENT_PINGS seguidos --> AgentDisconnected
+ *   -- entidades destruidas --> WaitingAgent
+ *
+ * Conectada, cada volta do laco faz no maximo uma chamada bloqueante
+ * (sincronizacao de relogio ou ping, com timeouts curtos) e depois roda o
+ * executor, que dispara os callbacks de subscriptions e timers.
+ */
 class RosCommunication
 {
 public:
@@ -28,18 +43,25 @@ public:
 
     RosCommunication(const char *node_name, const char *node_namespace, int domain_id);
 
+    // Define o transporte serial do micro-ROS.
     void begin(Stream &transport);
+    // Cria a task que executa a maquina de estados da sessao.
     bool startTask(const char *task_name, uint32_t stack_size, UBaseType_t priority, BaseType_t core_id);
 
+    // Registro de entidades: so antes da primeira conexao (ate 8 de cada).
     bool addPublisher(rcl_publisher_t &publisher, const rosidl_message_type_support_t *type_support, const char *topic_name, const rmw_qos_profile_t *qos = &rmw_qos_profile_default);
     bool addSubscription(rcl_subscription_t &subscription, const rosidl_message_type_support_t *type_support, const char *topic_name, void *message, SubscriptionCallback callback, const rmw_qos_profile_t *qos = &rmw_qos_profile_default);
     bool addTimer(rcl_timer_t &timer, uint32_t period_ms, TimerCallback callback);
    
+    // Publica se conectado; false caso contrario.
     bool publish(rcl_publisher_t &publisher, const void *message);
     
     State getState() const;
     bool isConnected() const;
+    // Relogio sincronizado com o host do agente (Odroid).
     bool isTimeSynchronized() const;
+    // Converte um instante local (esp_timer) para o relogio do agente.
+    // false enquanto o relogio nao estiver sincronizado.
     bool localTimeToEpochNanos(int64_t local_time_us, int64_t &epoch_ns) const;
 
 private:

@@ -21,6 +21,26 @@
 #include <vida_interfaces/msg/safety_status.h>
 #endif
 
+/**
+ * No micro-ROS do VIDA (/vida/esp32_controller): define os topicos do
+ * firmware sobre a infraestrutura do RosCommunication.
+ *
+ * Assina (callbacks -> CommandMailbox):
+ *   /vida/control/steering/reference  SteeringReference
+ *   /vida/control/drive/reference     DriveReference
+ *   /vida/safety/logical_enable       LogicalEnable
+ *
+ * Publica a cada TASK_COMUNICATION_PERIOD_MS (20 ms):
+ *   /vida/sensors/encoders            Encoders
+ *   /vida/sensors/steering            Steering (REP-103)
+ *   /vida/actuators/steering          Comands (PWM, + = angulo positivo)
+ *   /vida/actuators/drive             Comands (PWM, - = re)
+ *   /vida/actuators/brake             Comands (largura de pulso do servo, us)
+ *   /vida/safety/status               SafetyStatus
+ *
+ * Os timestamps publicados sao os instantes das amostras convertidos para o
+ * relogio do agente; nada e publicado antes da sincronizacao de relogio.
+ */
 class VidaRosNode
 {
 public:
@@ -32,6 +52,7 @@ public:
                 ActuatorManager &actuator_manager,
                 CommandMailbox &command_mailbox);
 
+    // Registra as entidades e inicia TaskRosCommunication (nucleo 0).
     bool begin(Stream &transport);
 
 private:
@@ -46,6 +67,7 @@ private:
     bool setTimestamp(builtin_interfaces__msg__Time &timestamp, int64_t local_time_us);
     bool fillEncoderMeasurement(vida_interfaces__msg__EncoderMeasurement &message, const EncoderReader::Snapshot &snapshot);
 
+    // Os callbacks do rclc sao funcoes livres: acessam o no por aqui.
     static VidaRosNode *instance_;
 
     RosCommunication communication_;
@@ -89,7 +111,7 @@ private:
     EncoderReader &right_encoder_;
     EncoderReader &left_encoder_;
 
-    // Atudarores e segurança
+    // Atuadores e seguranca
     ActuatorManager &actuator_manager_;
     SafetyManager &safety_manager_;
 

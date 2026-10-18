@@ -1,14 +1,29 @@
 #pragma once
 #include <Arduino.h>
 
+/**
+ * Sensor de esterçamento (LVDT no ADC), lido pela TaskSensors a cada
+ * TASK_SENSOR_PERIOD_MS.
+ *
+ * Cadeia de medicao:
+ *   ADC -> mediana das 3 ultimas leituras -> polinomio cubico (calibracao)
+ *   - STEERING_ZERO_OFFSET_DEG -> sinal (STEERING_INVERT_SIGN) -> filtro
+ *   passa-baixa (STEERING_FILTER_ALPHA) -> velocidade angular filtrada.
+ *
+ * A leitura e invalidada (valid = false, timestamp_us = 0) com o ADC fora de
+ * [STEERING_ADC_VALID_MIN, STEERING_ADC_VALID_MAX] por STEERING_ADC_RAIL_TIME_MS
+ * (desconexao, curto ou alem do curso) ou travado em
+ * +-STEERING_ADC_STUCK_TOLERANCE por STEERING_ADC_STUCK_TIME_MS (sinal perdido).
+ * Angulo do modelo de bicicleta, em graus, REP-103 (esquerda positivo).
+ */
 class SteeringSensor
 {
 public:
     struct Snapshot
     {
-        int64_t timestamp_us;
-        uint16_t raw_adc;
-        float raw_angle_deg;
+        int64_t timestamp_us;  // instante da leitura valida; 0 se invalida
+        uint16_t raw_adc;      // leitura bruta, antes da mediana
+        float raw_angle_deg;   // angulo da mediana, sem filtro
         float filtered_angle_deg;
         float filtered_angular_velocity_deg_s;
         bool adc_rail_fault;  // ADC no fundo/fim de escala
@@ -19,6 +34,7 @@ public:
     explicit SteeringSensor(uint8_t adc_pin);
 
     void begin();
+    // Le o ADC e atualiza angulo, velocidade e validade.
     void update();
 
     int getRawAdc() const;
