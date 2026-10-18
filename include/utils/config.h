@@ -238,26 +238,56 @@
 // #define STEERING_VEL_KD 0.0f
 
 // ============================================================
-// Controle longitudinal (malha aberta)
+// Controle longitudinal (velocidade em malha fechada)
 // ============================================================
 
-// A referencia recebida em velocity_m_s e tratada temporariamente como um
-// comando PWM assinado na faixa [-255, 255]. Comando de tracao =
-// referencia * GAIN / MAX_PWM (com ganho 0,15 o PWM maximo e 38).
-#define DRIVE_OPEN_LOOP_REFERENCE_MAX_PWM 255.0f
-#define DRIVE_OPEN_LOOP_PROPORTIONAL_GAIN 0.15f
+// Referencia: DriveReference.velocity_m_s em m/s (sem re: negativo vira 0),
+// limitada e passada por uma rampa de aceleracao/desaceleracao.
+#define DRIVE_MAX_TARGET_SPEED_M_S 3.0f
+// Rampa de subida quando DriveReference.acceleration_m_s2 = 0.
+#define DRIVE_DEFAULT_MAX_ACCEL_M_S2 0.4f
+// Teto da rampa de subida pedida pelo ROS.
+#define DRIVE_MAX_ACCEL_M_S2 0.8f
+// Rampa de descida da referencia (o PI freia para acompanha-la).
+#define DRIVE_MAX_DECEL_M_S2 1.0f
 
-// Sem uso: constantes do controlador em cascata antigo (velocidade ->
-// aceleracao), mantidas como referencia para a malha fechada.
-// #define DRIVE_MAX_TARGET_SPEED_M_S 2.0f
-// #define DRIVE_MIN_ACCEL_M_S2 0.05f
-// #define DRIVE_DEFAULT_MAX_ACCEL_M_S2 0.40f
-// #define DRIVE_MAX_SAFE_ACCEL_M_S2 0.80f
-// #define DRIVE_MIN_ACTUATION 0.05f
-// #define DRIVE_VEL_KP 0.45f
-// #define DRIVE_VEL_KI 0.0f
-// #define DRIVE_VEL_KD 0.0f
-// #define DRIVE_ACCEL_KP 0.30f
-// #define DRIVE_ACCEL_KI 0.0f
-// #define DRIVE_ACCEL_KD 0.0f
-// #define MAX_ABS_DRIVE_COMMAND 1.0f
+// PI de velocidade. Realimentacao: media das rodas dianteiras.
+// Ganhos iniciais pelo cancelamento do polo da planta identificada no ensaio
+// de 16/08/2026 (tau ~4 s, ganho ~0,15 (m/s)/PWM = ~39 m/s por unidade de
+// comando, atraso ~0,2 s) para constante de tempo em malha fechada de ~1 s
+// (5x o atraso):
+//   Kp = tau / (K * Tmf) = 0,10 [comando/(m/s)]   Ki = Kp / tau = 0,025 [comando/m]
+// Em simulacao com essa planta: degrau de 1 m/s sem sobressinal (90% em
+// 3,6 s, limitado pela rampa); descida de 3% com ~11% acima da referencia.
+// Ajustar em ensaio.
+#define DRIVE_VEL_KP 0.10f
+#define DRIVE_VEL_KI 0.025f
+// dt acima disto (task atrasada) reseta o controlador.
+#define DRIVE_CONTROL_MAX_DT_S 0.1f
+
+// Esforco do PI: > 0 tracao, < 0 freio. Tracao maxima = PWM 38 (0,15),
+// o mesmo limite usado nos testes em malha aberta.
+#define DRIVE_MAX_TRACTION_COMMAND 0.15f
+
+// Freio automatico (esforco negativo do PI):
+// - entre -COAST_BAND e 0 o veiculo segue em roda livre (nem tracao nem freio);
+// - abaixo disso, esforco de freio = (-esforco - COAST_BAND) * EFFORT_GAIN em
+//   [0, 1], convertido em posicao ENGAGE + (1 - ENGAGE) * esforco de freio.
+// ENGAGE compensa a folga do cabo; EFFORT_GAIN compensa a diferenca entre a
+// eficacia do freio e a do motor. Valores provisorios: calibrar em ensaio.
+#define DRIVE_BRAKE_COAST_BAND 0.02f
+#define DRIVE_BRAKE_EFFORT_GAIN 3.0f
+#define DRIVE_BRAKE_ENGAGE_POSITION 0.2f
+
+// Parada: com a referencia (apos a rampa) abaixo de STOP_REFERENCE o PI e
+// desligado: freio em STOP_BRAKE ate o veiculo parar
+// (DRIVE_STOP_SPEED_THRESHOLD_MPS) e depois HOLD_BRAKE (o BrakeServo alivia o
+// pulso apos 1 s parado). Sem isso o PI freia cada vez menos perto de zero e a
+// parada se arrasta (simulacao: 11,6 s contra 2,2 s para parar de 1,5 m/s).
+#define DRIVE_STOP_REFERENCE_M_S 0.05f
+#define DRIVE_STOP_BRAKE_POSITION 0.6f
+#define DRIVE_HOLD_BRAKE_POSITION 1.0f
+
+// Freio manual pelo ROS (gatilho L2): DriveReference.brake_command acima
+// disto zera a referencia e aplica o freio total imediatamente.
+#define DRIVE_BRAKE_OVERRIDE_THRESHOLD 0.05f

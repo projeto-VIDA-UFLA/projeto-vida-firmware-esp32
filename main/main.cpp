@@ -156,7 +156,10 @@ void taskControl(void *parameter)
                                    steering_sensor.getSnapshot(),
                                    actuator_manager.isMotionPermitted());
 
-    const DriveController::Output drive = drive_controller.update(command_mailbox.getDriveReferenceSnapshot());
+    const DriveController::Output drive =
+        drive_controller.update(command_mailbox.getDriveReferenceSnapshot(),
+                                vehicle_motion.getVehicleSpeed(),
+                                actuator_manager.isMotionPermitted());
 
     const ActuatorManager::TimedCommand command{
         drive.normalized_command,
