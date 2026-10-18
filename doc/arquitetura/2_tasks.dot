@@ -1,0 +1,55 @@
+digraph G {
+  graph [rankdir=LR, fontname="DejaVu Sans", fontsize=20, labelloc=t, nodesep=0.5, pad=0.4,
+         label=<<B>2. Tasks FreeRTOS — o que cada uma chama a cada ciclo</B><BR/><FONT POINT-SIZE="12">a lógica fica nas classes; as tasks só repassam snapshots por parâmetro · prioridade maior = preempta as menores</FONT><BR/> >];
+  node [fontname="DejaVu Sans", fontsize=11, shape=plaintext];
+
+  isr [label=<
+  <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" STYLE="rounded" BGCOLOR="#eeeeee">
+   <TR><TD ALIGN="LEFT"><B>ISRs dos encoders</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">A e B de cada encoder · CHANGE</FONT></TD></TR>
+   <TR><TD ALIGN="LEFT">encoder.handleInterrupt()<BR ALIGN="LEFT"/>  → count ±1 (tabela x4)<BR ALIGN="LEFT"/></TD></TR>
+  </TABLE>>];
+
+  sens [label=<
+  <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" STYLE="rounded" BGCOLOR="#d9f2e3" COLOR="#2e8b57">
+   <TR><TD ALIGN="LEFT"><B>TaskSensors</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">núcleo 1 · prioridade 2 · 2 ms (500 Hz)</FONT></TD></TR>
+   <TR><TD ALIGN="LEFT">1. steering_sensor.update()<BR ALIGN="LEFT"/>2. rear/right/left_encoder.update()<BR ALIGN="LEFT"/>3. safety_manager.reportSensorTaskCycle(<BR ALIGN="LEFT"/>     snapshot LVDT + 3 snapshots encoders)<BR ALIGN="LEFT"/>     → valida e registra o heartbeat<BR ALIGN="LEFT"/></TD></TR>
+  </TABLE>>];
+
+  ctl [label=<
+  <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" STYLE="rounded" BGCOLOR="#dce9f7" COLOR="#2a6fb0">
+   <TR><TD ALIGN="LEFT"><B>TaskControl</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">núcleo 1 · prioridade 3 · 5 ms (200 Hz)</FONT></TD></TR>
+   <TR><TD ALIGN="LEFT">1. steering_controller.update(ref. esterçamento,<BR ALIGN="LEFT"/>     snapshot LVDT, permissão de movimento)<BR ALIGN="LEFT"/>     → idade do sensor · dt · PI · motor_command<BR ALIGN="LEFT"/>2. drive_controller.update(ref. tração)<BR ALIGN="LEFT"/>     → comando malha aberta · freio · validade<BR ALIGN="LEFT"/>3. monta TimedCommand (só repasse)<BR ALIGN="LEFT"/>4. actuator_manager.applyCommands(<BR ALIGN="LEFT"/>     comando, vehicle_motion.getStopDetectionVelocity())<BR ALIGN="LEFT"/></TD></TR>
+  </TABLE>>];
+
+  saf [label=<
+  <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" STYLE="rounded" BGCOLOR="#f8dcd8" COLOR="#c0392b">
+   <TR><TD ALIGN="LEFT"><B>TaskSafety</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">núcleo 1 · prioridade 4 (maior) · 5 ms (200 Hz)</FONT></TD></TR>
+   <TR><TD ALIGN="LEFT">1. safety_manager.update()<BR ALIGN="LEFT"/>     → avalia watchdogs e enables<BR ALIGN="LEFT"/>     → setMotionPermit() ao mudar de estado<BR ALIGN="LEFT"/>2. actuator_manager.updateBrake(<BR ALIGN="LEFT"/>     vehicle_motion.isStopped())<BR ALIGN="LEFT"/>     → rampa de falha · alívio com veículo parado<BR ALIGN="LEFT"/></TD></TR>
+  </TABLE>>];
+
+  ros [label=<
+  <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" STYLE="rounded" BGCOLOR="#efe6f5" COLOR="#7b4fa0">
+   <TR><TD ALIGN="LEFT"><B>TaskRosCommunication</B></TD></TR>
+   <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="10">núcleo 0 · prioridade 2 · laço de 1 ms</FONT></TD></TR>
+   <TR><TD ALIGN="LEFT">Agente: espera → conecta → desconecta<BR ALIGN="LEFT"/>Por ciclo, no máximo 1 chamada bloqueante:<BR ALIGN="LEFT"/>   sync relógio (100 ms; a cada 30 s, ou 1 s sem sync)<BR ALIGN="LEFT"/>   ou ping (50 ms; a cada 200 ms; 3 falhas = queda)<BR ALIGN="LEFT"/>executor.spin_some():<BR ALIGN="LEFT"/>   callbacks → CommandMailbox.update*()<BR ALIGN="LEFT"/>   timer 20 ms → publishSensors()<BR ALIGN="LEFT"/></TD></TR>
+  </TABLE>>];
+
+  mb [label=<
+  <TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="6" STYLE="rounded" BGCOLOR="#ffffff" COLOR="#7b4fa0">
+   <TR><TD><B>CommandMailbox</B></TD></TR>
+   <TR><TD><FONT POINT-SIZE="10">snapshots protegidos por portMUX</FONT></TD></TR>
+  </TABLE>>];
+
+  isr -> sens [label="  count (portMUX)  ", fontname="DejaVu Sans", fontsize=9];
+  ros -> mb [label="  escreve  ", fontsize=9, fontname="DejaVu Sans"];
+  mb -> ctl [label="  lê  ", fontsize=9, fontname="DejaVu Sans"];
+  mb -> saf [label="  lê  ", fontsize=9, fontname="DejaVu Sans"];
+  sens -> ctl [label="  snapshots  ", fontsize=9, fontname="DejaVu Sans"];
+  sens -> saf [label="  heartbeat  ", fontsize=9, fontname="DejaVu Sans"];
+  { rank=same; ctl; saf; }
+  { rank=same; isr; ros; }
+}

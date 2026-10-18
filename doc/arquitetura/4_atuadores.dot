@@ -1,0 +1,56 @@
+digraph G {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=20, labelloc=t, nodesep=0.4, ranksep=0.45, pad=0.4, compound=true,
+         label=<<B>4. Atuadores — intertravamentos</B><BR/><FONT POINT-SIZE="12">ActuatorManager::applyCommands() (TaskControl, 5 ms) · DriveMotor · BrakeServo::update() (TaskSafety, 5 ms)</FONT><BR/> >];
+  node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", fillcolor="#fbe5d3", color="#d35400"];
+  edge [fontname="DejaVu Sans", fontsize=9, color="#555555"];
+
+  subgraph cluster_apply { label="applyCommands(comando, velocidade p/ inversão)"; style=rounded; color="#d35400"; fontsize=13;
+    in   [label="TimedCommand\ntração [-1,1] · esterçamento [-1,1] · freio [0,1]\nproduced_at_us · valid", fillcolor="#ffffff"];
+    chk  [label="comando válido, finito, na faixa,\ncom idade ≤ 20 ms\nE movimento permitido\nE sem emergência?", shape=diamond, fillcolor="#ffffff", fontsize=10];
+    stopu[label="stop\ntração e esterçamento em 0 · freio em rampa", fillcolor="#f8dcd8", color="#c0392b"];
+    brk  [label="1. BrakeServo.setCommand(freio)\nsegue a referência, sem rampa"];
+    str  [label="2. SteeringMotor.setCommand(motor_command)\n> 0 direita · < 0 esquerda\ninversão: ambos em 0 por 1 ms"];
+    cut  [label="posição do freio > 0,05?", shape=diamond, fillcolor="#ffffff", fontsize=10];
+    dstop[label="3a. DriveMotor.stop()\nfreio acionado corta a tração", fillcolor="#f8dcd8", color="#c0392b"];
+    dset [label="3b. DriveMotor.setCommand(\ncomando, velocidade p/ inversão)"];
+    in -> chk;
+    chk -> stopu [label="não"];
+    chk -> brk [label="sim"];
+    brk -> str -> cut;
+    cut -> dstop [label="sim"];
+    cut -> dset [label="não"];
+  }
+
+  subgraph cluster_dm { label="DriveMotor — troca de sentido (pino DIR)"; style=rounded; color="#d35400"; fontsize=13;
+    node [fillcolor="#ffffff"];
+    S  [label="STOPPED\nPWM 0"];
+    D  [label="DRIVING\nPWM = |comando| × 255"];
+    W  [label="WAITING_FOR_STOP\nPWM 0 · DIR mantido"];
+    T  [label="DIRECTION_DEADTIME\nPWM 0 por 20 ms"];
+    S -> D [label="comando ≠ 0\nmesmo sentido"];
+    D -> S [label="comando 0\nou stop()"];
+    D -> W [label="pedido de\nsentido oposto"];
+    S -> W [label="sentido oposto"];
+    W -> T [label="3 encoders ≤ 0,05 m/s\npor 200 ms (leitura ≤ 50 ms)\n→ troca DIR com PWM 0", color="#2e8b57", fontcolor="#2e8b57"];
+    T -> D [label="20 ms\nmesmo sentido"];
+    T -> W [label="sentido mudou\nde novo"];
+    note_dm [shape=note, label="A ré ainda não funciona no hardware:\nfalta o circuito de relés na saída do driver.", color="#999999"];
+  }
+
+  subgraph cluster_bs { label="BrakeServo — modos (0 = solto · 1 = freio total)"; style=rounded; color="#d35400"; fontsize=13;
+    node [fillcolor="#ffffff"];
+    boot [label="Boot\nfreio total imediato\n(primeira coisa do setup)"];
+    norm [label="Normal\nposição = referência ROS (L2)"];
+    ramp [label="Rampa de falha\n+1,0 do curso por segundo\naté freio total"];
+    hold [label="Veículo parado ≥ 1 s (3 encoders)\npulso limitado a 1700 µs\n(não força o servo)"];
+    boot -> norm [label="comando válido\ne permitido"];
+    norm -> ramp [label="stop · sem permissão ·\ncomando inválido"];
+    ramp -> norm [label="comando válido\ne permitido"];
+    norm -> hold [label="parado", style=dashed];
+    ramp -> hold [label="parado", style=dashed];
+    hold -> norm [label="qualquer movimento\n→ volta ao pulso total", style=dashed];
+  }
+
+  dset -> W [lhead=cluster_dm, style=dotted];
+  brk -> norm [lhead=cluster_bs, style=dotted];
+}

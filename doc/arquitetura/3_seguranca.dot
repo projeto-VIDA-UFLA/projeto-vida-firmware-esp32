@@ -1,0 +1,32 @@
+digraph G {
+  graph [rankdir=LR, fontname="DejaVu Sans", fontsize=20, labelloc=t, nodesep=0.25, ranksep=0.7, pad=0.4,
+         label=<<B>3. Segurança — quando o movimento é permitido</B><BR/><FONT POINT-SIZE="12">SafetyManager::update() a cada 5 ms · estados: DISABLED (0) e READY (1) · cada condição falsa gera uma inhibit_flag em /vida/safety/status</FONT><BR/> >];
+  node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", fillcolor="#f8dcd8", color="#c0392b"];
+  edge [fontname="DejaVu Sans", fontsize=9, color="#555555"];
+
+  c1 [label="Enable físico (GPIO 13) em nível alto"];
+  c2 [label="Enable lógico recebido e = true"];
+  c3 [label="Enable lógico com idade ≤ 300 ms"];
+  c4 [label="Referência de tração com idade ≤ 200 ms"];
+  c5 [label="Referência de esterçamento com idade ≤ 200 ms"];
+  c6 [label="TaskSensors viva: heartbeat ≤ 20 ms\n(500 ms de tolerância no boot)"];
+  c7 [label="Leitura do LVDT válida com idade ≤ 20 ms"];
+  c8 [label="Saída do SteeringController válida\ncom idade ≤ 20 ms"];
+
+  and [label="E\n(todas)", shape=circle, fillcolor="#ffffff", fontsize=14, width=0.9];
+
+  ready [label="READY\nmotion_permitted = true", fillcolor="#d9f2e3", color="#2e8b57"];
+  dis   [label="DISABLED\nmotion_permitted = false", fillcolor="#f8dcd8"];
+
+  permit [label="ActuatorManager.setMotionPermit(true)\napplyCommands() passa a atuar", fillcolor="#fbe5d3", color="#d35400"];
+  stop [label="ActuatorManager.setMotionPermit(false) → stop\n• PWM de tração = 0 (DIR não muda)\n• PWM de esterçamento = 0\n• freio: rampa até freio total (1 s de curso)", fillcolor="#fbe5d3", color="#d35400"];
+
+  {c1 c2 c3 c4 c5 c6 c7 c8} -> and;
+  and -> ready [label="verdadeiro", color="#2e8b57", fontcolor="#2e8b57"];
+  and -> dis [label="falso", color="#c0392b", fontcolor="#c0392b"];
+  ready -> permit [label="na transição"];
+  dis -> stop [label="na transição"];
+
+  extra [label="Além disso, applyCommands() zera tudo e aplica a rampa do freio\nse o comando chegar inválido: fora de faixa, NaN,\nsaída do controle com mais de 20 ms ou referência de tração velha.", shape=note, fillcolor="#ffffff", color="#999999"];
+  stop -> extra [style=invis];
+}

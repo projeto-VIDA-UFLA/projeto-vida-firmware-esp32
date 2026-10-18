@@ -1,0 +1,110 @@
+# VidaRosNode
+
+> `include/comunication/VidaRosNode.h` · `src/comunication/VidaRosNode.cpp`
+
+## Visão geral
+
+Nó micro-ROS do VIDA: define **todos os tópicos** do firmware sobre a infraestrutura do [RosCommunication](RosCommunication.md).
+
+- **Recebe** referências e o enable lógico e os guarda no [CommandMailbox](CommandMailbox.md).
+- **Publica** sensores, atuadores e estado de segurança a cada 20 ms.
+
+| Item | Valor |
+|---|---|
+| Nó | `esp32_controller` |
+| Namespace | `/vida` |
+| Domain ID | 0 |
+| Pacote de mensagens | `vida_interfaces` (em `interfaces/vida_interfaces/`) |
+
+## Interface pública
+
+| Método | Descrição |
+|---|---|
+| `VidaRosNode(encoders, steering_sensor, safety, actuators, mailbox)` | Objetos que fornecem e recebem os dados |
+| `begin(transport)` | Registra as entidades e inicia a `TaskRosCommunication` (núcleo 0) |
+
+Os callbacks do rclc são funções livres; elas acessam o objeto pela instância única `instance_`.
+
+## Tópicos assinados
+
+| Tópico | Mensagem | Destino | Validação |
+|---|---|---|---|
+| `/vida/control/steering/reference` | `SteeringReference` | `updateSteeringReference` | descarta se `angle_deg` ou `angular_velocity_deg_s` não forem finitos |
+| `/vida/control/drive/reference` | `DriveReference` | `updateDriveReference` | descarta se algum campo não for finito |
+| `/vida/safety/logical_enable` | `LogicalEnable` | `updateLogicalEnable` | — |
+
+Hoje quem publica as referências é o gamepad (`control_pkg`, no notebook, a 25 Hz), e quem publica o enable lógico é o nó `security` do Odroid.
+
+## Tópicos publicados (a cada 20 ms)
+
+| Tópico | Mensagem | Conteúdo |
+|---|---|---|
+| `/vida/sensors/encoders` | `Encoders` | Medição dos três encoders (só publica se os três tiverem timestamp) |
+| `/vida/sensors/steering` | `Steering` | ADC bruto e ângulos em REP-103 (esquerda +) |
+| `/vida/actuators/steering` | `Comands` | PWM do esterçamento, **positivo = esterçar para ângulo positivo (esquerda)** |
+| `/vida/actuators/drive` | `Comands` | PWM da tração, negativo = ré |
+| `/vida/actuators/brake` | `Comands` | **Largura de pulso do servo em µs** (0 = sem pulsos) |
+| `/vida/safety/status` | `SafetyStatus` | Estado, condições e `inhibit_flags` do [SafetyManager](../safety/SafetyManager.md) |
+
+O timestamp de cada mensagem é o **instante da amostra** convertido para o relógio do agente. Nada é publicado antes da sincronização de relógio.
+
+## Mensagens (`vida_interfaces/msg`)
+
+```
+# SteeringReference.msg
+builtin_interfaces/Time timestamp
+float32 angle_deg               # REP-103, esquerda +
+float32 angular_velocity_deg_s  # ainda nao usado
+
+# DriveReference.msg
+builtin_interfaces/Time timestamp
+float32 velocity_m_s            # hoje: PWM assinado [-255, 255]
+float32 acceleration_m_s2       # ainda nao usado
+float32 brake_command           # 0 = solto, 1 = freio total
+
+# LogicalEnable.msg
+builtin_interfaces/Time timestamp
+bool enabled
+
+# Encoders.msg
+EncoderMeasurement left
+EncoderMeasurement right
+EncoderMeasurement rear
+
+# EncoderMeasurement.msg
+builtin_interfaces/Time timestamp
+int64 count
+float32 raw_velocity_m_s
+float32 filtered_velocity_m_s
+float32 raw_acceleration_m_s2
+float32 filtered_acceleration_m_s2
+
+# Steering.msg
+builtin_interfaces/Time timestamp
+uint16 raw_adc
+float32 raw_angle_deg
+float32 filtered_angle_deg
+float32 filtered_angular_velocity_deg_s
+
+# Comands.msg
+builtin_interfaces/Time timestamp
+int16 pwm
+
+# SafetyStatus.msg
+uint8 state                     # 0 DISABLED, 1 READY
+bool physical_enable
+bool logical_enable
+bool logical_enable_received
+bool logical_enable_fresh
+bool drive_reference_fresh
+bool steering_reference_fresh
+bool motion_permitted
+uint32 inhibit_flags            # ver SafetyManager
+```
+
+`SteeringControllerOutput.msg` ainda existe no pacote, mas não é mais publicado.
+
+## Pontos de atenção
+
+- Ao mudar qualquer `.msg`, a biblioteca micro-ROS precisa ser recompilada (`pio run -t clean_microros` e depois `pio run`). Os pacotes `vida_interfaces` do Odroid e do notebook precisam ter a mesma definição.
+- Com o LVDT inválido, `timestamp_us` da leitura é 0 e a mensagem `Steering` sai com o instante do boot convertido para o relógio do agente.

@@ -1,0 +1,47 @@
+digraph G {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=20, labelloc=t, nodesep=0.5, ranksep=0.32, pad=0.4, newrank=true,
+         label=<<B>1. Malha de controle do esterçamento</B><BR/><FONT POINT-SIZE="12">SteeringController (TaskControl, 5 ms) · ângulos em graus na convenção REP-103 (esquerda +) · comando normalizado [-1, 1]</FONT><BR/> >];
+  node [fontname="DejaVu Sans", fontsize=10, shape=box, style="rounded,filled", fillcolor="#dce9f7", color="#2a6fb0"];
+  edge [fontname="DejaVu Sans", fontsize=9, color="#444444"];
+
+  ref   [label="Referência ROS\n/vida/control/steering/reference\n(gamepad hoje: ±15°)", fillcolor="#efe6f5", color="#7b4fa0"];
+  sat_r [label="Limite da referência\n(faixa de trabalho)\n[-20°, +20°] → target_clamped", fillcolor="#fbe5d3", color="#d35400"];
+  sum   [label="Σ\n+  −", shape=circle, fillcolor="#ffffff", fontsize=12, width=0.6, fixedsize=true];
+  db    [label="Zona morta com histerese\nentra |e| ≤ 0,4° · sai |e| > 1,2°\n→ comando 0 e integral = 0", fillcolor="#fbe5d3", color="#d35400"];
+
+  subgraph cluster_pid { label="PID (D desligado)"; style=rounded; color="#2a6fb0"; fontsize=11;
+    P [label="P\nKp = 0,007 /°"];
+    I [label="I\nKi = 0,1 /(°·s)\n∫e·dt limitado a ±10 °·s\n+ anti-windup condicional\nzerada sem permissão de movimento"];
+    D [label="D\nKd = 0\n(derivada do erro)", fillcolor="#f0f0f0", color="#999999", fontcolor="#777777"];
+  }
+  sum2  [label="Σ", shape=circle, fillcolor="#ffffff", fontsize=12, width=0.45, fixedsize=true];
+  sat1  [label="Saturador\n[-1, +1]\n→ saturated", fillcolor="#fbe5d3", color="#d35400"];
+  floor [label="Piso de atuação\n0 < |u| < 0,15\n→ ±0,15", fillcolor="#fbe5d3", color="#d35400"];
+  lim   [label="Proteção de fim de curso\n(limite de segurança)\nmedido ≥ +25° e u > 0, ou\nmedido ≤ −25° e u < 0\n→ u = 0 e integral = 0", fillcolor="#fbe5d3", color="#d35400"];
+  sign  [label="× STEERING_ANGLE_SIGN (−1)\n→ motor_command\n(> 0 = PWM da direita)", fillcolor="#ffffff"];
+  am    [label="ActuatorManager\nsó atua com permissão\ne saída ≤ 20 ms", fillcolor="#f8dcd8", color="#c0392b"];
+  mot   [label="SteeringMotor\nPWM 8 bits · 9 kHz\ninversão: 0 por ≥ 1 ms", fillcolor="#fbe5d3", color="#d35400"];
+  plant [label="Motor DC 24 V\n+ mecanismo de direção", fillcolor="#eeeeee", color="#666666"];
+
+  lvdt  [label="LVDT\nADC 12 bits (GPIO 36)\n→ mediana de 3", fillcolor="#eeeeee", color="#666666"];
+  poly  [label="Polinômio cúbico\nd = adc − 2046\nδ = A·d + B·d² + C·d³", fillcolor="#d9f2e3", color="#2e8b57"];
+  off   [label="− offset 1,6°\n× sinal (REP-103)", fillcolor="#d9f2e3", color="#2e8b57"];
+  lpf   [label="Filtro passa-baixa\nα = 0,05 a 500 Hz\nτ ≈ 39 ms (fc ≈ 4 Hz)", fillcolor="#d9f2e3", color="#2e8b57"];
+  fresh [label="Leitura válida e com idade ≤ 20 ms?\n(inválida: ADC travado ou fora de\n[40, 4055])\nnão → NaN → reset e saída inválida", fillcolor="#d9f2e3", color="#2e8b57"];
+
+  ref -> sat_r -> sum [label="θref"];
+  sum -> db [label="e"];
+  db -> P; db -> I; db -> D;
+  P -> sum2; I -> sum2; D -> sum2;
+  sum2 -> sat1 [label="u"];
+  sat1 -> floor -> lim -> sign -> am -> mot -> plant;
+  plant -> lvdt [label="  ângulo real  "];
+  fresh -> lpf -> off -> poly -> lvdt [dir=back];
+  sum -> fresh [dir=back, label="  θmedido (−)  "];
+  fresh -> lim [label="θmedido", style=dashed, constraint=false];
+  sat1 -> I [label="saturação bloqueia\na integração", style=dashed, color="#c0392b", fontcolor="#c0392b", constraint=false];
+
+  { rank=same; plant; lvdt; }
+  { rank=same; sum; fresh; }
+  { rank=same; sign; poly; }
+}

@@ -33,7 +33,6 @@
 
 ## Limpeza
 
-- [ ] README descreve uma versao antiga (SerialCommand, PidController, pinos, baud).
 - [ ] Envs `steering_sensor`, `steering_motor` e `encoder_teste` do `platformio.ini`
   apontam para arquivos que nao existem mais.
 - [ ] `monitor_speed` (460800) diferente de `SERIAL_BAUDRATE` (921600).

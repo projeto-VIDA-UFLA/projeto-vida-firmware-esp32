@@ -1,0 +1,82 @@
+digraph G {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=20, labelloc=t, nodesep=0.45, ranksep=0.6, pad=0.4, newrank=true,
+         label=<<B>1. Visão geral — fluxo de dados do firmware ESP32</B><BR/><FONT POINT-SIZE="12">branch pendente-teste/ajustes-pre-merge · seta = dado passado por parâmetro ou lido por snapshot · vermelho = permissão de movimento</FONT><BR/> >];
+  node  [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", penwidth=1.2];
+  edge  [fontname="DejaVu Sans", fontsize=9, color="#555555"];
+
+  subgraph cluster_hw_in { label="Hardware — entradas"; style="rounded,dashed"; color="#999999"; fontsize=12;
+    enc_hw  [label="3 encoders em quadratura\ntraseiro 19/18 · dir. 35/34 · esq. 33/32", fillcolor="#eeeeee"];
+    lvdt_hw [label="LVDT\nADC GPIO 36", fillcolor="#eeeeee"];
+    en_hw   [label="Enable físico\nGPIO 13", fillcolor="#eeeeee"];
+  }
+
+  subgraph cluster_ros_in { label="ROS 2 — assinado (Odroid / notebook, micro-ROS serial 921600)"; style="rounded,dashed"; color="#7b4fa0"; fontsize=12;
+    t_in [label="/vida/control/steering/reference  (graus, REP-103)\n/vida/control/drive/reference  (PWM ±255 + freio 0..1)\n/vida/safety/logical_enable", fillcolor="#efe6f5"];
+  }
+
+  subgraph cluster_sens { label="Sensores (TaskSensors · 500 Hz)"; style=rounded; color="#2e8b57"; fontsize=12;
+    isr  [label="ISRs (CHANGE)\nhandleInterrupt()", fillcolor="#d9f2e3"];
+    enc  [label="EncoderReader ×3\ncontagem x4 · velocidade · aceleração", fillcolor="#d9f2e3"];
+    ss   [label="SteeringSensor\nmediana · polinômio − offset 1,6° · filtro\nvalidação (travado / fundo de escala)", fillcolor="#d9f2e3"];
+    vm   [label="VehicleMotion\nisStopped()\ngetStopDetectionVelocity()", fillcolor="#d9f2e3"];
+  }
+
+  subgraph cluster_com { label="Comunicação (núcleo 0)"; style=rounded; color="#7b4fa0"; fontsize=12;
+    node_ros [label="VidaRosNode + RosCommunication\nTaskRosCommunication · spin 1 ms\npublica snapshots de sensores,\natuadores e segurança a cada 20 ms", fillcolor="#efe6f5"];
+    mb       [label="CommandMailbox\nreferências + horário de chegada", fillcolor="#efe6f5"];
+  }
+
+  subgraph cluster_ctl { label="Controle (TaskControl · 200 Hz)"; style=rounded; color="#2a6fb0"; fontsize=12;
+    sc [label="SteeringController\nPI de posição · zona morta 0,4/1,2°\nreferência ±20° · fim de curso ±25°\n→ motor_command", fillcolor="#dce9f7"];
+    dc [label="DriveController\nmalha aberta (PWM × 0,15)\n→ comando + freio", fillcolor="#dce9f7"];
+  }
+
+  subgraph cluster_saf { label="Segurança (TaskSafety · 200 Hz)"; style=rounded; color="#c0392b"; fontsize=12;
+    sm [label="SafetyManager\nwatchdogs → motion_permitted", fillcolor="#f8dcd8"];
+  }
+
+  subgraph cluster_act { label="Atuadores"; style=rounded; color="#d35400"; fontsize=12;
+    am [label="ActuatorManager\nmutex · permissão · intertravamento freio→tração", fillcolor="#fbe5d3"];
+    sm_motor [label="SteeringMotor\n2 PWM · tempo morto 1 ms", fillcolor="#fbe5d3"];
+    dm [label="DriveMotor\nPWM + DIR (inversão só parado)", fillcolor="#fbe5d3"];
+    bs [label="BrakeServo\nrampa de falha · alívio parado", fillcolor="#fbe5d3"];
+  }
+
+  subgraph cluster_hw_out { label="Hardware — saídas"; style="rounded,dashed"; color="#999999"; fontsize=12;
+    steer_hw [label="Ponte H esterçamento 24 V\nGPIO 25 / 26", fillcolor="#eeeeee"];
+    drive_hw [label="Driver tração 36 V\nPWM GPIO 27 · DIR GPIO 14", fillcolor="#eeeeee"];
+    brake_hw [label="Servo do freio\nGPIO 4", fillcolor="#eeeeee"];
+  }
+
+  subgraph cluster_ros_out { label="ROS 2 — publicado (50 Hz)"; style="rounded,dashed"; color="#7b4fa0"; fontsize=12;
+    t_out [label="/vida/sensors/encoders · /vida/sensors/steering\n/vida/actuators/{steering, drive, brake}\n/vida/safety/status", fillcolor="#efe6f5"];
+  }
+
+  { rank=same; enc_hw; lvdt_hw; en_hw; t_in; }
+  { rank=same; steer_hw; drive_hw; brake_hw; t_out; }
+
+  enc_hw -> isr -> enc;
+  lvdt_hw -> ss;
+  en_hw -> sm [label="digitalRead"];
+  t_in -> node_ros;
+  node_ros -> mb [label="callbacks"];
+
+  enc -> vm [label="snapshots"];
+  mb -> sc [label="ref. esterçamento"];
+  ss -> sc [label="ângulo medido"];
+  mb -> dc [label="ref. tração"];
+  mb -> sm [label="enable lógico +\nidade das refs"];
+  ss -> sm [label="heartbeat"];
+  sc -> sm [label="idade da saída", style=dashed];
+
+  sc -> am [label="motor_command"];
+  dc -> am [label="comando + freio"];
+  vm -> am [label="velocidade p/ inversão\nveículo parado (freio)"];
+  am -> sc [label="permissão\n(integral)", style=dashed, constraint=false];
+  sm -> am [label="setMotionPermit()", color="#c0392b", fontcolor="#c0392b", penwidth=2.2];
+
+  am -> sm_motor -> steer_hw;
+  am -> dm -> drive_hw;
+  am -> bs -> brake_hw;
+  node_ros -> t_out;
+}

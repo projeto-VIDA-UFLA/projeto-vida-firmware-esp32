@@ -1,0 +1,93 @@
+# SafetyManager
+
+> `include/safety/SafetyManager.h` · `src/safety/SafetyManager.cpp`
+
+## Visão geral
+
+Decide, a cada ciclo, **se o veículo pode se mover**. O resultado vai para o [ActuatorManager](../actuators/ActuatorManager.md) via `setMotionPermit()`. Sem permissão, os motores param e o freio vai a total em rampa.
+
+Também publica o **motivo** de cada bloqueio (`inhibit_flags`) em `/vida/safety/status`.
+
+## Onde é usada
+
+| Quem | Método | Frequência |
+|---|---|---|
+| `TaskSafety` | `update()` | 200 Hz |
+| `TaskSensors` | `reportSensorTaskCycle()` | 500 Hz |
+| [VidaRosNode](../comunication/VidaRosNode.md) | `getSnapshot()` | 50 Hz |
+
+## Interface pública
+
+| Método | Descrição |
+|---|---|
+| `SafetyManager(enable_pin, mailbox, actuator_manager, steering_controller)` | Dependências |
+| `begin()` | Configura o pino de enable físico e parte em `STATE_DISABLED` |
+| `update()` | Reavalia todas as condições e aplica a transição de estado |
+| `reportSensorTaskCycle(lvdt, rear, right, left)` | Heartbeat da `TaskSensors`; só registra se todas as leituras forem válidas |
+| `getSnapshot()` | Estado, condições e flags do último `update()` |
+
+## Condições para permitir movimento
+
+O estado é `STATE_READY` somente com **todas** as condições verdadeiras. Basta uma falsa para `STATE_DISABLED`.
+
+| # | Condição | Limite | Flag quando falsa |
+|---|---|---|---|
+| 1 | Enable físico (GPIO 13) em nível alto | — | `INHIBIT_PHYSICAL_ENABLE_OFF` (1) |
+| 2 | Enable lógico já recebido | — | `INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED` (2) |
+| 3 | Enable lógico = `true` | — | `INHIBIT_LOGICAL_ENABLE_FALSE` (4) |
+| 4 | Enable lógico recente | 300 ms | `INHIBIT_LOGICAL_ENABLE_TIMEOUT` (8) |
+| 5 | Referência de tração recente | 200 ms | `INHIBIT_DRIVE_REFERENCE_NOT_FRESH` (16) |
+| 6 | Referência de esterçamento recente | 200 ms | `INHIBIT_STEERING_REFERENCE_NOT_FRESH` (32) |
+| 7 | `TaskSensors` viva (heartbeat) | 20 ms (500 ms no boot) | `INHIBIT_SENSOR_TASK_TIMEOUT` (64) |
+| 8 | Leitura do LVDT válida e recente | 20 ms | `INHIBIT_STEERING_SENSOR_NOT_FRESH` (128) |
+| 9 | Saída do [SteeringController](../control/SteeringController.md) válida e recente | 20 ms | `INHIBIT_CONTROL_OUTPUT_TIMEOUT` (256)¹ |
+
+¹ A flag 256 só é marcada quando as condições 1–6 estão ok, isto é, quando a saída do controlador é de fato necessária.
+
+A idade das referências e do enable lógico é medida a partir do **instante de chegada no ESP32** (ver [CommandMailbox](../comunication/CommandMailbox.md)), não do timestamp da mensagem.
+
+```mermaid
+stateDiagram-v2
+    [*] --> DISABLED: begin()
+    DISABLED --> READY: todas as condições ok → setMotionPermit(true)
+    READY --> DISABLED: qualquer condição falsa → setMotionPermit(false)
+```
+
+`setMotionPermit()` é chamado **só nas transições**. Não há retenção de falhas: o estado volta a `READY` assim que todas as condições voltam.
+
+### Heartbeat da TaskSensors
+
+`reportSensorTaskCycle()` considera o ciclo válido se o LVDT for válido e os três encoders tiverem velocidade finita e uma medição já feita. Ciclos inválidos **não** atualizam o heartbeat. A avaliação dos tempos é feita pelo [SafetyWatchdogs](SafetyWatchdogs.md).
+
+## Snapshot
+
+| Campo | Descrição |
+|---|---|
+| `state` | `STATE_DISABLED` (0) ou `STATE_READY` (1) |
+| `physical_enable`, `logical_enable`, `logical_enable_received`, `logical_enable_fresh` | Condições 1–4 |
+| `drive_reference_fresh`, `steering_reference_fresh` | Condições 5–6 |
+| `sensor_task_healthy`, `steering_sensor_fresh`, `control_output_fresh` | Condições 7–9 |
+| `motion_permitted` | Resultado |
+| `inhibit_flags` | Soma dos motivos de bloqueio |
+| `timestamp_us` | Instante do `update()` |
+
+## Parâmetros (`config.h`)
+
+| Parâmetro | Valor |
+|---|---|
+| `LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS` | 300 ms |
+| `DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS` | 200 ms |
+| `STEERING_REFERENCE_WATCHDOG_TIMEOUT_MS` | 200 ms |
+| `SENSOR_TASK_WATCHDOG_TIMEOUT_MS` | 20 ms |
+| `SENSOR_TASK_STARTUP_GRACE_MS` | 500 ms |
+| `STEERING_SENSOR_SNAPSHOT_TIMEOUT_MS` | 20 ms |
+| `CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS` | 20 ms |
+
+## Concorrência
+
+O heartbeat (escrito pela `TaskSensors`) e o snapshot (escrito pela `TaskSafety`) têm cada um o seu `portMUX`.
+
+## Pontos de atenção
+
+- Uma leitura inválida do LVDT (por exemplo, sensor desconectado) também deixa de atualizar o heartbeat. Nesse caso aparecem juntas as flags 64 e 128, embora a task esteja viva.
+- O `SafetyStatus.msg` publica as flags, mas não os campos `sensor_task_healthy`, `steering_sensor_fresh` e `control_output_fresh`.

@@ -1,0 +1,60 @@
+digraph G {
+  graph [rankdir=TB, fontname="DejaVu Sans", fontsize=20, labelloc=t, nodesep=0.35, ranksep=0.3, pad=0.4,
+         label=<<B>2. SteeringController::update() — decisões a cada ciclo (5 ms)</B><BR/><FONT POINT-SIZE="12">vermelho = reset (integral, erro anterior e inicialização zerados) · laranja = saturadores e condições · azul = cálculo</FONT><BR/> >];
+  node [fontname="DejaVu Sans", fontsize=10, shape=box, style="rounded,filled", fillcolor="#dce9f7", color="#2a6fb0"];
+  edge [fontname="DejaVu Sans", fontsize=9, color="#444444"];
+
+  in    [label="Entradas: referência (mailbox) + snapshot do LVDT\n+ permissão de movimento (ActuatorManager)", fillcolor="#efe6f5", color="#7b4fa0"];
+  fr    [label="LVDT válido e com\nidade ≤ 20 ms?", shape=diamond, fillcolor="#ffffff", color="#d35400"];
+  nan   [label="θmedido = NaN", fillcolor="#fbe5d3", color="#d35400"];
+  dt    [label="dt = agora − chamada anterior\n(1º ciclo: 5 ms)"];
+  v1    [label="ref, θmedido e dt finitos\ne 0 < dt ≤ 100 ms?", shape=diamond, fillcolor="#ffffff", color="#d35400"];
+  inv   [label="reset()\nsaída inválida (valid = false)\n→ ActuatorManager para o motor\n→ SafetyManager: saída não fresca", fillcolor="#f8dcd8", color="#c0392b"];
+  clamp [label="θref limitado a [-20°, +20°]\ne = θref − θmedido"];
+  der   [label="1º ciclo após reset?\nsim: derivada = 0\nnão: (e − e_ant) / dt"];
+  pd    [label="P = Kp·e   ·   D = Kd·de/dt (Kd = 0)"];
+  dbq   [label="zona morta com histerese?\nfora: entra se |e| ≤ 0,4°\ndentro: fica se |e| ≤ 1,2°", shape=diamond, fillcolor="#ffffff", color="#d35400"];
+  dbo   [label="u = 0 · integral = 0\ninside_deadband = true\n(saída válida)", fillcolor="#fbe5d3", color="#d35400"];
+  pm    [label="movimento permitido?", shape=diamond, fillcolor="#ffffff", color="#d35400"];
+  pz    [label="integral = 0\n(motor parado: evita windup)", fillcolor="#fbe5d3", color="#d35400"];
+  ic    [label="integral candidata = clamp(∫ + e·dt, ±10 °·s)\nu candidato = P + Ki·∫cand + D"];
+  aw    [label="|u cand| > 1 e a integral\naumentaria a saturação?", shape=diamond, fillcolor="#ffffff", color="#d35400"];
+  keep  [label="anti-windup:\nmantém a integral anterior", fillcolor="#fbe5d3", color="#d35400"];
+  acc   [label="aceita a integral candidata"];
+  u     [label="u = P + Ki·∫ + D"];
+  s1    [label="saturador [-1, +1]\nsaturated = |u| > 1", fillcolor="#fbe5d3", color="#d35400"];
+  fl    [label="piso: 0 < |u| < 0,15 → u = ±0,15", fillcolor="#fbe5d3", color="#d35400"];
+  lq    [label="θmedido ≥ +25° e u > 0\nou θmedido ≤ −25° e u < 0?", shape=diamond, fillcolor="#ffffff", color="#d35400"];
+  lo    [label="u = 0 · integral = 0\nposition_limit_active = true", fillcolor="#fbe5d3", color="#d35400"];
+  out   [label="e_ant = e\nmotor_command = −u (convenção do motor)\nguarda a saída com timestamp", fillcolor="#efe6f5", color="#7b4fa0"];
+
+  in -> fr;
+  fr -> dt [label="sim"];
+  fr -> nan [label="não"];
+  nan -> dt;
+  dt -> v1;
+  v1 -> inv [label="não", color="#c0392b", fontcolor="#c0392b"];
+  v1 -> clamp [label="sim"];
+  clamp -> der -> pd -> dbq;
+  dbq -> dbo [label="sim"];
+  dbq -> pm [label="não"];
+  pm -> ic [label="sim"];
+  pm -> pz [label="não"];
+  pz -> u;
+  ic -> aw;
+  aw -> keep [label="sim"];
+  aw -> acc [label="não"];
+  keep -> u; acc -> u;
+  u -> s1 -> fl -> lq;
+  lq -> lo [label="sim"];
+  lq -> out [label="não"];
+  lo -> out;
+  dbo -> out;
+
+  { rank=same; fr; nan; }
+  { rank=same; v1; inv; }
+  { rank=same; dbq; dbo; }
+  { rank=same; pm; pz; }
+  { rank=same; aw; keep; acc; }
+  { rank=same; lq; lo; }
+}

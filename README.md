@@ -1,197 +1,120 @@
-# Projeto VIDA - Firmware ESP32
+# Projeto VIDA — Firmware ESP32
 
-Firmware embarcado para o ESP32 do Projeto VIDA. Esta versao controla, em fase de teste local, os atuadores de tracao e estercamento, le encoders em quadratura e sensor analogico de estercamento, aplica logica de seguranca e possui infraestrutura para comandos pela serial.
+Firmware de **controle de baixo nível** do **VIDA (Veículo Inteligente de Desenvolvimento Aplicado)**, protótipo de veículo autônomo do Laboratório de Mobilidade Terrestre (LMT) da UFLA, usado como plataforma de pesquisa em veículos inteligentes.
 
-O projeto usa PlatformIO com framework Arduino para ESP32.
+O ESP32 lê os sensores, controla os atuadores, garante a segurança do veículo e troca dados com o ROS 2 via **micro-ROS** (serial).
 
-## Visao geral
+📖 **Documentação completa, classe por classe:** [`doc/README.md`](doc/README.md)
 
-O firmware esta organizado em modulos pequenos:
+## Arquitetura do sistema
 
-| Modulo | Responsabilidade |
-| --- | --- |
-| `main.cpp` | Inicializacao do hardware, objetos globais, interrupcoes dos encoders e tasks FreeRTOS. |
-| `SerialCommand` | Parser de comandos seriais, handshake com o computador de bordo e alimentacao do watchdog. |
-| `SafetyManager` | Maquina de estados de seguranca: boot, aguardando Odroid, desabilitado, habilitado, parada segura e falha. |
-| `Watchdog` | Timeout dos comandos recebidos pela serial. |
-| `VehicleController` | Fachada que coordena os controladores de tracao e estercamento. |
-| `DriveVelocityController` | Controle longitudinal por velocidade, com rampa de aceleracao e malha de aceleracao. |
-| `SteeringController` | Controle de estercamento em cascata: posicao para velocidade e velocidade para comando do motor. |
-| `DriveMotor` | Saida PWM do motor longitudinal e pino de direcao/re. |
-| `SteeringMotor` | Saidas PWM independentes para estercar para direita ou esquerda. |
-| `EncoderReader` | Leitura de encoders em quadratura x4 via interrupcao. |
-| `SteeringSensor` | Leitura ADC do sensor de estercamento e conversao para graus. |
-| `PidController` | Controlador PID generico com saturacao e anti-windup simples. |
+| Camada | Hardware | Responsabilidade |
+|---|---|---|
+| 1 | **ESP32 (este repositório)** | Controle de baixo nível (esterçamento, tração, freio), segurança, leitura de sensores, ponte micro-ROS |
+| 2 | Odroid | Agente micro-ROS, EKF, GNSS/IMU (u-blox), enable lógico, referências de esterçamento e velocidade |
+| 3 | Notebook | Controle de trajetória (Stanley, futuro); hoje, gamepad para testes |
 
-## Hardware alvo
+## Hardware
 
-- Placa: ESP32 DevKit 38 pinos (`esp32dev`)
-- Framework: Arduino
-- Comunicacao serial: `115200` baud
-- PWM: 9 kHz, 8 bits
-- Sensor de estercamento: entrada analogica ADC de 12 bits
-- Encoders: tres encoders em quadratura
+**Atuadores**
 
-## Pinagem
+| Atuador | Acionamento |
+|---|---|
+| Motor de tração DC 36 V, 1000 W | Driver de potência: 1 PWM + pino de direção (a ré ainda depende de um circuito de relés) |
+| Motor de esterçamento DC 24 V | Ponte H com 2 PWMs (um por sentido) |
+| Freio a disco traseiro | Servo de hobby puxando o cabo de aço |
 
-A pinagem fica centralizada em [`include/pinout.h`](include/pinout.h).
+**Sensores**
 
-| Funcao | Pino |
-| --- | --- |
-| Encoder traseiro A/B | GPIO 19 / GPIO 18 |
-| Encoder dianteiro direito A/B | GPIO 35 / GPIO 34 |
-| Encoder dianteiro esquerdo A/B | GPIO 33 / GPIO 32 |
-| Sensor analogico de estercamento | GPIO 36 |
-| PWM estercamento direita | GPIO 26 |
-| PWM estercamento esquerda | GPIO 25 |
-| PWM tracao | GPIO 27 |
-| Direcao/re da tracao | GPIO 14 |
-| Enable fisico de seguranca | GPIO 23 |
+| Sensor | Uso |
+|---|---|
+| LVDT (ADC) | Ângulo de esterçamento |
+| Encoder em quadratura no eixo traseiro (motriz, sem diferencial) | Velocidade e distância |
+| Encoder em quadratura em cada roda dianteira | Velocidade e confirmação de veículo parado |
 
-O pino `PIN_ENABLE_SAFETY` deve estar em nivel alto para permitir atuacao. Nivel baixo leva o sistema para estado de falha.
+Pinagem: [`doc/utils/pinout.md`](doc/utils/pinout.md).
 
-## Parametros principais
-
-Os parametros ficam em [`include/config.h`](include/config.h). Alguns valores importantes:
-
-| Parametro | Valor |
-| --- | --- |
-| Watchdog de comando | 300 ms |
-| Periodo da task de seguranca | 10 ms |
-| Periodo da task de controle | 10 ms |
-| Periodo da task de sensores | 20 ms |
-| Limite de velocidade longitudinal | +/- 2.0 m/s |
-| Aceleracao padrao | 0.40 m/s2 |
-| Aceleracao maxima segura | 0.80 m/s2 |
-| Faixa de estercamento | -30 a +30 graus |
-| Velocidade maxima padrao de estercamento | 20 graus/s |
-| Velocidade maxima segura de estercamento | 45 graus/s |
-
-## Estados de seguranca
-
-O `SafetyManager` permite atuacao somente no estado `ENABLED`.
-
-Fluxo esperado:
-
-1. `BOOT`: estado inicial.
-2. `WAITING_ODROID`: aguardando handshake `odroid_ready`.
-3. `DISABLED`: Odroid pronto e watchdog OK, mas software enable desligado.
-4. `ENABLED`: enable fisico alto, handshake OK, watchdog OK e `enable 1`.
-5. `SAFE_STOP`: watchdog expirou.
-6. `FAULT`: falha critica ou enable fisico em nivel baixo.
-
-Quando a atuacao nao esta permitida, os motores sao parados.
-
-## Comandos seriais
-
-Os comandos implementados em `SerialCommand` usam linhas terminadas por `\n` ou `\r`.
-
-| Comando | Descricao |
-| --- | --- |
-| `odroid_ready` | Marca o computador de bordo como pronto, alimenta o watchdog e responde `esp_ready`. |
-| `odroid_ready 0` | Remove o estado de pronto, desabilita o software enable e zera os alvos. |
-| `enable 1` | Habilita atuacao por software, desde que a seguranca permita. |
-| `enable 0` | Desabilita atuacao por software. |
-| `speed <m_s> <max_accel_m_s2>` | Define velocidade alvo e limite de aceleracao longitudinal. |
-| `steer_target <deg> <max_vel_deg_s>` | Define angulo alvo de estercamento e limite de velocidade angular. |
-| `reset_enc` | Zera os contadores e deltas dos encoders. |
-| `status` | Solicita status. Atualmente apenas registra a requisicao; o status periodico ja e impresso pela task de debug. |
-
-Exemplo de sequencia:
+## Estrutura do repositório
 
 ```text
-odroid_ready
-enable 1
-speed 1.0 0.4
-steer_target 10 20
+main/main.cpp            Instâncias, tasks FreeRTOS e setup()
+include/, src/
+  sensors/               EncoderReader, SteeringSensor, VehicleMotion
+  control/               SteeringController, DriveController
+  actuators/             ActuatorManager, DriveMotor, SteeringMotor, BrakeServo, MotorHardware
+  safety/                SafetyManager, SafetyWatchdogs
+  comunication/          CommandMailbox, RosCommunication, VidaRosNode
+  utils/                 config.h (parâmetros), pinout.h, utils.h
+interfaces/vida_interfaces/   Mensagens ROS 2 compiladas na biblioteca micro-ROS
+lib/micro_ros_platformio/     Biblioteca micro-ROS para PlatformIO
+doc/                     Documentação (mesma estrutura de classes) e diagramas
+TODO.md                  Pendências
 ```
 
-Com `REQUIRE_ODROID_HANDSHAKE` habilitado, os comandos `enable`, `speed` e `steer_target` sao ignorados antes do handshake.
+## Funcionamento resumido
 
-## Controle longitudinal
+Tasks FreeRTOS (detalhes em [`doc/main.md`](doc/main.md)):
 
-O controle de tracao usa os tres encoders para estimar a velocidade media do veiculo. O alvo de velocidade passa por uma rampa limitada por aceleracao. Em seguida:
+| Task | Núcleo | Prioridade | Período | Função |
+|---|---|---|---|---|
+| `TaskSafety` | 1 | 4 | 5 ms | Permissão de movimento e freio |
+| `TaskControl` | 1 | 3 | 5 ms | Controladores de esterçamento e tração |
+| `TaskSensors` | 1 | 2 | 2 ms | LVDT e encoders |
+| `TaskRosCommunication` | 0 | 2 | 1 ms (publica a cada 20 ms) | micro-ROS |
 
-1. Um PID de velocidade gera um setpoint de aceleracao.
-2. Um PID de aceleracao gera comando normalizado para o motor.
-3. O comando e saturado entre `-1.0` e `1.0` e convertido para PWM.
+**Segurança:** o veículo só se move com o **enable físico** ligado, o **enable lógico** do ROS recebido e recente, as **referências** recentes, os **sensores** válidos e o **controlador** respondendo. Qualquer falha para os motores e leva o freio a total em rampa. Detalhes em [`doc/safety/SafetyManager.md`](doc/safety/SafetyManager.md).
 
-Comando positivo indica frente; comando negativo aciona o pino de re.
+**Controle:**
+- **Esterçamento:** PI de posição com zona morta com histerese, anti-windup e proteção de fim de curso. Faixa de trabalho de ±20° e limite de segurança de ±25°.
+- **Tração:** em **malha aberta** por enquanto. A referência carrega um PWM; a malha fechada de velocidade é o próximo passo.
 
-## Controle de estercamento
+**Convenções:** ângulos em graus na convenção **REP-103 (esquerda positivo)**, comandos normalizados em `[-1, 1]`, freio de `0` (solto) a `1` (total).
 
-O sensor analogico e mapeado linearmente de `0.0 V` a `3.3 V` para a faixa `-30` a `+30` graus, com filtro passa-baixas simples.
+## Tópicos ROS 2
 
-O controle de estercamento funciona em cascata:
+| Direção | Tópico | Mensagem |
+|---|---|---|
+| Assina | `/vida/control/steering/reference` | `SteeringReference` |
+| Assina | `/vida/control/drive/reference` | `DriveReference` |
+| Assina | `/vida/safety/logical_enable` | `LogicalEnable` |
+| Publica | `/vida/sensors/encoders` | `Encoders` |
+| Publica | `/vida/sensors/steering` | `Steering` |
+| Publica | `/vida/actuators/{steering,drive,brake}` | `Comands` |
+| Publica | `/vida/safety/status` | `SafetyStatus` |
 
-1. PID de posicao calcula a velocidade angular alvo.
-2. A velocidade angular alvo e limitada.
-3. PID de velocidade calcula o comando normalizado do motor.
-4. Comando positivo aciona o PWM de direita; comando negativo aciona o PWM de esquerda.
+Definições e semântica de cada campo: [`doc/comunication/VidaRosNode.md`](doc/comunication/VidaRosNode.md).
 
-Ha uma zona morta de posicao para evitar atuacao quando o erro angular ja esta pequeno.
+## Build e gravação
 
-## Build, upload e monitor serial
-
-Instale o PlatformIO e execute na raiz do repositorio:
+Requer o [PlatformIO](https://platformio.org/). Na raiz do repositório:
 
 ```bash
-pio run
+pio run -e vida_firmware                    # compila
+pio run -e vida_firmware --target upload    # grava no ESP32
 ```
 
-Para gravar no ESP32:
+O `platformio.ini` usa a porta `/dev/vida_esp32` (regra udev). Comente `upload_port`/`monitor_port` para detectar a porta automaticamente.
+
+A primeira compilação constrói a biblioteca micro-ROS (ROS 2 Humble) com as mensagens de `interfaces/vida_interfaces/`, o que demora alguns minutos. **Depois de alterar qualquer `.msg`**, limpe e recompile:
 
 ```bash
-pio run --target upload
+pio run -e vida_firmware --target clean_microros
+pio run -e vida_firmware
 ```
 
-Para abrir o monitor serial:
+As mesmas mensagens precisam existir, com a mesma definição, nos pacotes `vida_interfaces` do Odroid e do notebook.
+
+## Conexão com o ROS 2
+
+A serial do ESP32 é usada pelo micro-ROS, então não há monitor serial de texto. No Odroid, o agente roda em container (repositório `projeto-vida-controle-baixo-nivel-odroid`):
 
 ```bash
-pio device monitor
+docker run -it --rm --net=host --device /dev/vida_esp32 \
+  microros/micro-ros-agent:humble serial --dev /dev/vida_esp32 -b 921600
 ```
 
-O `platformio.ini` esta configurado com:
+Ao conectar, o ESP32 cria o nó `/vida/esp32_controller`, sincroniza o relógio com o agente e começa a publicar.
 
-```ini
-upload_port = /dev/vida_esp32
-monitor_port = /dev/vida_esp32
-```
+## Licença
 
-Comente essas linhas caso queira que o PlatformIO detecte automaticamente a porta USB.
-
-## Testes
-
-Existe um teste de leitura do sensor de estercamento em:
-
-```text
-test/test_steering_sensor/test_steering_sensor.cpp
-```
-
-Para executar:
-
-```bash
-pio test -e esp32dev
-```
-
-O teste imprime amostras de ADC, tensao e angulo em graus, alem de validar se a leitura ADC esta dentro da faixa esperada.
-
-## Estrutura do repositorio
-
-```text
-include/    Headers, configuracao e pinagem
-src/        Implementacao do firmware
-test/       Testes PlatformIO/Unity
-lib/        Bibliotecas locais opcionais do PlatformIO
-```
-
-## Observacoes do estado atual
-
-- O banner de inicializacao identifica esta versao como "Fase 1", sem micro-ROS e voltada para teste local.
-- O parser `SerialCommand::update()` esta implementado, mas no estado atual do `src/main.cpp` ele nao e chamado por nenhuma task nem pelo `loop()`.
-- O `loop()` atual aplica continuamente `steering_motor.setCommand(0.1)` com `delay(200)`, comportamento tipico de teste manual do motor de estercamento.
-- Antes de uso integrado com o computador de bordo, e recomendavel trocar esse teste manual por uma chamada periodica de `serial_command.update()` ou por uma task dedicada de comunicacao serial.
-
-## Licenca
-
-Este projeto esta licenciado sob a licenca MIT. Veja [`LICENSE`](LICENSE).
+MIT. Veja [`LICENSE`](LICENSE).
