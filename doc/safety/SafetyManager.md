@@ -21,8 +21,9 @@ Também publica o **motivo** de cada bloqueio (`inhibit_flags`) em `/vida/safety
 | Método | Descrição |
 |---|---|
 | `SafetyManager(enable_pin, mailbox, actuator_manager, steering_controller)` | Dependências |
-| `begin()` | Configura o pino de enable físico e parte em `STATE_DISABLED` |
-| `update()` | Reavalia todas as condições e aplica a transição de estado |
+| `begin()` | Configura o pino de enable físico e parte em `STATE_DISABLED` e modo normal |
+| `update(vehicle_stopped)` | Reavalia todas as condições, o modo bancada e aplica a transição de estado |
+| `isBenchModeActive()` | Modo bancada efetivo |
 | `reportSensorTaskCycle(lvdt, rear, right, left)` | Heartbeat da `TaskSensors`; só registra se todas as leituras forem válidas |
 | `getSnapshot()` | Estado, condições e flags do último `update()` |
 
@@ -41,7 +42,7 @@ O estado é `STATE_READY` somente com **todas** as condições verdadeiras. Bast
 | 7 | `TaskSensors` viva (heartbeat) | 20 ms (500 ms no boot) | `INHIBIT_SENSOR_TASK_TIMEOUT` (64) |
 | 8 | Leitura do LVDT válida e recente | 20 ms | `INHIBIT_STEERING_SENSOR_NOT_FRESH` (128) |
 | 9 | Saída do [SteeringController](../control/SteeringController.md) válida e recente | 20 ms | `INHIBIT_CONTROL_OUTPUT_TIMEOUT` (256)¹ |
-| 10 | Encoders concordantes ([EncoderPlausibility](EncoderPlausibility.md)) — **falha retida** | 0,8 m/s por 0,5 s | `INHIBIT_ENCODERS_DISAGREE` (4096) |
+| 10 | Encoders concordantes ([EncoderPlausibility](EncoderPlausibility.md)) — **falha retida**, desligada em modo bancada | 0,8 m/s por 0,5 s | `INHIBIT_ENCODERS_DISAGREE` (4096) |
 
 ¹ A flag 256 só é marcada quando as condições 1–6 estão ok, isto é, quando a saída do controlador é de fato necessária.
 
@@ -56,6 +57,31 @@ stateDiagram-v2
 
 `setMotionPermit()` é chamado **só nas transições**. As condições 1–9 não são retidas: o estado volta a `READY` assim que elas voltam. A condição 10 fica **retida** até o rearme: enable físico desligado ou enable lógico `false`. Os bits 512, 1024 e 2048 estão reservados (mesma numeração do `SafetyStatus.msg` do Odroid).
 
+### Modo bancada
+
+Permite testar o controle de velocidade com o veículo **suspenso**, onde só a roda traseira gira.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Normal: boot
+    Normal --> Bancada: pedido true e veículo parado
+    Bancada --> Normal: pedido false ou sem pedido há 300 ms
+```
+
+- **Pedido:** `/vida/safety/bench_mode_request` (`std_msgs/Bool`), publicado pelo gamepad: segurar **X por 5 s** para entrar e **O por 5 s** para sair.
+- **Entrada:** só com o veículo parado (`update(vehicle_stopped)`, os 3 encoders). Pedido com o veículo em movimento fica pendente até ele parar.
+- **Saída:** imediata. Sair é sempre seguro: se o veículo estiver suspenso, a condição 10 volta a valer e bloqueia.
+- **Sempre inicia em modo normal**, e volta ao normal se o pedido deixar de chegar.
+- **Modo efetivo** publicado em `/vida/safety/bench_mode`. O gamepad vibra ao receber a troca: contínua ao entrar, pulsada ao sair.
+
+Na bancada:
+
+| Item | Normal | Bancada |
+|---|---|---|
+| Velocidade realimentada ([VehicleMotion](../sensors/VehicleMotion.md)) | média das dianteiras | encoder traseiro |
+| Condição 10 (encoders discordantes) | ativa | desligada |
+| Velocidade máxima ([DriveController](../control/DriveController.md)) | 3 m/s | `BENCH_MODE_MAX_SPEED_M_S` = 1 m/s |
+
 ### Heartbeat da TaskSensors
 
 `reportSensorTaskCycle()` guarda também as velocidades da roda traseira e da média das dianteiras, usadas pela condição 10. Ele atualiza o heartbeat quando os três encoders têm velocidade finita e uma medição já feita. Junto, guarda a validade e o instante da leitura do LVDT. Um LVDT inválido **não** interrompe o heartbeat: aparece só como flag 128, e a flag 64 fica reservada para a task parada ou encoders inválidos. A avaliação dos tempos é feita pelo [SafetyWatchdogs](SafetyWatchdogs.md).
@@ -69,6 +95,7 @@ stateDiagram-v2
 | `drive_reference_fresh`, `steering_reference_fresh` | Condições 5–6 |
 | `sensor_task_healthy`, `steering_sensor_fresh`, `control_output_fresh` | Condições 7–9 |
 | `encoders_disagree` | Condição 10 (falha retida) |
+| `bench_mode_active` | Modo bancada efetivo |
 | `motion_permitted` | Resultado |
 | `inhibit_flags` | Soma dos motivos de bloqueio |
 | `timestamp_us` | Instante do `update()` |

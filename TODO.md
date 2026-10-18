@@ -17,9 +17,10 @@
   parados (`VehicleMotion::getStopDetectionVelocity`), como o alivio do freio.
 - [x] **Encoders discordantes** (`EncoderPlausibility`): traseira > dianteiras
   com tracao, falha retida.
-- [ ] **Modo bancada** para testar o controle de velocidade com o veiculo
-  suspenso (realimentacao pelo traseiro e sem a verificacao acima). Definir
-  como ativar com seguranca.
+- [x] **Modo bancada:** X por 5 s no gamepad (O por 5 s para sair), entra so
+  parado, vibracao de confirmacao.
+- [ ] Validar a vibracao no controle real (depende do joy_node conseguir
+  inicializar o haptic do PS4: procurar "No haptic" no log).
 - [ ] **Plausibilidade comando x movimento** (restante, conceito da branch
   Whilker): esterçamento travado/invertido, tracao sem movimento. Cobre o LVDT desconectado com entrada flutuante (le ruido, nao
   fica travado nem no extremo), que a validacao do SteeringSensor nao pega.

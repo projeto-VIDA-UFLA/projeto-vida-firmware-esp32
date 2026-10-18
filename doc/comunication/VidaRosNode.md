@@ -32,6 +32,7 @@ Os callbacks do rclc são funções livres; elas acessam o objeto pela instânci
 | `/vida/control/steering/reference` | `SteeringReference` | `updateSteeringReference` | descarta se `angle_deg` ou `angular_velocity_deg_s` não forem finitos |
 | `/vida/control/drive/reference` | `DriveReference` | `updateDriveReference` | descarta se algum campo não for finito |
 | `/vida/safety/logical_enable` | `LogicalEnable` | `updateLogicalEnable` | — |
+| `/vida/safety/bench_mode_request` | `std_msgs/Bool` | `updateBenchModeRequest` | — |
 
 Hoje quem publica as referências é o gamepad (`control_pkg`, no notebook, a 25 Hz), e quem publica o enable lógico é o nó `security` do Odroid.
 
@@ -45,6 +46,7 @@ Hoje quem publica as referências é o gamepad (`control_pkg`, no notebook, a 25
 | `/vida/actuators/drive` | `Comands` | PWM da tração, negativo = ré |
 | `/vida/actuators/brake` | `Comands` | **Largura de pulso do servo em µs** (0 = sem pulsos) |
 | `/vida/safety/status` | `SafetyStatus` | Estado, condições e `inhibit_flags` do [SafetyManager](../safety/SafetyManager.md) |
+| `/vida/safety/bench_mode` | `std_msgs/Bool` | Modo bancada efetivo (sem timestamp) |
 
 O timestamp de cada mensagem é o **instante da amostra** convertido para o relógio do agente. Nada é publicado antes da sincronização de relógio.
 
@@ -103,6 +105,8 @@ uint32 inhibit_flags            # ver SafetyManager
 ```
 
 `SteeringControllerOutput.msg` ainda existe no pacote, mas não é mais publicado.
+
+**Limite de entidades** da biblioteca micro-ROS (`lib/micro_ros_platformio/metas/colcon.meta`): 10 publishers (7 usados) e **5 subscriptions (4 usadas)**. Um novo tópico assinado ocupa a última vaga; além disso é preciso aumentar `RMW_UXRCE_MAX_SUBSCRIPTIONS` e recompilar a biblioteca.
 
 ## Pontos de atenção
 

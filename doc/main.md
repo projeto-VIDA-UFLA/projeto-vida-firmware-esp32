@@ -48,8 +48,9 @@ O heartbeat só é registrado depois do ciclo completo e se todas as leituras fo
 ### TaskSafety (200 Hz, maior prioridade)
 
 ```cpp
-safety_manager.update();                                  // permissão de movimento
-actuator_manager.updateBrake(vehicle_motion.isStopped()); // rampa de falha / alívio parado
+vehicle_stopped = vehicle_motion.isStopped();
+safety_manager.update(vehicle_stopped);        // permissão de movimento e modo bancada
+actuator_manager.updateBrake(vehicle_stopped); // rampa de falha / alívio parado
 ```
 
 ### TaskControl (200 Hz)
@@ -57,8 +58,9 @@ actuator_manager.updateBrake(vehicle_motion.isStopped()); // rampa de falha / al
 ```cpp
 steering = steering_controller.update(ref. esterçamento, snapshot LVDT,
                                       actuator_manager.isMotionPermitted());
-drive    = drive_controller.update(ref. tração, vehicle_motion.getVehicleSpeed(),
-                                   actuator_manager.isMotionPermitted());
+bench    = safety_manager.isBenchModeActive();
+drive    = drive_controller.update(ref. tração, vehicle_motion.getVehicleSpeed(bench),
+                                   actuator_manager.isMotionPermitted(), bench);
 command  = TimedCommand{drive.normalized_command, steering.motor_command,
                         drive.brake_command, agora, steering.valid && drive.valid};
 actuator_manager.applyCommands(command, vehicle_motion.getStopDetectionVelocity());

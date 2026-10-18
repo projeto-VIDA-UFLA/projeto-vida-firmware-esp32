@@ -55,5 +55,5 @@ No [SafetyManager](SafetyManager.md), a falha fica **retida** (flag `INHIBIT_ENC
 
 ## Pontos de atenção
 
-- **Impede testar o controle de velocidade na bancada:** com o veículo suspenso, a falha dispara em ~0,5 s. É intencional: sem ela, a traseira giraria com tração máxima. Um modo bancada está em discussão.
+- **Na bancada a verificação é desligada** pelo [modo bancada](SafetyManager.md#modo-bancada), que também passa a realimentar a velocidade pelo encoder traseiro. Fora dele, o veículo suspenso dispara a falha em ~0,5 s, de propósito: sem ela, a traseira giraria com tração máxima.
 - Não cobre a falha de **um só** encoder dianteiro: a média cai pela metade, e a diferença só passa de 0,8 m/s acima de ~1,6 m/s.

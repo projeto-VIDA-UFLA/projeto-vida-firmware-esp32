@@ -43,6 +43,8 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS` | 20 | Idade máxima da saída do controlador / do comando |
 | `ENCODER_DISAGREE_MARGIN_M_S` | 0,8 | Traseira acima das dianteiras que caracteriza discordância ([EncoderPlausibility](../safety/EncoderPlausibility.md)) |
 | `ENCODER_DISAGREE_TIME_MS` | 500 | Tempo contínuo para a falha |
+| `BENCH_MODE_REQUEST_TIMEOUT_MS` | 300 | Sem pedido recente, sai do modo bancada |
+| `BENCH_MODE_MAX_SPEED_M_S` | 1,0 | Velocidade máxima em modo bancada |
 
 ## Sensor de esterçamento → [SteeringSensor](../sensors/SteeringSensor.md)
 

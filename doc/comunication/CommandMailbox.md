@@ -35,6 +35,7 @@ Campos comuns a todos:
 | `SteeringReferenceSnapshot` | `angle_deg` (REP-103), `angular_velocity_deg_s` (ainda sem uso) |
 | `DriveReferenceSnapshot` | `velocity_m_s` (m/s), `acceleration_m_s2` (aceleração máxima da rampa; 0 = padrão), `brake_command` (> 0,05 = freio manual) |
 | `LogicalEnableSnapshot` | `enabled` |
+| `BenchModeRequestSnapshot` | `requested` (sem `source_timestamp_ns`: `std_msgs/Bool` não tem timestamp) |
 
 ## Por que a idade usa o instante de chegada
 

@@ -10,13 +10,13 @@ Controle **longitudinal de velocidade** em malha fechada. Recebe a velocidade de
 
 | Quem | Método | Frequência |
 |---|---|---|
-| `TaskControl` | `update(referência, velocidade do veículo, permissão)` | 200 Hz |
+| `TaskControl` | `update(referência, velocidade do veículo, permissão, modo bancada)` | 200 Hz |
 
 ## Interface pública
 
 | Método | Descrição |
 |---|---|
-| `update(reference, vehicle_speed, motion_permitted)` | Calcula tração e freio de um ciclo |
+| `update(reference, vehicle_speed, motion_permitted, bench_mode)` | Calcula tração e freio de um ciclo; em modo bancada a referência é limitada a 1 m/s, e a troca de modo reinicia o controlador |
 | `reset()` | Zera a integral; a rampa recomeça na velocidade medida |
 
 ### Output

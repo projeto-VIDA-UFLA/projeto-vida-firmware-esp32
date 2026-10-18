@@ -25,7 +25,7 @@ O freio atua só na roda traseira. Com ela travada, o encoder traseiro marca zer
 | Método | Descrição |
 |---|---|
 | `VehicleMotion(rear, right, left)` | Referências aos três [EncoderReader](EncoderReader.md) |
-| `getVehicleSpeed()` | Média das velocidades das rodas dianteiras |
+| `getVehicleSpeed(bench_mode)` | Média das velocidades das rodas dianteiras; em modo bancada, o encoder traseiro |
 | `isStopped()` | `true` se os três encoders têm leitura recente, finita e com \|v\| ≤ limiar |
 | `getStopDetectionVelocity()` | Medição de pior caso para o `DriveMotor` |
 
@@ -36,6 +36,8 @@ O freio atua só na roda traseira. Com ela travada, o encoder traseiro marca zer
 Média das velocidades filtradas dos encoders **dianteiros**. As rodas dianteiras não são tracionadas nem freadas: não patinam sob tração nem travam ao frear, então medem a velocidade real do veículo. O `timestamp_us` é o da amostra mais antiga, e a medição é inválida se algum dos dois não for finito ou não tiver medição.
 
 Sem compensação de curva: em curva, a média das dianteiras fica ~1/cos δ acima da velocidade do eixo traseiro (3,5% a 15°, 6% a 20°).
+
+Em **modo bancada** (veículo suspenso, dianteiras paradas) devolve a velocidade do encoder traseiro.
 
 ### `isStopped()`
 
