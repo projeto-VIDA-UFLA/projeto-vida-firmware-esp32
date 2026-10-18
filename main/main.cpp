@@ -159,6 +159,9 @@ void taskControl(void *parameter)
 
 void setup()
 {
+  // O freio vem antes de tudo: sem pulsos o servo fica solto.
+  brake_servo.begin();
+
   // Inicia comunicação serial
   Serial.begin(SERIAL_BAUDRATE);
   delay(1000);
@@ -169,8 +172,7 @@ void setup()
   left_encoder.begin(isrLeftEncoder);
   steering_sensor.begin();
 
-  // Inicializa atuadores. O freio vem primeiro: parte acionado.
-  brake_servo.begin();
+  // Inicializa demais atuadores
   drive_motor.begin();
   steering_motor.begin();
   actuator_manager.begin();

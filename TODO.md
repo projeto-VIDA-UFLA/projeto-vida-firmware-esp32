@@ -25,8 +25,6 @@
 
 ## Adiado
 
-- [ ] Freio solto durante o boot: `brake_servo.begin()` roda depois do
-  `delay(1000)` do `setup()`, entao o servo fica sem pulsos por mais de 1 s.
 - [ ] `EncoderReader::handleInterrupt()` fora da IRAM (so importa com escrita
   em flash durante a operacao).
 
