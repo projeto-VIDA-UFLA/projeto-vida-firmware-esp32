@@ -13,9 +13,12 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
       command_mailbox_(command_mailbox),
       actuator_manager_(actuator_manager),
       steering_controller_(steering_controller),
-      sensor_health_{0, 0, false, 0, false, 0.0f, 0.0f},
+      sensor_health_{0, 0, false, 0, false, 0.0f, 0.0f, 0.0f},
       encoder_plausibility_(),
       encoders_disagree_latched_(false),
+      steering_plausibility_(),
+      steering_stalled_latched_(false),
+      steering_wrong_direction_latched_(false),
       bench_mode_active_(false),
       snapshot_()
 {
@@ -30,6 +33,8 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
     snapshot_.steering_sensor_fresh = false;
     snapshot_.control_output_fresh = false;
     snapshot_.encoders_disagree = false;
+    snapshot_.steering_stalled = false;
+    snapshot_.steering_wrong_direction = false;
     snapshot_.bench_mode_active = false;
     snapshot_.supervisor_tripped = false;
     snapshot_.motion_permitted = false;
@@ -52,11 +57,14 @@ void SafetyManager::begin()
     const bool physical_enable = digitalRead(physical_enable_pin_) == HIGH;
 
     portENTER_CRITICAL(&health_mux_);
-    sensor_health_ = SensorHealthSnapshot{now_us, 0, false, 0, false, 0.0f, 0.0f};
+    sensor_health_ = SensorHealthSnapshot{now_us, 0, false, 0, false, 0.0f, 0.0f, 0.0f};
     portEXIT_CRITICAL(&health_mux_);
 
     encoder_plausibility_.reset();
     encoders_disagree_latched_ = false;
+    steering_plausibility_.reset();
+    steering_stalled_latched_ = false;
+    steering_wrong_direction_latched_ = false;
     bench_mode_active_ = false;
 
     Snapshot initial_snapshot{};
@@ -99,6 +107,7 @@ void SafetyManager::reportSensorTaskCycle(
     sensor_health_.heartbeat_us = now_us;
     sensor_health_.steering_snapshot_valid = steering_snapshot.valid;
     sensor_health_.steering_snapshot_us = steering_snapshot.timestamp_us;
+    sensor_health_.steering_angle_deg = steering_snapshot.filtered_angle_deg;
     sensor_health_.encoder_speeds_valid = true;
     sensor_health_.rear_velocity_m_s = rear_snapshot.filtered_velocity_m_s;
     sensor_health_.front_velocity_m_s =
@@ -231,9 +240,8 @@ void SafetyManager::update(bool vehicle_stopped)
         bench_mode_active_ = true;
     }
 
-    // Encoders discordantes: falha retida ate acao explicita do operador
-    // (enable fisico desligado ou enable logico false). Desligada na bancada,
-    // onde so a roda traseira gira.
+    // Plausibilidade: falhas retidas ate acao explicita do operador (enable
+    // fisico desligado ou enable logico false).
     const bool rearm_requested =
         !physical_enable ||
         (logical_enable.received && logical_enable_fresh && !logical_enable.enabled);
@@ -241,26 +249,58 @@ void SafetyManager::update(bool vehicle_stopped)
     {
         encoders_disagree_latched_ = false;
         encoder_plausibility_.reset();
-    }
-    else if (bench_mode_active_)
-    {
-        encoder_plausibility_.reset();
+        steering_stalled_latched_ = false;
+        steering_wrong_direction_latched_ = false;
+        steering_plausibility_.reset();
     }
     else
     {
         const ActuatorManager::Snapshot actuators = actuator_manager_.getSnapshot();
-        const bool disagree = encoder_plausibility_.update(
-            EncoderPlausibility::Input{
+
+        // Encoders discordantes: desligada na bancada, onde so a traseira gira.
+        if (bench_mode_active_)
+        {
+            encoder_plausibility_.reset();
+        }
+        else
+        {
+            const bool disagree = encoder_plausibility_.update(
+                EncoderPlausibility::Input{
+                    now_us,
+                    actuators.drive.pwm > 0,
+                    sensor_task_healthy && sensor_health.encoder_speeds_valid,
+                    sensor_health.rear_velocity_m_s,
+                    sensor_health.front_velocity_m_s});
+            encoders_disagree_latched_ = encoders_disagree_latched_ || disagree;
+        }
+
+        // Esterçamento: PWM aplicado (convencao do motor) convertido para a
+        // convencao do angulo e normalizado.
+        const float applied_steering_command =
+            STEERING_ANGLE_SIGN *
+            static_cast<float>(actuators.steering.right_pwm - actuators.steering.left_pwm) /
+            255.0f;
+        const SteeringPlausibility::Result steering = steering_plausibility_.update(
+            SteeringPlausibility::Input{
                 now_us,
-                actuators.drive.pwm > 0,
-                sensor_task_healthy && sensor_health.encoder_speeds_valid,
-                sensor_health.rear_velocity_m_s,
-                sensor_health.front_velocity_m_s});
-        encoders_disagree_latched_ = encoders_disagree_latched_ || disagree;
+                applied_steering_command,
+                steering_sensor_fresh,
+                sensor_health.steering_angle_deg});
+        steering_stalled_latched_ = steering_stalled_latched_ || steering.stalled;
+        steering_wrong_direction_latched_ =
+            steering_wrong_direction_latched_ || steering.wrong_direction;
     }
     if (encoders_disagree_latched_)
     {
         inhibit_flags |= INHIBIT_ENCODERS_DISAGREE;
+    }
+    if (steering_stalled_latched_)
+    {
+        inhibit_flags |= INHIBIT_STEERING_STALLED;
+    }
+    if (steering_wrong_direction_latched_)
+    {
+        inhibit_flags |= INHIBIT_STEERING_WRONG_DIRECTION;
     }
 
     // Task travada: os atuadores ja foram forcados a parar pelo supervisor.
@@ -281,6 +321,8 @@ void SafetyManager::update(bool vehicle_stopped)
         steering_sensor_fresh &&
         control_output_fresh &&
         !encoders_disagree_latched_ &&
+        !steering_stalled_latched_ &&
+        !steering_wrong_direction_latched_ &&
         !supervisor_tripped;
     const SafetyState new_state = motion_permitted
                                       ? SafetyState::STATE_READY
@@ -308,6 +350,8 @@ void SafetyManager::update(bool vehicle_stopped)
     new_snapshot.steering_sensor_fresh = steering_sensor_fresh;
     new_snapshot.control_output_fresh = control_output_fresh;
     new_snapshot.encoders_disagree = encoders_disagree_latched_;
+    new_snapshot.steering_stalled = steering_stalled_latched_;
+    new_snapshot.steering_wrong_direction = steering_wrong_direction_latched_;
     new_snapshot.bench_mode_active = bench_mode_active_;
     new_snapshot.supervisor_tripped = supervisor_tripped;
     new_snapshot.motion_permitted = motion_permitted;

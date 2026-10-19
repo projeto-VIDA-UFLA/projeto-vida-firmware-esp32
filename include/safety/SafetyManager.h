@@ -6,6 +6,7 @@
 #include "comunication/CommandMailbox.h"
 #include "control/SteeringController.h"
 #include "safety/EncoderPlausibility.h"
+#include "safety/SteeringPlausibility.h"
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
 
@@ -29,8 +30,10 @@ enum SafetyInhibitFlag : uint32_t
     INHIBIT_SENSOR_TASK_TIMEOUT = 1U << 6,
     INHIBIT_STEERING_SENSOR_NOT_FRESH = 1U << 7,
     INHIBIT_CONTROL_OUTPUT_TIMEOUT = 1U << 8,
-    // Bits 9-11 reservados (mesma numeracao do SafetyStatus.msg do Odroid).
-    INHIBIT_ENCODERS_DISAGREE = 1U << 12, // retida ate rearme
+    // Mesma numeracao do SafetyStatus.msg do Odroid (bit 11 reservado).
+    INHIBIT_STEERING_STALLED = 1U << 9,          // retida ate rearme
+    INHIBIT_STEERING_WRONG_DIRECTION = 1U << 10, // retida ate rearme
+    INHIBIT_ENCODERS_DISAGREE = 1U << 12,        // retida ate rearme
     INHIBIT_TASK_SUPERVISOR_TRIP = 1U << 13 // task travada; retida ate reiniciar
 };
 
@@ -44,12 +47,14 @@ enum SafetyInhibitFlag : uint32_t
  * - TaskSensors viva (heartbeat <= SENSOR_TASK_WATCHDOG_TIMEOUT_MS);
  * - leitura do LVDT valida e recente (STEERING_SENSOR_SNAPSHOT_TIMEOUT_MS);
  * - saida do SteeringController valida e recente (CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS).
- * - encoders concordantes (EncoderPlausibility), exceto em modo bancada.
+ * - encoders concordantes (EncoderPlausibility), exceto em modo bancada;
+ * - esterçamento respondendo ao comando (SteeringPlausibility);
+ * - nenhuma task travada (TaskSupervisor).
  * Cada condicao falsa gera uma SafetyInhibitFlag. Nas transicoes de estado
  * chama ActuatorManager::setMotionPermit(). As falhas de tempo nao sao
- * retidas: o estado volta a READY assim que as condicoes voltam. A falha de
- * encoders discordantes e retida ate o rearme (enable fisico desligado ou
- * enable logico false).
+ * retidas: o estado volta a READY assim que as condicoes voltam. As falhas de
+ * plausibilidade (encoders e esterçamento) ficam retidas ate o rearme (enable
+ * fisico desligado ou enable logico false); a do supervisor, ate reiniciar.
  */
 class SafetyManager
 {
@@ -67,6 +72,8 @@ public:
         bool steering_sensor_fresh;
         bool control_output_fresh;
         bool encoders_disagree; // falha retida
+        bool steering_stalled;         // falha retida
+        bool steering_wrong_direction; // falha retida
         bool bench_mode_active; // modo bancada efetivo
         bool supervisor_tripped; // TaskSupervisor disparou (task travada)
         bool motion_permitted;
@@ -122,11 +129,15 @@ private:
         bool encoder_speeds_valid;
         float rear_velocity_m_s;
         float front_velocity_m_s; // media das dianteiras
+        float steering_angle_deg; // angulo filtrado do LVDT
     };
 
     SensorHealthSnapshot sensor_health_;
     EncoderPlausibility encoder_plausibility_;
     bool encoders_disagree_latched_;
+    SteeringPlausibility steering_plausibility_;
+    bool steering_stalled_latched_;
+    bool steering_wrong_direction_latched_;
     bool bench_mode_active_;
     mutable portMUX_TYPE health_mux_ = portMUX_INITIALIZER_UNLOCKED;
 

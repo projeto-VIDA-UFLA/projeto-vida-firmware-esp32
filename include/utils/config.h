@@ -73,6 +73,19 @@
 #define ENCODER_DISAGREE_MARGIN_M_S 0.8f
 #define ENCODER_DISAGREE_TIME_MS 500
 
+// Plausibilidade do esterçamento (comando aplicado x angulo medido). So
+// avalia |comando| >= MIN_COMMAND: no teste de 12/10/2026, com o piso de 0,15
+// (PWM 38) a roda ficou ate 2,07 s sem avancar 0,5 grau (atrito estatico);
+// com comando >= 0,3 (PWM 77), no maximo 0,42 s, e o maior recuo contra o
+// comando foi 0,59 grau. Falhas retidas ate o rearme (como encoders).
+#define STEERING_PLAUSIBILITY_MIN_COMMAND 0.3f
+// Travado: sem avancar STALL_MIN_PROGRESS no sentido comandado por STALL_TIME.
+#define STEERING_STALL_MIN_PROGRESS_DEG 0.5f
+#define STEERING_STALL_TIME_MS 1000
+// Sentido invertido: recuo de WRONG_DIRECTION contra o comando, depois de GRACE.
+#define STEERING_WRONG_DIRECTION_DEG 2.0f
+#define STEERING_WRONG_DIRECTION_GRACE_MS 200
+
 // Supervisor de tasks: timer de TASK_SUPERVISOR_PERIOD_MS no nucleo 0 (fora
 // das tasks vigiadas). TaskSensors, TaskControl ou TaskSafety sem sinal de
 // vida por TASK_SUPERVISOR_TIMEOUT_MS -> PWMs zerados e freio total escritos
