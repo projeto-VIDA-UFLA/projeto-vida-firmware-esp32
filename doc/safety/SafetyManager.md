@@ -43,6 +43,9 @@ O estado é `STATE_READY` somente com **todas** as condições verdadeiras. Bast
 | 8 | Leitura do LVDT válida e recente | 20 ms | `INHIBIT_STEERING_SENSOR_NOT_FRESH` (128) |
 | 9 | Saída do [SteeringController](../control/SteeringController.md) válida e recente | 20 ms | `INHIBIT_CONTROL_OUTPUT_TIMEOUT` (256)¹ |
 | 10 | Encoders concordantes ([EncoderPlausibility](EncoderPlausibility.md)) — **falha retida**, desligada em modo bancada | 0,8 m/s por 0,5 s | `INHIBIT_ENCODERS_DISAGREE` (4096) |
+| 11 | Esterçamento não travado ([SteeringPlausibility](SteeringPlausibility.md)) — **falha retida** | 1 s sem avançar 0,5° com \|cmd\| ≥ 0,3 | `INHIBIT_STEERING_STALLED` (512) |
+| 12 | Esterçamento no sentido do comando ([SteeringPlausibility](SteeringPlausibility.md)) — **falha retida** | recuo de 2° após 0,2 s | `INHIBIT_STEERING_WRONG_DIRECTION` (1024) |
+| 13 | Nenhuma task travada ([TaskSupervisor](TaskSupervisor.md)) — **retida até reiniciar** | 50 ms sem sinal de vida | `INHIBIT_TASK_SUPERVISOR_TRIP` (8192) |
 
 ¹ A flag 256 só é marcada quando as condições 1–6 estão ok, isto é, quando a saída do controlador é de fato necessária.
 
@@ -55,7 +58,7 @@ stateDiagram-v2
     READY --> DISABLED: qualquer condição falsa → setMotionPermit(false)
 ```
 
-`setMotionPermit()` é chamado **só nas transições**. As condições 1–9 não são retidas: o estado volta a `READY` assim que elas voltam. A condição 10 fica **retida** até o rearme: enable físico desligado ou enable lógico `false`. Os bits 512, 1024 e 2048 estão reservados (mesma numeração do `SafetyStatus.msg` do Odroid).
+`setMotionPermit()` é chamado **só nas transições**. As condições 1–9 não são retidas: o estado volta a `READY` assim que elas voltam. As condições 10–12 ficam **retidas** até o rearme: enable físico desligado ou enable lógico `false`. A 13 fica retida até reiniciar o ESP32. O bit 2048 está reservado. A numeração é a mesma do `SafetyStatus.msg` do Odroid.
 
 ### Modo bancada
 
@@ -95,6 +98,8 @@ Na bancada:
 | `drive_reference_fresh`, `steering_reference_fresh` | Condições 5–6 |
 | `sensor_task_healthy`, `steering_sensor_fresh`, `control_output_fresh` | Condições 7–9 |
 | `encoders_disagree` | Condição 10 (falha retida) |
+| `steering_stalled`, `steering_wrong_direction` | Condições 11 e 12 (falhas retidas) |
+| `supervisor_tripped` | Condição 13 |
 | `bench_mode_active` | Modo bancada efetivo |
 | `motion_permitted` | Resultado |
 | `inhibit_flags` | Soma dos motivos de bloqueio |

@@ -43,6 +43,11 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS` | 20 | Idade máxima da saída do controlador / do comando |
 | `ENCODER_DISAGREE_MARGIN_M_S` | 0,8 | Traseira acima das dianteiras que caracteriza discordância ([EncoderPlausibility](../safety/EncoderPlausibility.md)) |
 | `ENCODER_DISAGREE_TIME_MS` | 500 | Tempo contínuo para a falha |
+| `STEERING_PLAUSIBILITY_MIN_COMMAND` | 0,3 | Comando mínimo avaliado ([SteeringPlausibility](../safety/SteeringPlausibility.md)) |
+| `STEERING_STALL_MIN_PROGRESS_DEG` / `STEERING_STALL_TIME_MS` | 0,5° / 1000 | Travado |
+| `STEERING_WRONG_DIRECTION_DEG` / `STEERING_WRONG_DIRECTION_GRACE_MS` | 2,0° / 200 | Sentido invertido |
+| `TASK_SUPERVISOR_PERIOD_MS` / `TIMEOUT_MS` / `STARTUP_GRACE_MS` | 10 / 50 / 500 | [TaskSupervisor](../safety/TaskSupervisor.md) |
+| `TASK_WDT_TIMEOUT_S` | 5 | Watchdog do ESP-IDF (vigia o supervisor) |
 | `BENCH_MODE_REQUEST_TIMEOUT_MS` | 300 | Sem pedido recente, sai do modo bancada |
 | `BENCH_MODE_MAX_SPEED_M_S` | 1,0 | Velocidade máxima em modo bancada |
 

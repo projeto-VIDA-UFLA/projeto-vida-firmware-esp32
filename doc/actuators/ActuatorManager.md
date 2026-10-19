@@ -30,6 +30,8 @@
 | `updateBrake(vehicle_stopped)` | Avança a rampa de falha e o alívio do freio parado |
 | `stop()` | Para os motores e inicia a rampa do freio, sem mudar a permissão |
 | `emergencyStop()` | Como `stop()`, mas retém a emergência até um novo `begin()` (sem chamador hoje) |
+| `forceSafeOutputs()` | Chamado pelo [TaskSupervisor](../safety/TaskSupervisor.md) de outra task, **sem o mutex**: PWMs 0 e freio total direto no hardware, e retém a falha |
+| `isSupervisorTripped()` | Supervisor disparado |
 | `isMotionPermitted()`, `isEmergencyLatched()` | Estado atual |
 | `getSnapshot()` | Estado coerente dos três atuadores, para telemetria |
 
@@ -64,6 +66,10 @@ A idade máxima do comando é `CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS` (20 ms). `dri
 |---|---|---|
 | `CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS` | 20 ms | Idade máxima do comando |
 | `BRAKE_DRIVE_CUTOFF` | 0,05 | Posição do freio que corta a tração |
+
+## Supervisor de tasks
+
+Depois de `forceSafeOutputs()`, `applyCommands()` e `updateBrake()` mantêm tração e esterçamento parados e o freio em 1,0 (sem rampa), coerentes com o que o supervisor escreve no hardware, e `setMotionPermit()` não libera mais o movimento até reiniciar. Cada atuador tem um método de escrita direta para isso (`DriveMotor::forceOutputOff()`, `SteeringMotor::forceOutputOff()`, `BrakeServo::forceFullBrake()`), que não altera o estado interno.
 
 ## Concorrência
 

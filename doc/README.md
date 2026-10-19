@@ -32,6 +32,8 @@ A pasta `doc/` segue a mesma estrutura de `include/` e `src/`: uma página por c
 | **safety** | [SafetyManager](safety/SafetyManager.md) | Permissão de movimento e motivos de bloqueio |
 | | [SafetyWatchdogs](safety/SafetyWatchdogs.md) | Avaliação dos watchdogs de tempo |
 | | [EncoderPlausibility](safety/EncoderPlausibility.md) | Roda traseira × dianteiras (encoder sem sinal, bancada) |
+| | [SteeringPlausibility](safety/SteeringPlausibility.md) | Esterçamento travado ou em sentido invertido |
+| | [TaskSupervisor](safety/TaskSupervisor.md) | Corta os atuadores se uma task do núcleo 1 travar |
 | **comunication** | [CommandMailbox](comunication/CommandMailbox.md) | Últimas referências recebidas do ROS |
 | | [RosCommunication](comunication/RosCommunication.md) | Sessão micro-ROS, reconexão e sincronização de relógio |
 | | [VidaRosNode](comunication/VidaRosNode.md) | Tópicos ROS do firmware |

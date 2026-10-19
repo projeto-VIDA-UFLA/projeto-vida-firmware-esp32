@@ -101,7 +101,7 @@ bool logical_enable_fresh
 bool drive_reference_fresh
 bool steering_reference_fresh
 bool motion_permitted
-uint32 inhibit_flags            # ver SafetyManager
+uint32 inhibit_flags            # ver SafetyManager (1..256, 512, 1024, 4096, 8192)
 ```
 
 `SteeringControllerOutput.msg` ainda existe no pacote, mas não é mais publicado.

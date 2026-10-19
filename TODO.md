@@ -21,9 +21,25 @@
   parado, vibracao de confirmacao.
 - [ ] Validar a vibracao no controle real (depende do joy_node conseguir
   inicializar o haptic do PS4: procurar "No haptic" no log).
-- [ ] **Plausibilidade comando x movimento** (restante, conceito da branch
-  Whilker): esterçamento travado/invertido, tracao sem movimento. Cobre o LVDT desconectado com entrada flutuante (le ruido, nao
-  fica travado nem no extremo), que a validacao do SteeringSensor nao pega.
+- [x] **Plausibilidade do esterçamento** (`SteeringPlausibility`): travado e
+  sentido invertido. Validar os limites nos ensaios (o teste de 12/10 teve so
+  3,7 s de comando forte).
+- [x] **Supervisor de tasks** (`TaskSupervisor`): corta os atuadores se uma
+  task do nucleo 1 travar.
+- [ ] Hardware: conferir pull-downs nas entradas da ponte H e do driver de
+  tracao (durante um reset do ESP32 os pinos ficam sem sinal e o freio solta).
+
+## Melhorias menores
+
+- [ ] Limitar a parcela integral do esterçamento a +-0,5 (hoje ela sozinha
+  pode comandar 100%).
+- [ ] Limite de taxa da referencia de esterçamento usando
+  `angular_velocity_deg_s` (recebido e ignorado). Util com o Stanley.
+- [ ] Derivada do esterçamento sobre a medicao filtrada, nao sobre o erro
+  (hoje Kd = 0, entao inofensivo).
+- [ ] Telemetria opcional do controle longitudinal (referencia apos a rampa,
+  esforco, P, I), ligada por `#define` para nao pesar na serial.
+- [ ] Plausibilidade da tracao sem movimento (PWM aplicado e veiculo parado).
 - [ ] Validar no veiculo a zona morta com histerese (0,4 / 1,2 grau) e a
   deteccao de LVDT travado / fundo de escala.
 

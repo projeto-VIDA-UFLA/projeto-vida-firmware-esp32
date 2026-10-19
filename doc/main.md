@@ -22,6 +22,7 @@ O `main.cpp` cria todos os objetos do firmware como variáveis globais, liga as 
 | `drive_controller` | [DriveController](control/DriveController.md) | — |
 | `command_mailbox` | [CommandMailbox](comunication/CommandMailbox.md) | — |
 | `safety_manager` | [SafetyManager](safety/SafetyManager.md) | `PIN_ENABLE_SAFETY`, mailbox, actuator manager, steering controller |
+| `task_supervisor` | [TaskSupervisor](safety/TaskSupervisor.md) | actuator manager |
 | `ros_node` | [VidaRosNode](comunication/VidaRosNode.md) | encoders, sensor, safety, atuadores, mailbox |
 
 ## Tasks
@@ -78,6 +79,7 @@ actuator_manager.applyCommands(command, vehicle_motion.getStopDetectionVelocity(
 4. `drive_motor`, `steering_motor` e `actuator_manager` — movimento bloqueado.
 5. `safety_manager.begin()` — estado `DISABLED`.
 6. Criação das tasks de sensores, controle e segurança.
-7. `ros_node.begin(Serial)` — registra os tópicos e cria a `TaskRosCommunication`.
+7. `task_supervisor.begin()` — watchdog do ESP-IDF e timer do supervisor. Cada task chama `task_supervisor.reportAlive()` a cada ciclo.
+8. `ros_node.begin(Serial)` — registra os tópicos e cria a `TaskRosCommunication`.
 
 O `loop()` do Arduino fica vazio.
