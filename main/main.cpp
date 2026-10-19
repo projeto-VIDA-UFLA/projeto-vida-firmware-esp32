@@ -39,6 +39,7 @@
 
 // Inclui classes de segurança
 #include "safety/SafetyManager.h"
+#include "safety/TaskSupervisor.h"
 
 // Inclui classes de controle
 #include "control/DriveController.h"
@@ -79,6 +80,9 @@ CommandMailbox command_mailbox;
 // Instanciando Objeto de gerenciamento de segurança
 SafetyManager safety_manager(PIN_ENABLE_SAFETY, command_mailbox, actuator_manager, steering_controller);
 
+// Supervisor das tasks do nucleo 1 (corta os atuadores se uma travar)
+TaskSupervisor task_supervisor(actuator_manager);
+
 // Instanciando nó do ROS
 VidaRosNode ros_node(rear_encoder, right_encoder, left_encoder, steering_sensor, safety_manager, actuator_manager, command_mailbox);
 
@@ -118,6 +122,8 @@ void taskSensors(void *parameter)
     right_encoder.update();
     left_encoder.update();
 
+    task_supervisor.reportAlive(TaskSupervisor::Task::SENSORS);
+
     // Heartbeat registrado somente depois do ciclo completo.
     safety_manager.reportSensorTaskCycle(steering_sensor.getSnapshot(),
                                          rear_encoder.getMeasurementSnapshot(),
@@ -136,6 +142,8 @@ void taskSafety(void *parameter)
 
   while (true)
   {
+    task_supervisor.reportAlive(TaskSupervisor::Task::SAFETY);
+
     const bool vehicle_stopped = vehicle_motion.isStopped();
     safety_manager.update(vehicle_stopped);
     actuator_manager.updateBrake(vehicle_stopped);
@@ -156,6 +164,8 @@ void taskControl(void *parameter)
         steering_controller.update(command_mailbox.getSteeringReferenceSnapshot(),
                                    steering_sensor.getSnapshot(),
                                    actuator_manager.isMotionPermitted());
+
+    task_supervisor.reportAlive(TaskSupervisor::Task::CONTROL);
 
     const bool bench_mode = safety_manager.isBenchModeActive();
     const DriveController::Output drive =
@@ -208,6 +218,9 @@ void setup()
   xTaskCreatePinnedToCore(taskSensors, "TaskSensors", 4096, nullptr, PRIORITY_SENSORS, nullptr, 1);
   xTaskCreatePinnedToCore(taskControl, "TaskControl", 4096, nullptr, PRIORITY_CONTROL, nullptr, 1);
   xTaskCreatePinnedToCore(taskSafety, "TaskSafety", 4096, nullptr, PRIORITY_SAFETY, nullptr, 1);
+
+  // Supervisor das tasks (timer no nucleo 0) e watchdog do ESP-IDF
+  task_supervisor.begin();
 
   ros_node.begin(Serial);
 }

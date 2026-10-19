@@ -98,6 +98,14 @@ void BrakeServo::applyFaultRamp()
     last_ramp_update_us_ = hardware_.nowUs();
 }
 
+void BrakeServo::forceFullBrake()
+{
+    if (BRAKE_CALIBRATED)
+    {
+        hardware_.writePwm(channel_, pulseUsToDuty(BRAKE_APPLIED_US));
+    }
+}
+
 void BrakeServo::update(bool vehicle_stopped)
 {
     const int64_t now_us = hardware_.nowUs();

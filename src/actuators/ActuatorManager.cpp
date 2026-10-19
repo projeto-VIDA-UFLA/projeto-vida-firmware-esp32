@@ -12,7 +12,8 @@ ActuatorManager::ActuatorManager(DriveMotor &drive_motor,
       brake_servo_(brake_servo),
       mutex_(nullptr),
       motion_permitted_(false),
-      emergency_latched_(false)
+      emergency_latched_(false),
+      supervisor_tripped_(false)
 {
 }
 
@@ -64,6 +65,13 @@ bool ActuatorManager::applyCommands(
         command.steering_command >= -1.0f && command.steering_command <= 1.0f &&
         command.brake_command >= 0.0f && command.brake_command <= 1.0f;
 
+    if (supervisor_tripped_)
+    {
+        holdSupervisorStop();
+        giveMutex();
+        return false;
+    }
+
     if (!commands_are_valid || !motion_permitted_ || emergency_latched_)
     {
         stopUnlocked();
@@ -100,7 +108,7 @@ void ActuatorManager::setMotionPermit(bool permitted)
         motion_permitted_ = false;
         stopUnlocked();
     }
-    else if (!emergency_latched_)
+    else if (!emergency_latched_ && !supervisor_tripped_)
     {
         motion_permitted_ = true;
     }
@@ -145,8 +153,35 @@ void ActuatorManager::updateBrake(bool vehicle_stopped)
         return;
     }
 
+    if (supervisor_tripped_)
+    {
+        holdSupervisorStop();
+    }
     brake_servo_.update(vehicle_stopped);
     giveMutex();
+}
+
+void ActuatorManager::forceSafeOutputs()
+{
+    supervisor_tripped_ = true;
+    drive_motor_.forceOutputOff();
+    steering_motor_.forceOutputOff();
+    brake_servo_.forceFullBrake();
+}
+
+bool ActuatorManager::isSupervisorTripped() const
+{
+    return supervisor_tripped_;
+}
+
+void ActuatorManager::holdSupervisorStop()
+{
+    // Mesmo estado que o supervisor escreve no hardware: motores em 0 e
+    // freio total (sem rampa).
+    motion_permitted_ = false;
+    drive_motor_.stop();
+    steering_motor_.stop();
+    brake_servo_.setCommand(1.0f);
 }
 
 bool ActuatorManager::isMotionPermitted() const
@@ -184,6 +219,7 @@ ActuatorManager::Snapshot ActuatorManager::getSnapshot() const
         snapshot.brake = brake_servo_.getSnapshot();
         snapshot.motion_permitted = false;
         snapshot.emergency_latched = false;
+        snapshot.supervisor_tripped = supervisor_tripped_;
         return snapshot;
     }
 
@@ -192,6 +228,7 @@ ActuatorManager::Snapshot ActuatorManager::getSnapshot() const
     snapshot.brake = brake_servo_.getSnapshot();
     snapshot.motion_permitted = motion_permitted_;
     snapshot.emergency_latched = emergency_latched_;
+    snapshot.supervisor_tripped = supervisor_tripped_;
     giveMutex();
     return snapshot;
 }

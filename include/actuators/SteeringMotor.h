@@ -47,6 +47,10 @@ public:
     // Zera os dois PWMs imediatamente.
     void stop();
 
+    // Emergencia do supervisor de tasks: zera os dois PWMs direto no
+    // hardware, sem tocar no estado (pode ser chamado sem o mutex).
+    void forceOutputOff();
+
     float getLastCommand() const;
     int getRightPwm() const;
     int getLeftPwm() const;

@@ -30,7 +30,8 @@ enum SafetyInhibitFlag : uint32_t
     INHIBIT_STEERING_SENSOR_NOT_FRESH = 1U << 7,
     INHIBIT_CONTROL_OUTPUT_TIMEOUT = 1U << 8,
     // Bits 9-11 reservados (mesma numeracao do SafetyStatus.msg do Odroid).
-    INHIBIT_ENCODERS_DISAGREE = 1U << 12 // retida ate rearme
+    INHIBIT_ENCODERS_DISAGREE = 1U << 12, // retida ate rearme
+    INHIBIT_TASK_SUPERVISOR_TRIP = 1U << 13 // task travada; retida ate reiniciar
 };
 
 /**
@@ -67,6 +68,7 @@ public:
         bool control_output_fresh;
         bool encoders_disagree; // falha retida
         bool bench_mode_active; // modo bancada efetivo
+        bool supervisor_tripped; // TaskSupervisor disparou (task travada)
         bool motion_permitted;
         uint32_t inhibit_flags;
         int64_t timestamp_us;

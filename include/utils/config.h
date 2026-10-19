@@ -73,6 +73,21 @@
 #define ENCODER_DISAGREE_MARGIN_M_S 0.8f
 #define ENCODER_DISAGREE_TIME_MS 500
 
+// Supervisor de tasks: timer de TASK_SUPERVISOR_PERIOD_MS no nucleo 0 (fora
+// das tasks vigiadas). TaskSensors, TaskControl ou TaskSafety sem sinal de
+// vida por TASK_SUPERVISOR_TIMEOUT_MS -> PWMs zerados e freio total escritos
+// direto no hardware, falha retida ate reiniciar. Nao reinicia sozinho: no
+// reboot o servo fica sem pulsos e o freio solta.
+#define TASK_SUPERVISOR_PERIOD_MS 10
+#define TASK_SUPERVISOR_TIMEOUT_MS 50
+#define TASK_SUPERVISOR_STARTUP_GRACE_MS 500
+// Watchdog do ESP-IDF (segundos inteiros): vigia o proprio supervisor e a
+// idle task do nucleo 0. Estourou -> reinicio (falha dupla). Mantido no
+// padrao do framework (5 s): o transporte serial do micro-ROS pode ocupar o
+// nucleo 0 por ~1 s ao criar entidades, e um disparo falso reinicia o ESP32
+// com o freio solto durante o boot.
+#define TASK_WDT_TIMEOUT_S 5
+
 // Modo bancada (veiculo suspenso): pedido pelo gamepad em
 // /vida/safety/bench_mode_request. Entra so com o veiculo parado; sai assim
 // que o pedido for false ou deixar de chegar por REQUEST_TIMEOUT. Sempre

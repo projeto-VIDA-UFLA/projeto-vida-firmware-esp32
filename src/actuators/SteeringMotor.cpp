@@ -94,6 +94,11 @@ void SteeringMotor::stop()
     storeSnapshot(0.0f, 0, 0, State::STOPPED, hardware_.nowUs());
 }
 
+void SteeringMotor::forceOutputOff()
+{
+    writeBothOff();
+}
+
 float SteeringMotor::getLastCommand() const
 {
     portENTER_CRITICAL(&snapshot_mux_);

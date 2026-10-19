@@ -132,6 +132,11 @@ void DriveMotor::stop()
     storeSnapshot(0.0f, 0, State::STOPPED, hardware_.nowUs());
 }
 
+void DriveMotor::forceOutputOff()
+{
+    writePwmZero();
+}
+
 float DriveMotor::getLastCommand() const
 {
     portENTER_CRITICAL(&snapshot_mux_);

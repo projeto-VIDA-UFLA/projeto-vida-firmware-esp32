@@ -41,6 +41,7 @@ public:
         BrakeServo::Snapshot brake;
         bool motion_permitted;
         bool emergency_latched;
+        bool supervisor_tripped;
     };
 
     ActuatorManager(DriveMotor &drive_motor, SteeringMotor &steering_motor,
@@ -69,6 +70,14 @@ public:
     // permitido ate um novo begin(). Hoje nao ha chamador no firmware.
     void emergencyStop();
 
+    // Chamado pelo supervisor de tasks (outra task, sem o mutex, que pode
+    // estar preso pela task travada): escreve PWMs 0 e freio total direto no
+    // hardware e retem a falha. Daqui em diante applyCommands() e
+    // updateBrake() mantem os atuadores parados com freio total, e o
+    // movimento nao volta a ser permitido ate reiniciar.
+    void forceSafeOutputs();
+    bool isSupervisorTripped() const;
+
     // Avanca a rampa de falha do freio e o alivio de veiculo parado.
     // Chamado periodicamente pela task de seguranca para nao depender da
     // task de controle.
@@ -84,6 +93,8 @@ private:
     void giveMutex() const;
     // Para tracao e estercamento e inicia a rampa do freio (mutex ja tomado).
     void stopUnlocked();
+    // Motores parados e freio total enquanto o supervisor estiver disparado.
+    void holdSupervisorStop();
 
     DriveMotor &drive_motor_;
     SteeringMotor &steering_motor_;
@@ -92,4 +103,6 @@ private:
     mutable SemaphoreHandle_t mutex_;
     bool motion_permitted_;
     bool emergency_latched_;
+    // Escrito pelo supervisor sem o mutex: so passa de false para true.
+    volatile bool supervisor_tripped_;
 };

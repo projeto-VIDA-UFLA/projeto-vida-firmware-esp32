@@ -31,6 +31,7 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
     snapshot_.control_output_fresh = false;
     snapshot_.encoders_disagree = false;
     snapshot_.bench_mode_active = false;
+    snapshot_.supervisor_tripped = false;
     snapshot_.motion_permitted = false;
     snapshot_.inhibit_flags =
         INHIBIT_PHYSICAL_ENABLE_OFF |
@@ -58,25 +59,15 @@ void SafetyManager::begin()
     encoders_disagree_latched_ = false;
     bench_mode_active_ = false;
 
-    const Snapshot initial_snapshot{
-        SafetyState::STATE_DISABLED,
-        physical_enable,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
+    Snapshot initial_snapshot{};
+    initial_snapshot.state = SafetyState::STATE_DISABLED;
+    initial_snapshot.physical_enable = physical_enable;
+    initial_snapshot.inhibit_flags =
         (physical_enable ? INHIBIT_NONE : INHIBIT_PHYSICAL_ENABLE_OFF) |
-            INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED |
-            INHIBIT_DRIVE_REFERENCE_NOT_FRESH |
-            INHIBIT_STEERING_REFERENCE_NOT_FRESH,
-        now_us};
+        INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED |
+        INHIBIT_DRIVE_REFERENCE_NOT_FRESH |
+        INHIBIT_STEERING_REFERENCE_NOT_FRESH;
+    initial_snapshot.timestamp_us = now_us;
 
     portENTER_CRITICAL(&snapshot_mux_);
     snapshot_ = initial_snapshot;
@@ -272,6 +263,13 @@ void SafetyManager::update(bool vehicle_stopped)
         inhibit_flags |= INHIBIT_ENCODERS_DISAGREE;
     }
 
+    // Task travada: os atuadores ja foram forcados a parar pelo supervisor.
+    const bool supervisor_tripped = actuator_manager_.isSupervisorTripped();
+    if (supervisor_tripped)
+    {
+        inhibit_flags |= INHIBIT_TASK_SUPERVISOR_TRIP;
+    }
+
     const bool motion_permitted =
         physical_enable &&
         logical_enable.received &&
@@ -282,7 +280,8 @@ void SafetyManager::update(bool vehicle_stopped)
         sensor_task_healthy &&
         steering_sensor_fresh &&
         control_output_fresh &&
-        !encoders_disagree_latched_;
+        !encoders_disagree_latched_ &&
+        !supervisor_tripped;
     const SafetyState new_state = motion_permitted
                                       ? SafetyState::STATE_READY
                                       : SafetyState::STATE_DISABLED;
@@ -297,22 +296,23 @@ void SafetyManager::update(bool vehicle_stopped)
         applyStateTransition(previous_state, new_state);
     }
 
-    const Snapshot new_snapshot{
-        new_state,
-        physical_enable,
-        logical_enable.enabled,
-        logical_enable.received,
-        logical_enable_fresh,
-        drive_reference_fresh,
-        steering_reference_fresh,
-        sensor_task_healthy,
-        steering_sensor_fresh,
-        control_output_fresh,
-        encoders_disagree_latched_,
-        bench_mode_active_,
-        motion_permitted,
-        inhibit_flags,
-        now_us};
+    Snapshot new_snapshot{};
+    new_snapshot.state = new_state;
+    new_snapshot.physical_enable = physical_enable;
+    new_snapshot.logical_enable = logical_enable.enabled;
+    new_snapshot.logical_enable_received = logical_enable.received;
+    new_snapshot.logical_enable_fresh = logical_enable_fresh;
+    new_snapshot.drive_reference_fresh = drive_reference_fresh;
+    new_snapshot.steering_reference_fresh = steering_reference_fresh;
+    new_snapshot.sensor_task_healthy = sensor_task_healthy;
+    new_snapshot.steering_sensor_fresh = steering_sensor_fresh;
+    new_snapshot.control_output_fresh = control_output_fresh;
+    new_snapshot.encoders_disagree = encoders_disagree_latched_;
+    new_snapshot.bench_mode_active = bench_mode_active_;
+    new_snapshot.supervisor_tripped = supervisor_tripped;
+    new_snapshot.motion_permitted = motion_permitted;
+    new_snapshot.inhibit_flags = inhibit_flags;
+    new_snapshot.timestamp_us = now_us;
 
     portENTER_CRITICAL(&snapshot_mux_);
     snapshot_ = new_snapshot;

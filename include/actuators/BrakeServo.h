@@ -43,6 +43,10 @@ public:
     // Inicia a rampa ate freio total. Chamadas repetidas mantem a rampa.
     void applyFaultRamp();
 
+    // Emergencia do supervisor de tasks: pulso de freio total direto no
+    // hardware, sem tocar no estado (pode ser chamado sem o mutex).
+    void forceFullBrake();
+
     // Avanca a rampa de falha e atualiza o alivio de veiculo parado.
     // Deve ser chamado periodicamente. vehicle_stopped deve ser false
     // quando a medicao de velocidade for invalida ou velha.

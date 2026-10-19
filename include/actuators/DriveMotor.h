@@ -60,6 +60,10 @@ public:
     // Zera o PWM. Nunca altera DIR: o veiculo pode estar em movimento.
     void stop();
 
+    // Emergencia do supervisor de tasks: escreve PWM 0 direto no hardware,
+    // sem tocar no estado (pode ser chamado de outra task sem o mutex).
+    void forceOutputOff();
+
     float getLastCommand() const;
     int getLastPwm() const;
     bool isReverse() const;
