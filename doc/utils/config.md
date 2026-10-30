@@ -115,7 +115,7 @@ As constantes `STEERING_POS_*`/`STEERING_VEL_*` comentadas são do controlador e
 
 | Parâmetro | Valor | Descrição |
 |---|---|---|
-| `DRIVE_MAX_TARGET_SPEED_M_S` | 3,0 m/s | Limite da referência |
+| `DRIVE_MAX_TARGET_SPEED_M_S` | 4,0 m/s | Limite da referência |
 | `DRIVE_DEFAULT_MAX_ACCEL_M_S2` | 0,4 m/s² | Rampa de subida quando `acceleration_m_s2` = 0 |
 | `DRIVE_MAX_ACCEL_M_S2` | 0,8 m/s² | Teto da rampa de subida |
 | `DRIVE_MAX_DECEL_M_S2` | 1,0 m/s² | Rampa de descida |
