@@ -78,6 +78,12 @@ public:
     void forceSafeOutputs();
     bool isSupervisorTripped() const;
 
+    // Modo manobra (decidido pelo SafetyManager): freio solto e tracao parada,
+    // com ou sem permissao de movimento. O estercamento so atua com permissao.
+    // Ignorado com o supervisor disparado ou emergencia retida.
+    void setManeuverBrakeRelease(bool release);
+    bool isManeuverBrakeRelease() const;
+
     // Avanca a rampa de falha do freio e o alivio de veiculo parado.
     // Chamado periodicamente pela task de seguranca para nao depender da
     // task de controle.
@@ -103,6 +109,7 @@ private:
     mutable SemaphoreHandle_t mutex_;
     bool motion_permitted_;
     bool emergency_latched_;
+    bool maneuver_brake_release_;
     // Escrito pelo supervisor sem o mutex: so passa de false para true.
     volatile bool supervisor_tripped_;
 };

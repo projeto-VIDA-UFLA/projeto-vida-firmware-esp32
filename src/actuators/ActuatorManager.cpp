@@ -13,6 +13,7 @@ ActuatorManager::ActuatorManager(DriveMotor &drive_motor,
       mutex_(nullptr),
       motion_permitted_(false),
       emergency_latched_(false),
+      maneuver_brake_release_(false),
       supervisor_tripped_(false)
 {
 }
@@ -70,6 +71,23 @@ bool ActuatorManager::applyCommands(
         holdSupervisorStop();
         giveMutex();
         return false;
+    }
+
+    if (maneuver_brake_release_ && !emergency_latched_)
+    {
+        // Manobra: freio solto, tracao parada; direcao so com permissao.
+        drive_motor_.stop();
+        if (commands_are_valid && motion_permitted_)
+        {
+            steering_motor_.setCommand(command.steering_command);
+        }
+        else
+        {
+            steering_motor_.stop();
+        }
+        brake_servo_.setCommand(0.0f);
+        giveMutex();
+        return commands_are_valid && motion_permitted_;
     }
 
     if (!commands_are_valid || !motion_permitted_ || emergency_latched_)
@@ -146,6 +164,36 @@ void ActuatorManager::emergencyStop()
     giveMutex();
 }
 
+void ActuatorManager::setManeuverBrakeRelease(bool release)
+{
+    if (!takeMutex())
+    {
+        return;
+    }
+
+    const bool was_released = maneuver_brake_release_;
+    maneuver_brake_release_ = release && !emergency_latched_ && !supervisor_tripped_;
+    if (was_released && !maneuver_brake_release_)
+    {
+        // Saiu da manobra: freio de volta ja (a task de controle reassume).
+        drive_motor_.stop();
+        brake_servo_.setCommand(1.0f);
+    }
+    giveMutex();
+}
+
+bool ActuatorManager::isManeuverBrakeRelease() const
+{
+    if (!takeMutex())
+    {
+        return false;
+    }
+
+    const bool release = maneuver_brake_release_;
+    giveMutex();
+    return release;
+}
+
 void ActuatorManager::updateBrake(bool vehicle_stopped)
 {
     if (!takeMutex())
@@ -179,6 +227,7 @@ void ActuatorManager::holdSupervisorStop()
     // Mesmo estado que o supervisor escreve no hardware: motores em 0 e
     // freio total (sem rampa).
     motion_permitted_ = false;
+    maneuver_brake_release_ = false;
     drive_motor_.stop();
     steering_motor_.stop();
     brake_servo_.setCommand(1.0f);
@@ -245,8 +294,16 @@ void ActuatorManager::giveMutex() const
 
 void ActuatorManager::stopUnlocked()
 {
-    // Parar motores zera PWM; parar o freio significa aplica-lo em rampa.
+    // Parar motores zera PWM; parar o freio significa aplica-lo em rampa
+    // (exceto no modo manobra, em que ele fica solto).
     drive_motor_.stop();
     steering_motor_.stop();
-    brake_servo_.applyFaultRamp();
+    if (maneuver_brake_release_ && !emergency_latched_ && !supervisor_tripped_)
+    {
+        brake_servo_.setCommand(0.0f);
+    }
+    else
+    {
+        brake_servo_.applyFaultRamp();
+    }
 }

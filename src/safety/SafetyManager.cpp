@@ -20,6 +20,9 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
       steering_stalled_latched_(false),
       steering_wrong_direction_latched_(false),
       bench_mode_active_(false),
+      maneuver_active_(false),
+      maneuver_blocked_(false),
+      previous_physical_enable_(false),
       snapshot_()
 {
     snapshot_.state = SafetyState::STATE_DISABLED;
@@ -36,6 +39,7 @@ SafetyManager::SafetyManager(uint8_t physical_enable_pin,
     snapshot_.steering_stalled = false;
     snapshot_.steering_wrong_direction = false;
     snapshot_.bench_mode_active = false;
+    snapshot_.maneuver_active = false;
     snapshot_.supervisor_tripped = false;
     snapshot_.motion_permitted = false;
     snapshot_.inhibit_flags =
@@ -66,6 +70,9 @@ void SafetyManager::begin()
     steering_stalled_latched_ = false;
     steering_wrong_direction_latched_ = false;
     bench_mode_active_ = false;
+    maneuver_active_ = false;
+    maneuver_blocked_ = false;
+    previous_physical_enable_ = physical_enable;
 
     Snapshot initial_snapshot{};
     initial_snapshot.state = SafetyState::STATE_DISABLED;
@@ -240,6 +247,38 @@ void SafetyManager::update(bool vehicle_stopped)
         bench_mode_active_ = true;
     }
 
+    // Modo manobra (L1 por 3 s): freio solto para empurrar o veiculo, com ou
+    // sem enable fisico. Regras em config.h (MANEUVER_*).
+    {
+        const bool maneuver_requested =
+            drive_reference_fresh &&
+            drive_reference.brake_command <= MANEUVER_BRAKE_REQUEST;
+        const bool gamepad_alive =
+            logical_enable.received && logical_enable_fresh && logical_enable.enabled;
+        const bool physical_enable_dropped = previous_physical_enable_ && !physical_enable;
+        const float speed_m_s = std::fmax(std::fabs(sensor_health.rear_velocity_m_s),
+                                          std::fabs(sensor_health.front_velocity_m_s));
+        const bool overspeed = !std::isfinite(speed_m_s) || speed_m_s > MANEUVER_MAX_SPEED_M_S;
+        if (!maneuver_requested)
+        {
+            maneuver_blocked_ = false;
+        }
+        if (maneuver_active_ &&
+            (!maneuver_requested || !gamepad_alive || physical_enable_dropped ||
+             overspeed || actuator_manager_.isSupervisorTripped()))
+        {
+            maneuver_active_ = false;
+            maneuver_blocked_ = maneuver_requested;
+        }
+        else if (!maneuver_active_ && maneuver_requested && !maneuver_blocked_ &&
+                 gamepad_alive && vehicle_stopped)
+        {
+            maneuver_active_ = true;
+        }
+        previous_physical_enable_ = physical_enable;
+        actuator_manager_.setManeuverBrakeRelease(maneuver_active_);
+    }
+
     // Plausibilidade: falhas retidas ate acao explicita do operador (enable
     // fisico desligado ou enable logico false).
     const bool rearm_requested =
@@ -354,6 +393,7 @@ void SafetyManager::update(bool vehicle_stopped)
     new_snapshot.steering_stalled = steering_stalled_latched_;
     new_snapshot.steering_wrong_direction = steering_wrong_direction_latched_;
     new_snapshot.bench_mode_active = bench_mode_active_;
+    new_snapshot.maneuver_active = maneuver_active_;
     new_snapshot.supervisor_tripped = supervisor_tripped;
     new_snapshot.motion_permitted = motion_permitted;
     new_snapshot.inhibit_flags = inhibit_flags;

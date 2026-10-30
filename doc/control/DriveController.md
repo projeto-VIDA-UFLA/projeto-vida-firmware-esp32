@@ -104,7 +104,7 @@ Simulação com essa planta, os 28 ms do estimador e um freio suposto de 3 m/s²
 
 | Parâmetro | Valor | Uso |
 |---|---|---|
-| `DRIVE_MAX_TARGET_SPEED_M_S` | 2,0 m/s | Limite da referência (primeiros ensaios no chão) |
+| `DRIVE_MAX_TARGET_SPEED_M_S` | 2,5 m/s | Limite da referência (ensaios no chão) |
 | `DRIVE_DEFAULT_MAX_ACCEL_M_S2` | 0,4 m/s² | Rampa de subida padrão |
 | `DRIVE_MAX_ACCEL_M_S2` | 0,8 m/s² | Teto da rampa de subida |
 | `DRIVE_MAX_DECEL_M_S2` | 1,0 m/s² | Rampa de descida |

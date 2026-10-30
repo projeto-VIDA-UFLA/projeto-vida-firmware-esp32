@@ -75,6 +75,7 @@ public:
         bool steering_stalled;         // falha retida
         bool steering_wrong_direction; // falha retida
         bool bench_mode_active; // modo bancada efetivo
+        bool maneuver_active;   // modo manobra: freio solto, tracao bloqueada
         bool supervisor_tripped; // TaskSupervisor disparou (task travada)
         bool motion_permitted;
         uint32_t inhibit_flags;
@@ -139,6 +140,9 @@ private:
     bool steering_stalled_latched_;
     bool steering_wrong_direction_latched_;
     bool bench_mode_active_;
+    bool maneuver_active_;
+    bool maneuver_blocked_;       // cancelado: espera o pedido ser desfeito
+    bool previous_physical_enable_;
     mutable portMUX_TYPE health_mux_ = portMUX_INITIALIZER_UNLOCKED;
 
     Snapshot snapshot_;

@@ -88,6 +88,7 @@ private:
     // Publisher de segurança
     rcl_publisher_t safety_status_publisher_;
     rcl_publisher_t bench_mode_publisher_;
+    rcl_publisher_t maneuver_publisher_;
 
     // Subscription de controle
     rcl_subscription_t steering_reference_subscription_;
@@ -109,6 +110,7 @@ private:
     vida_interfaces__msg__LogicalEnable logical_enable_message_;
     std_msgs__msg__Bool bench_mode_request_message_;
     std_msgs__msg__Bool bench_mode_message_;
+    std_msgs__msg__Bool maneuver_message_;
 
     // Timer
     rcl_timer_t publish_timer_;

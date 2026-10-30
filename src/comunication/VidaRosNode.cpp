@@ -24,6 +24,7 @@ namespace
     constexpr char LOGICAL_ENABLE_TOPIC[] = "/vida/safety/logical_enable";
     constexpr char BENCH_MODE_REQUEST_TOPIC[] = "/vida/safety/bench_mode_request";
     constexpr char BENCH_MODE_TOPIC[] = "/vida/safety/bench_mode";
+    constexpr char MANEUVER_TOPIC[] = "/vida/safety/maneuver";
 
     // tópicos de controle
     constexpr char STEERING_REFERENCE_TOPIC[] = "/vida/control/steering/reference";
@@ -53,6 +54,7 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
       cmd_brake_publisher_(rcl_get_zero_initialized_publisher()),
       safety_status_publisher_(rcl_get_zero_initialized_publisher()),
       bench_mode_publisher_(rcl_get_zero_initialized_publisher()),
+      maneuver_publisher_(rcl_get_zero_initialized_publisher()),
       steering_reference_subscription_(rcl_get_zero_initialized_subscription()),
       drive_reference_subscription_(rcl_get_zero_initialized_subscription()),
       logical_enable_subscription_(rcl_get_zero_initialized_subscription()),
@@ -68,6 +70,7 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
       logical_enable_message_{},
       bench_mode_request_message_{},
       bench_mode_message_{},
+      maneuver_message_{},
       publish_timer_(rcl_get_zero_initialized_timer()),
       actuator_manager_(actuator_manager),
       safety_manager_(safety_manager),
@@ -169,6 +172,14 @@ bool VidaRosNode::configure()
             bench_mode_publisher_,
             ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
             BENCH_MODE_TOPIC))
+    {
+        return false;
+    }
+
+    if (!communication_.addPublisher(
+            maneuver_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
+            MANEUVER_TOPIC))
     {
         return false;
     }
@@ -367,6 +378,8 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
 
     bench_mode_message_.data = safety.bench_mode_active;
     communication_.publish(bench_mode_publisher_, &bench_mode_message_);
+    maneuver_message_.data = safety.maneuver_active;
+    communication_.publish(maneuver_publisher_, &maneuver_message_);
 }
 
 bool VidaRosNode::setTimestamp(builtin_interfaces__msg__Time &timestamp, int64_t local_time_us)

@@ -51,6 +51,8 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `TASK_WDT_TIMEOUT_S` | 5 | Watchdog do ESP-IDF (vigia o supervisor) |
 | `BENCH_MODE_REQUEST_TIMEOUT_MS` | 1000 | Sem pedido recente, sai do modo bancada |
 | `BENCH_MODE_MAX_SPEED_M_S` | 4,0 | Velocidade máxima em modo bancada |
+| `MANEUVER_BRAKE_REQUEST` | −0,5 | `brake_command` abaixo disso pede o modo manobra (freio solto) |
+| `MANEUVER_MAX_SPEED_M_S` | 1,0 m/s | Acima disso o modo manobra é cancelado |
 
 ## Sensor de esterçamento → [SteeringSensor](../sensors/SteeringSensor.md)
 
@@ -92,7 +94,7 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 |---|---|---|
 | `BRAKE_SERVO_FREQUENCY_HZ` / `BRAKE_SERVO_RESOLUTION_BITS` | 50 / 16 | PWM do servo |
 | `BRAKE_CALIBRATED` | 1 | `0` desliga os pulsos (freio inoperante) |
-| `BRAKE_RELEASED_US` / `BRAKE_APPLIED_US` | 2500 / 1500 | Pulso do freio solto / total |
+| `BRAKE_RELEASED_US` / `BRAKE_APPLIED_US` | 2500 / 1450 | Pulso do freio solto / total |
 | `BRAKE_HOLD_US` | 1600 | Pulso máximo com o veículo parado |
 | `BRAKE_HOLD_CONFIRMATION_MS` | 1000 | Tempo parado antes do alívio |
 | `BRAKE_FAULT_RATE_PER_S` | 1,0 | Velocidade da rampa de falha |
@@ -117,7 +119,7 @@ As constantes `STEERING_POS_*`/`STEERING_VEL_*` comentadas são do controlador e
 
 | Parâmetro | Valor | Descrição |
 |---|---|---|
-| `DRIVE_MAX_TARGET_SPEED_M_S` | 2,0 m/s | Limite da referência (primeiros ensaios no chão) |
+| `DRIVE_MAX_TARGET_SPEED_M_S` | 2,5 m/s | Limite da referência (ensaios no chão) |
 | `DRIVE_DEFAULT_MAX_ACCEL_M_S2` | 0,4 m/s² | Rampa de subida quando `acceleration_m_s2` = 0 |
 | `DRIVE_MAX_ACCEL_M_S2` | 0,8 m/s² | Teto da rampa de subida |
 | `DRIVE_MAX_DECEL_M_S2` | 1,0 m/s² | Rampa de descida |

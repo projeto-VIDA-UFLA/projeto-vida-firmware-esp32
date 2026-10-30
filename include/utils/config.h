@@ -120,6 +120,18 @@
 // zona morta, entao 1 m/s nao da para manter na bancada (teste de 29/10).
 #define BENCH_MODE_MAX_SPEED_M_S 4.0f
 
+// Modo manobra (empurrar o veiculo a mao): freio solto e tracao bloqueada.
+// Pedido pelo gamepad (L1 por 3 s) com DriveReference.brake_command <=
+// MANEUVER_BRAKE_REQUEST. Funciona tambem com o enable fisico desligado, mas:
+// - so entra com o veiculo parado e o gamepad vivo (enable logico true);
+// - desligar o enable fisico (emergencia) cancela; para soltar de novo o
+//   pedido precisa ser desfeito e refeito;
+// - passar de MANEUVER_MAX_SPEED_M_S (rolando sozinho) cancela;
+// - sem referencia de velocidade recente (DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS)
+//   ou sem enable logico, cancela.
+#define MANEUVER_BRAKE_REQUEST -0.5f
+#define MANEUVER_MAX_SPEED_M_S 1.0f
+
 // ============================================================
 // Sensor de estercamento
 // ============================================================
@@ -230,12 +242,13 @@
 #define BRAKE_CALIBRATED 1
 
 // Largura de pulso para freio solto e freio total, medidas no veiculo.
-// O pulso diminui para frear: o servo puxa o cabo no sentido de 2500 -> 1500.
+// O pulso diminui para frear: o servo puxa o cabo no sentido de 2500 -> 1450.
 // 30/10: freio fraco no chao (0,36 m/s2 na descida); sem ferramenta para
-// esticar o cabo, o freio total desce em passos de 100 us (1600 -> 1500),
-// conferindo a cada teste se o servo aguenta. O antigo total virou o HOLD.
+// esticar o cabo, o freio total desce em passos (1600 -> 1500 -> 1450),
+// conferindo a cada teste se o servo aguenta (sem aquecer nem zumbir em
+// 1500). O antigo total (1600) virou o HOLD.
 #define BRAKE_RELEASED_US 2500
-#define BRAKE_APPLIED_US 1500
+#define BRAKE_APPLIED_US 1450
 
 // Com o veiculo parado o servo puxa no maximo ate este pulso, para nao forcar
 // o servo mantendo o freio. Deve ficar entre BRAKE_RELEASED_US e
@@ -311,9 +324,10 @@
 
 // Referencia: DriveReference.velocity_m_s em m/s (sem re: negativo vira 0),
 // limitada e passada por uma rampa de aceleracao/desaceleracao.
-// 2 m/s nos primeiros ensaios no chao (30/10); subir para 3 m/s depois de
-// medir a distancia de frenagem.
-#define DRIVE_MAX_TARGET_SPEED_M_S 2.0f
+// 30/10: 2 m/s nos primeiros ensaios no chao; 2,5 m/s em seguida, para ficar
+// acima da velocidade minima da controladora (~2 m/s com PWM 20). Subir para
+// 3 m/s so depois de medir a frenagem no plano (o freio e fraco em descida).
+#define DRIVE_MAX_TARGET_SPEED_M_S 2.5f
 // Rampa de subida quando DriveReference.acceleration_m_s2 = 0.
 #define DRIVE_DEFAULT_MAX_ACCEL_M_S2 0.4f
 // Teto da rampa de subida pedida pelo ROS.

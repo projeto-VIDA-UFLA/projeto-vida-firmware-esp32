@@ -83,7 +83,21 @@ Na bancada:
 |---|---|---|
 | Velocidade realimentada ([VehicleMotion](../sensors/VehicleMotion.md)) | média das dianteiras | encoder traseiro |
 | Condição 10 (encoders discordantes) | ativa | desligada |
-| Velocidade máxima ([DriveController](../control/DriveController.md)) | 3 m/s | `BENCH_MODE_MAX_SPEED_M_S` = 3 m/s |
+| Velocidade máxima ([DriveController](../control/DriveController.md)) | 2,5 m/s | `BENCH_MODE_MAX_SPEED_M_S` = 4 m/s |
+
+### Modo manobra
+
+Freio solto para empurrar o veículo à mão, pedido pelo gamepad (L1 por 3 s) com `DriveReference.brake_command ≤ −0,5` (`MANEUVER_BRAKE_REQUEST`). Publicado em `/vida/safety/maneuver`. Funciona também com o enable físico desligado, com estas regras:
+
+| Regra | Efeito |
+|---|---|
+| Entrada | só com o veículo parado (3 encoders) e o enable lógico `true` (gamepad vivo) |
+| Enable físico desligado durante a manobra | cancela (emergência); para soltar de novo o pedido precisa ser desfeito e refeito |
+| Velocidade > `MANEUVER_MAX_SPEED_M_S` (1 m/s) | cancela (veículo rolando sozinho) |
+| Pedido sem referência recente (200 ms) ou enable lógico perdido | cancela |
+| Supervisor de tasks disparado ou emergência retida | o [ActuatorManager](../actuators/ActuatorManager.md) ignora o pedido |
+
+Durante a manobra o [ActuatorManager](../actuators/ActuatorManager.md) mantém o freio solto e a tração parada; o esterçamento só atua com movimento permitido. Ao sair, o freio volta a total imediatamente.
 
 ### Heartbeat da TaskSensors
 

@@ -58,6 +58,8 @@ flowchart TB
     CUT -- não --> DC["3. DriveMotor.setCommand(tração, velocidade)"]
 ```
 
+**Modo manobra** (`setManeuverBrakeRelease(true)`, decidido pelo [SafetyManager](../safety/SafetyManager.md)): antes da verificação acima, a tração é parada e o freio fica solto (`setCommand(0)`), com ou sem permissão de movimento; o esterçamento só atua com comando válido e permissão. `stop()` também mantém o freio solto nesse modo. Ignorado com o supervisor disparado ou emergência retida; ao sair, o freio vai a total na hora.
+
 A idade máxima do comando é `CONTROL_OUTPUT_WATCHDOG_TIMEOUT_MS` (20 ms). `drive_velocity` vem do [VehicleMotion](../sensors/VehicleMotion.md) e autoriza a troca de sentido no [DriveMotor](DriveMotor.md).
 
 ## Parâmetros (`config.h`)
