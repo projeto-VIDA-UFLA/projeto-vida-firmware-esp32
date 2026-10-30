@@ -114,7 +114,7 @@
 #define BENCH_MODE_REQUEST_TIMEOUT_MS 1000
 // 3 m/s: com a roda em vazio a controladora ja passa de 2 m/s logo acima da
 // zona morta, entao 1 m/s nao da para manter na bancada (teste de 29/10).
-#define BENCH_MODE_MAX_SPEED_M_S 3.0f
+#define BENCH_MODE_MAX_SPEED_M_S 4.0f
 
 // ============================================================
 // Sensor de estercamento
