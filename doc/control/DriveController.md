@@ -109,6 +109,7 @@ Simulação com essa planta, os 28 ms do estimador e um freio suposto de 3 m/s²
 | `DRIVE_MAX_ACCEL_M_S2` | 0,8 m/s² | Teto da rampa de subida |
 | `DRIVE_MAX_DECEL_M_S2` | 1,0 m/s² | Rampa de descida |
 | `DRIVE_VEL_KP` / `DRIVE_VEL_KI` | 0,10 / 0,025 | Ganhos do PI |
+| `DRIVE_BENCH_VEL_KP` / `DRIVE_BENCH_VEL_KI` | 0,008 / 0,008 | Ganhos do PI em modo bancada (roda em vazio) |
 | `DRIVE_CONTROL_MAX_DT_S` | 0,1 s | `dt` máximo antes de resetar |
 | `DRIVE_MAX_TRACTION_COMMAND` | 0,15 | Tração máxima (PWM 38) |
 | `DRIVE_TRACTION_DEADZONE_COMMAND` | 0,08 | Zona morta da controladora (PWM 20): início da tração |

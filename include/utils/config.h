@@ -314,6 +314,14 @@
 // Ajustar em ensaio.
 #define DRIVE_VEL_KP 0.10f
 #define DRIVE_VEL_KI 0.025f
+
+// Ganhos do modo bancada: a roda em vazio e outra planta. Bag de 29/10:
+// tau ~1 s (roda livre), atraso ~0,25 s (filtro RC + controladora), ganho
+// ~1 m/s por passo de PWM (~7x a 30x o do chao). SIMC com tau_c = atraso:
+// Kp = tau / (K (tau_c + L)) ~ 0,008, Ki = Kp / tau ~ 0,008. Com 1 passo de
+// PWM ~ 1 m/s, sobra uma oscilacao de ~0,5 m/s (resolucao de 8 bits).
+#define DRIVE_BENCH_VEL_KP 0.008f
+#define DRIVE_BENCH_VEL_KI 0.008f
 // dt acima disto (task atrasada) reseta o controlador.
 #define DRIVE_CONTROL_MAX_DT_S 0.1f
 

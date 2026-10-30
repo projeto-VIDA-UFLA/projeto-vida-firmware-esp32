@@ -49,7 +49,7 @@ Versões em teste:
 - [ ] **1.7 Gamepad perdido:** desligar o controle → referências a zero, freio
   total, enable lógico cai. Com o controle ligado, nenhuma queda falsa
   (timeout de 250 ms).
-- [ ] **1.8 Modo bancada:**
+- [x] **1.8 Modo bancada:**
   - X por 5 s com as rodas paradas → vibração contínua e
     `/vida/safety/bench_mode` true;
   - O por 5 s → sai, com 3 pulsos;
@@ -58,7 +58,7 @@ Versões em teste:
   - R2 → a roda traseira gira e a velocidade M/T acompanha a referência;
   - L2 → freio total;
   - soltar o R2 → para e segura com o freio de parada.
-- [ ] **1.10 Encoders discordantes** (fora do modo bancada): um pouco de R2 com a
+- [x] **1.10 Encoders discordantes** (fora do modo bancada): um pouco de R2 com a
   traseira suspensa → flag 4096, que fica travada. Rearmar: desligar e
   religar o enable físico.
 - [ ] **1.11 Sem falsos positivos:** durante toda a bancada, nenhuma flag 512

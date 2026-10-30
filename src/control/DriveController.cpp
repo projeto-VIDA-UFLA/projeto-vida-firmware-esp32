@@ -161,7 +161,9 @@ DriveController::Output DriveController::update(
     }
 
     const float error_m_s = target_velocity_m_s_ - measured_m_s;
-    output.proportional_term = DRIVE_VEL_KP * error_m_s;
+    const float kp = bench_mode ? DRIVE_BENCH_VEL_KP : DRIVE_VEL_KP;
+    const float ki = bench_mode ? DRIVE_BENCH_VEL_KI : DRIVE_VEL_KI;
+    output.proportional_term = kp * error_m_s;
 
     // Na bancada a roda gira em vazio e passa da referencia com facilidade: o PI
     // so corta a tracao (roda livre), sem freio automatico. L2 e parada freiam.
@@ -170,7 +172,7 @@ DriveController::Output DriveController::update(
     // Anti-windup condicional: rejeita a integracao que aprofundaria uma
     // saturacao (tracao maxima ou freio total) na mesma direcao.
     const float candidate_integral =
-        clampFloat(integral_term_ + DRIVE_VEL_KI * error_m_s * dt_s,
+        clampFloat(integral_term_ + ki * error_m_s * dt_s,
                    min_effort, MAX_EFFORT);
     const float candidate_effort = output.proportional_term + candidate_integral;
     const bool worsens_traction_saturation =
