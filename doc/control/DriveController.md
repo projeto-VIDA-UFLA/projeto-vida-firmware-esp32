@@ -16,7 +16,7 @@ Controle **longitudinal de velocidade** em malha fechada. Recebe a velocidade de
 
 | Método | Descrição |
 |---|---|
-| `update(reference, vehicle_speed, motion_permitted, bench_mode)` | Calcula tração e freio de um ciclo; em modo bancada a referência é limitada a 1 m/s, e a troca de modo reinicia o controlador |
+| `update(reference, vehicle_speed, motion_permitted, bench_mode)` | Calcula tração e freio de um ciclo; em modo bancada a referência é limitada a 1 m/s, o PI não freia (só corta a tração) e a troca de modo reinicia o controlador |
 | `reset()` | Zera a integral; a rampa recomeça na velocidade medida |
 
 ### Output
@@ -61,9 +61,11 @@ Ordem de decisão em cada ciclo:
 
    | Esforço | Tração | Freio |
    |---|---|---|
-   | > 0 | esforço (até 0,15 = PWM 38) | 0 |
+   | > 0 | 0,08 + esforço (PWM 20 a 38) | 0 |
    | entre −0,02 e 0 | 0 | 0 (roda livre) |
    | < −0,02 | 0 | `0,2 + 0,8 × min(1, (−esforço − 0,02) × 3)` |
+
+   A tração começa em 0,08 (PWM 20) para compensar a zona morta da controladora da scooter, que não liga o motor abaixo de ~PWM 20; o esforço útil vai de 0 a 0,07. Em modo bancada o esforço não fica negativo: acima da referência a roda segue livre, sem freio automático.
 
    A posição mínima de freio (0,2) compensa a folga do cabo e fica acima de `BRAKE_DRIVE_CUTOFF`: com freio, a tração é sempre cortada.
 
@@ -109,6 +111,7 @@ Simulação com essa planta, os 28 ms do estimador e um freio suposto de 3 m/s²
 | `DRIVE_VEL_KP` / `DRIVE_VEL_KI` | 0,10 / 0,025 | Ganhos do PI |
 | `DRIVE_CONTROL_MAX_DT_S` | 0,1 s | `dt` máximo antes de resetar |
 | `DRIVE_MAX_TRACTION_COMMAND` | 0,15 | Tração máxima (PWM 38) |
+| `DRIVE_TRACTION_DEADZONE_COMMAND` | 0,08 | Zona morta da controladora (PWM 20): início da tração |
 | `DRIVE_BRAKE_COAST_BAND` | 0,02 | Faixa de roda livre |
 | `DRIVE_BRAKE_EFFORT_GAIN` | 3,0 | Escala esforço → freio |
 | `DRIVE_BRAKE_ENGAGE_POSITION` | 0,2 | Posição em que o freio começa a agir |
@@ -129,6 +132,6 @@ O nó `control_pkg/gamepad_reader` (notebook) publica:
 ## Pontos de atenção
 
 - **Freio sem calibração:** `DRIVE_BRAKE_ENGAGE_POSITION` (folga do cabo) e `DRIVE_BRAKE_EFFORT_GAIN` (eficácia do freio) são estimativas. Calibrar com um ensaio a velocidade constante, aplicando posições fixas de freio e medindo a desaceleração.
-- **Ganhos provisórios:** o modelo da planta é de baixa precisão e cobre só PWM de 0 a 38. Ajustar em ensaio, começando com degraus de 0,5 → 1,0 m/s em trecho plano.
+- **Ganhos provisórios:** o modelo da planta é de baixa precisão, cobre só PWM de 0 a 38 e não considerava a zona morta de ~PWM 20 da controladora (vista na bancada de 29/10). Ajustar em ensaio, começando com degraus de 0,5 → 1,0 m/s em trecho plano.
 - **Sem compensação de curva:** em curva a média das rodas dianteiras fica ~1/cos δ acima da velocidade do eixo traseiro (6% a 20°).
 - A tração máxima continua limitada a PWM 38, valor dos testes anteriores. Pelo ganho identificado, 3 m/s em plano precisam de ~PWM 20; em subida pode faltar tração.

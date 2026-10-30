@@ -1,8 +1,4 @@
 #include "sensors/EncoderReader.h"
-#include "utils/config.h"
-
-#include "esp_timer.h"
-#include <cmath>
 
 // ============================================================
 // Construtor
@@ -289,10 +285,8 @@ void EncoderReader::update()
  */
 float EncoderReader::estimateVelocity(int64_t count, int64_t edge_us, int64_t now_us)
 {
-    constexpr int64_t window_us =
-        static_cast<int64_t>(ENCODER_VELOCITY_WINDOW_MS) * 1000LL;
-    constexpr int64_t zero_velocity_us =
-        static_cast<int64_t>(ENCODER_ZERO_VELOCITY_TIMEOUT_MS) * 1000LL;
+    constexpr int64_t window_us = static_cast<int64_t>(ENCODER_VELOCITY_WINDOW_MS) * 1000LL;
+    constexpr int64_t zero_velocity_us = static_cast<int64_t>(ENCODER_ZERO_VELOCITY_TIMEOUT_MS) * 1000LL;
 
     const int64_t since_edge_us = now_us - edge_us;
 
@@ -345,7 +339,6 @@ float EncoderReader::estimateVelocity(int64_t count, int64_t edge_us, int64_t no
 
     return velocity;
 }
-
 
 /**
  * @brief Retorna o delta de ticks e zera o acumulador.

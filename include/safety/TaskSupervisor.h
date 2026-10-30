@@ -1,6 +1,9 @@
 #pragma once
 
 #include <Arduino.h>
+
+#include "esp_task_wdt.h"
+#include "utils/config.h"
 #include "esp_timer.h"
 
 #include "actuators/ActuatorManager.h"

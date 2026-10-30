@@ -10,11 +10,16 @@ namespace
     // Esforco minimo: freio total.
     constexpr float MIN_EFFORT =
         -(DRIVE_BRAKE_COAST_BAND + 1.0f / DRIVE_BRAKE_EFFORT_GAIN);
-    constexpr float MAX_EFFORT = DRIVE_MAX_TRACTION_COMMAND;
+    // Esforco maximo: acima da zona morta ate o teto de tracao.
+    constexpr float MAX_EFFORT =
+        DRIVE_MAX_TRACTION_COMMAND - DRIVE_TRACTION_DEADZONE_COMMAND;
 
     static_assert(DRIVE_MAX_TRACTION_COMMAND > 0.0f &&
                       DRIVE_MAX_TRACTION_COMMAND <= 1.0f,
                   "DRIVE_MAX_TRACTION_COMMAND deve estar em (0, 1]");
+    static_assert(DRIVE_TRACTION_DEADZONE_COMMAND >= 0.0f &&
+                      DRIVE_TRACTION_DEADZONE_COMMAND < DRIVE_MAX_TRACTION_COMMAND,
+                  "DRIVE_TRACTION_DEADZONE_COMMAND deve estar em [0, DRIVE_MAX_TRACTION_COMMAND)");
     static_assert(DRIVE_BRAKE_EFFORT_GAIN > 0.0f,
                   "DRIVE_BRAKE_EFFORT_GAIN deve ser positivo");
     static_assert(DRIVE_BRAKE_ENGAGE_POSITION >= 0.0f &&
@@ -156,16 +161,20 @@ DriveController::Output DriveController::update(
     const float error_m_s = target_velocity_m_s_ - measured_m_s;
     output.proportional_term = DRIVE_VEL_KP * error_m_s;
 
+    // Na bancada a roda gira em vazio e passa da referencia com facilidade: o PI
+    // so corta a tracao (roda livre), sem freio automatico. L2 e parada freiam.
+    const float min_effort = bench_mode ? 0.0f : MIN_EFFORT;
+
     // Anti-windup condicional: rejeita a integracao que aprofundaria uma
     // saturacao (tracao maxima ou freio total) na mesma direcao.
     const float candidate_integral =
         clampFloat(integral_term_ + DRIVE_VEL_KI * error_m_s * dt_s,
-                   MIN_EFFORT, MAX_EFFORT);
+                   min_effort, MAX_EFFORT);
     const float candidate_effort = output.proportional_term + candidate_integral;
     const bool worsens_traction_saturation =
         candidate_effort > MAX_EFFORT && candidate_integral > integral_term_;
     const bool worsens_brake_saturation =
-        candidate_effort < MIN_EFFORT && candidate_integral < integral_term_;
+        candidate_effort < min_effort && candidate_integral < integral_term_;
     if (!worsens_traction_saturation && !worsens_brake_saturation)
     {
         integral_term_ = candidate_integral;
@@ -181,8 +190,8 @@ DriveController::Output DriveController::update(
         return output;
     }
 
-    output.saturated = effort > MAX_EFFORT || effort < MIN_EFFORT;
-    output.effort = clampFloat(effort, MIN_EFFORT, MAX_EFFORT);
+    output.saturated = effort > MAX_EFFORT || effort < min_effort;
+    output.effort = clampFloat(effort, min_effort, MAX_EFFORT);
     allocateEffort(output.effort, output);
     return output;
 }
@@ -191,7 +200,7 @@ void DriveController::allocateEffort(float effort, Output &output)
 {
     if (effort > 0.0f)
     {
-        output.normalized_command = effort;
+        output.normalized_command = DRIVE_TRACTION_DEADZONE_COMMAND + effort;
         output.brake_command = 0.0f;
         return;
     }

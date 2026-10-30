@@ -32,7 +32,7 @@ class DriveController
 public:
     struct Output
     {
-        float normalized_command; // tracao [0, DRIVE_MAX_TRACTION_COMMAND]
+        float normalized_command; // tracao: 0 ou [DEADZONE, DRIVE_MAX_TRACTION_COMMAND]
         float brake_command;      // freio [0, 1]
         bool valid;
 

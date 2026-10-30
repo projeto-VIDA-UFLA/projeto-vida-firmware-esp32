@@ -319,6 +319,13 @@
 // o mesmo limite usado nos testes em malha aberta.
 #define DRIVE_MAX_TRACTION_COMMAND 0.15f
 
+// Zona morta da controladora da scooter (PWM -> filtro RC -> entrada de
+// acelerador): abaixo de ~PWM 20 o motor nao liga (bancada de 29/10: partiu
+// com PWM 22-23). Esforco de tracao > 0 vira DEADZONE + esforco, entao o PI
+// atua de PWM 20 ao teto (PWM 38) sem gastar segundos integrando ate a zona
+// morta. 0,08 * 255 = 20,4 -> PWM 20 (a conversao trunca).
+#define DRIVE_TRACTION_DEADZONE_COMMAND 0.08f
+
 // Freio automatico (esforco negativo do PI):
 // - entre -COAST_BAND e 0 o veiculo segue em roda livre (nem tracao nem freio);
 // - abaixo disso, esforco de freio = (-esforco - COAST_BAND) * EFFORT_GAIN em

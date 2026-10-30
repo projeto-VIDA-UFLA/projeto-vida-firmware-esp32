@@ -1,10 +1,4 @@
 #include "sensors/SteeringSensor.h"
-#include "utils/config.h"
-#include "utils/utils.h"
-#include "esp_timer.h"
-#include <algorithm>
-#include <cmath>
-#include <cstdlib>
 
 SteeringSensor::SteeringSensor(uint8_t adc_pin)
     : adc_pin_(adc_pin),
@@ -70,6 +64,7 @@ void SteeringSensor::update()
         filtered_angle_deg_ = raw_angle_deg;
         filter_initialized_ = true;
     }
+    
     else
     {
         filtered_angle_deg_ = STEERING_FILTER_ALPHA * raw_angle_deg + (1.0f - STEERING_FILTER_ALPHA) * filtered_angle_deg_;

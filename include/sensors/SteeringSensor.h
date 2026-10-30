@@ -1,5 +1,13 @@
 #pragma once
+
 #include <Arduino.h>
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+
+#include "utils/config.h"
+#include "utils/utils.h"
+#include "esp_timer.h"
 
 /**
  * Sensor de esterçamento (LVDT no ADC), lido pela TaskSensors a cada

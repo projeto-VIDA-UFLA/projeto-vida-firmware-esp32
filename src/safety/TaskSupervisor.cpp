@@ -1,7 +1,6 @@
 #include "safety/TaskSupervisor.h"
 
-#include "esp_task_wdt.h"
-#include "utils/config.h"
+
 
 namespace
 {

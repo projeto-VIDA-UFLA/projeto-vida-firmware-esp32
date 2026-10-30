@@ -26,8 +26,25 @@
   3,7 s de comando forte).
 - [x] **Supervisor de tasks** (`TaskSupervisor`): corta os atuadores se uma
   task do nucleo 1 travar.
-- [ ] Hardware: conferir pull-downs nas entradas da ponte H e do driver de
+- [x] Hardware: conferir pull-downs nas entradas da ponte H e do driver de
   tracao (durante um reset do ESP32 os pinos ficam sem sinal e o freio solta).
+
+- [ ] **Sessao micro-ROS "zumbi" apos reinicio rapido do agente** (achado no
+  teste de bancada de 29/10, item 1.1 do ROTEIRO_TESTES.md):
+  `docker compose restart micro_ros_agent` deixou o agente fora do ar so
+  0,17 s; o ESP32 so detecta a queda apos 3 pings perdidos (~600 ms), entao
+  continua "conectado" e o agente novo descarta tudo (ESP32 fica bloqueado
+  ate o reset). Mesmo risco se o Docker reiniciar o agente sozinho.
+  Proposta: em `AgentConnected`, se nenhuma mensagem do enable logico chegar
+  por ~2 s, ir para `AgentDisconnected` e recriar as entidades.
+
+- [ ] **Pedido do modo bancada atrasando** (teste de 29/10): o pedido sai do
+  notebook a 25 Hz sem falhas, mas no ESP32 ficou mais de 300 ms sem chegar
+  de vez em quando (o enable logico, tambem a 25 Hz, nao). O modo bancada
+  piscava e reiniciava o PI de tracao. Contornado com
+  `BENCH_MODE_REQUEST_TIMEOUT_MS` = 1 s. Investigar: contar mensagens
+  recebidas por topico no ESP32; suspeita na fila de entrada do micro-ROS
+  (`RMW_UXRCE_MAX_HISTORY` = 4 com 4 mensagens chegando juntas a cada 40 ms).
 
 ## Melhorias menores
 
@@ -51,6 +68,16 @@
 - [ ] Encoders medem ~7% mais distancia que o GPS: conferir `DRIVE_WHEEL_DIAMETER_M`,
   se as rodas dianteiras tem o mesmo diametro da traseira e se
   `ENC_*_TICKS_PER_REV` sao contagens x4 (730 nao e multiplo de 4).
+
+## Outros repositorios (navegacao)
+
+- [ ] Alto-nivel, `ros_ws/Dockerfile`: instalar `python3-scipy python3-matplotlib
+  python3-numpy`. Sem o scipy, `stanley`, `mode_manager`, `path_publisher` e
+  `path_recorder` quebram ao iniciar. Nao afeta a fase 1 (so o gamepad).
+- [ ] Alto-nivel, `docker-compose.yml`: comando para `navigation.launch.py` e
+  volume para os caminhos gravados (fases 3.5 e 4).
+- [ ] `robot_state_ekf` e privado: pedir ao Danilo acesso de leitura para a
+  conta `Nucleo-LMT`, para o Odroid atualizar o submodulo sem token pessoal.
 
 ## Adiado
 

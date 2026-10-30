@@ -1,6 +1,12 @@
 #pragma once
 
 #include <Arduino.h>
+#include "esp_timer.h"
+#include <cmath>
+
+#include "utils/config.h"
+
+
 
 /**
  * Leitor de encoder incremental em quadratura (decodificacao x4).
@@ -20,11 +26,11 @@ public:
     // Medicao coerente de um mesmo update().
     struct Snapshot
     {
-        int64_t timestamp_us; // instante do update() (esp_timer)
-        int64_t count;        // ticks acumulados
-        float raw_velocity_m_s;          // M/T, atualizada a cada janela
-        float filtered_velocity_m_s;     // DRIVE_VELOCITY_FILTER_ALPHA
-        float raw_acceleration_m_s2;     // derivada da velocidade filtrada
+        int64_t timestamp_us;             // instante do update() (esp_timer)
+        int64_t count;                    // ticks acumulados
+        float raw_velocity_m_s;           // M/T, atualizada a cada janela
+        float filtered_velocity_m_s;      // DRIVE_VELOCITY_FILTER_ALPHA
+        float raw_acceleration_m_s2;      // derivada da velocidade filtrada
         float filtered_acceleration_m_s2; // DRIVE_ACCEL_FILTER_ALPHA
     };
 
@@ -44,9 +50,9 @@ public:
     void update(); // Atualiza velocidade e aceleração
 
     Snapshot getMeasurementSnapshot(); // Dados do mesmo ciclo de calculo.
-    long getAndResetDelta();                                 // Retorna o delta de ticks e zera o acumulador
-    long getCount();                                         // Retorna a contagem total de ticks
-    void reset();                                            // Zera contadores e estados internos
+    long getAndResetDelta();           // Retorna o delta de ticks e zera o acumulador
+    long getCount();                   // Retorna a contagem total de ticks
+    void reset();                      // Zera contadores e estados internos
 
     float getRawVelocity() const;     // Retorna velocidade bruta em m/s
     float getVelocity() const;        // Retorna velocidade filtrada em m/s
@@ -81,9 +87,9 @@ private:
     int64_t measurement_timestamp_us_;
 
     // Janela do metodo M/T
-    bool window_active_;      // false: parado, espera a proxima borda
-    int64_t window_count_;    // contagem na borda que abriu a janela
-    int64_t window_edge_us_;  // instante dessa borda
+    bool window_active_;     // false: parado, espera a proxima borda
+    int64_t window_count_;   // contagem na borda que abriu a janela
+    int64_t window_edge_us_; // instante dessa borda
     int64_t measurement_count_;
 
     // Proteção para acesso entre ISR e task
@@ -94,7 +100,7 @@ private:
     float ticksToDistance(int64_t ticks) const; // Converte ticks em distância
 
     float calculateVelocity(int64_t delta_ticks, float dt) const;                                 // Calcula velocidade
-    float estimateVelocity(int64_t count, int64_t edge_us, int64_t now_us);                     // Velocidade M/T
+    float estimateVelocity(int64_t count, int64_t edge_us, int64_t now_us);                       // Velocidade M/T
     float calculateAcceleration(float current_velocity, float previous_velocity, float dt) const; // Calcula aceleração
 
     float applyLowPassFilter(float raw_value, float filtered_value, float alpha) const; // Aplica filtro passa-baixa
