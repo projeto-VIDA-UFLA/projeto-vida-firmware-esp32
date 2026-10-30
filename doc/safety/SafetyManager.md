@@ -68,7 +68,7 @@ Permite testar o controle de velocidade com o veículo **suspenso**, onde só a 
 stateDiagram-v2
     [*] --> Normal: boot
     Normal --> Bancada: pedido true e veículo parado
-    Bancada --> Normal: pedido false ou sem pedido há 300 ms
+    Bancada --> Normal: pedido false ou sem pedido há 1 s
 ```
 
 - **Pedido:** `/vida/safety/bench_mode_request` (`std_msgs/Bool`), publicado pelo gamepad: segurar **X por 5 s** para entrar e **O por 5 s** para sair.

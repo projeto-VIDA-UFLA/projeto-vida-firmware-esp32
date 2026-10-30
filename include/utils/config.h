@@ -107,7 +107,11 @@
 // inicia em modo normal. Na bancada: velocidade realimentada pelo encoder
 // traseiro, verificacao de encoders discordantes desligada e velocidade
 // maxima reduzida.
-#define BENCH_MODE_REQUEST_TIMEOUT_MS 300
+// O pedido chega a 25 Hz. No teste de 29/10 ele atrasou mais de 300 ms de vez
+// em quando entre o agente e o ESP32 (o enable logico nao), e o modo bancada
+// piscava; 1 s tolera isso. Perder o gamepad continua bloqueando o veiculo
+// pelo enable logico (LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS).
+#define BENCH_MODE_REQUEST_TIMEOUT_MS 1000
 #define BENCH_MODE_MAX_SPEED_M_S 1.0f
 
 // ============================================================
