@@ -30,6 +30,8 @@ Versões em teste:
 - [ ] **1.1 micro-ROS:** o agente conecta e os tópicos aparecem:
   `ros2 topic hz /vida/sensors/encoders`, `/vida/sensors/steering`,
   `/vida/safety/status`. Reiniciar o agente: o ESP32 reconecta sozinho.
+  *29/10: taxas OK (~50 Hz). Reconexão FALHOU com reinício rápido do agente
+  (0,17 s fora do ar): sessão "zumbi", só volta com reset. Ver TODO.md.*
 - [x] **1.2 Freio no boot:** ao ligar o ESP32, o freio aplica antes de qualquer
   outra coisa.
 - [x] **1.3 Bloqueios de segurança** (`inhibit_flags` em `/vida/safety/status`):
@@ -58,6 +60,12 @@ Versões em teste:
   - R2 → a roda traseira gira e a velocidade M/T acompanha a referência;
   - L2 → freio total;
   - soltar o R2 → para e segura com o freio de parada.
+  *29/10: achados e correções no firmware: corrida entre núcleos derrubava o
+  modo bancada (corrigido); zona morta da controladora ~PWM 20-23
+  (compensação: tração começa em PWM 21); atraso de ~0,25 s entre PWM e roda;
+  em vazio a roda não gira abaixo de ~3 m/s (PWM 20); ganhos próprios da
+  bancada (Kp = Ki = 0,008); sem freio automático na bancada; sem tração
+  desacelerando. PlotJuggler aberto atrapalha o ESP32 (ver TODO.md).*
 - [x] **1.10 Encoders discordantes** (fora do modo bancada): um pouco de R2 com a
   traseira suspensa → flag 4096, que fica travada. Rearmar: desligar e
   religar o enable físico.
@@ -76,22 +84,52 @@ Versões em teste:
   - `stationary: true` e bias do giroscópio estável (`/robot_state/gyro_bias`);
   - parado por 2 minutos, o rumo não deriva.
 
-## Fase 3 - No chão, modo manual, área aberta e devagar
+## Fase 3 - No chão, modo manual, na pista
 
-- [ ] **3.1 Controle de velocidade:**
-  - degraus de 0,5 → 1,0 m/s pelo R2: sobressinal e erro em regime;
-  - parada com o freio de parada; L2 em movimento.
-- [ ] **3.2 Escala dos encoders:** reta medida de 20 m; comparar a distância dos
+Antes de sair:
+- gravar o firmware mais recente (zona morta 21, sem tração desacelerando);
+- velocidade máxima do R2: hoje o container do notebook está com 3 m/s (teste
+  de bancada). Para as primeiras voltas, sugestão: 2 m/s
+  (`docker exec ros_ws sed -i 's/max_speed_m_s: .*/max_speed_m_s: 2.0/'
+  /vida_ws/install/control_pkg/share/control_pkg/config/gamepad.yaml && docker restart ros_ws`).
+  Volta ao original (1 m/s) com `docker compose up -d --force-recreate`;
+- **sem PlotJuggler aberto**; um bag por teste, com nome.
+
+Bag sugerido (baixo nível + GPS/EKF):
+`ros2 bag record -o pista_<teste> /vida/actuators/drive /vida/actuators/brake
+/vida/actuators/steering /vida/sensors/encoders /vida/sensors/steering
+/vida/control/drive/reference /vida/control/steering/reference
+/vida/safety/status /vida/sensors/gps/fix /vida/sensors/gps/status
+/vida/sensors/imu/data_raw /robot_state/odom /robot_state/status /gamepad/joy`
+
+- [ ] **3.1 Velocidade mínima contínua** (o que define a velocidade do
+  automático): reta plana, R2 só um pouco (~0,5 a 1 m/s pedido); o PI vai
+  encostar em PWM 21-22. Anotar a velocidade estável das rodas dianteiras e se
+  a controladora corta (trancos). Repetir no sentido contrário da reta.
+- [ ] **3.2 Controle de velocidade:** R2 em patamares de ~10 s (1,5 → 2,0 →
+  2,5 m/s, conforme a mínima do 3.1): sobressinal, erro em regime, trancos;
+  PWM alternando 0/21 = PI na borda da zona morta.
+- [ ] **3.3 Parada e frenagem:** soltar o R2 a 2 e a 2,5 m/s (freio de parada,
+  sem tranco depois de soltar); L2 a 2 e a 2,5 m/s → **distância de parada**
+  (marcar no chão ou pelo GPS). Define a margem dos abortos do automático.
+- [ ] **3.4 Raio de giro:** círculo devagar com o analógico no fundo para cada
+  lado; medir o diâmetro (trena ou GPS). Atenção: o gamepad limita a ±15°
+  (o firmware aceita ±20°): o raio a 20° sai do entre-eixos efetivo medido a
+  15°. Confirma (ou não) o raio mínimo de 3,8 m usado nos caminhos.
+- [ ] **3.5 Escala dos encoders:** reta medida de 20 m; comparar a distância dos
   encoders com a do GPS (hoje os encoders medem ~7% a mais) e calibrar
   `DRIVE_WHEEL_DIAMETER_M`.
-- [ ] **3.3 Raio de giro:** círculo com esterçamento máximo; medir o diâmetro →
-  entre-eixos efetivo; confirma o raio mínimo de 3,8 m usado nos caminhos.
-- [ ] **3.4 EKF andando:** depois de 2 m com RTK FIXED → RUNNING com heading do
+- [ ] **3.6 Plausibilidades sem falsos positivos:** em todas as voltas, nenhuma
+  flag 512, 1024, 4096 ou 8192 em `/vida/safety/status`.
+- [ ] **3.7 EKF andando:** depois de 2 m com RTK FIXED → RUNNING com heading do
   GPS; `/robot_state/odom` suave.
-- [ ] **3.5 Gravar caminhos** (`path_recorder`): uma reta de ~20 m e uma volta no
+- [ ] **3.8 Gravar caminhos** (`path_recorder`): uma reta de ~20 m e uma volta no
   traçado; passar as duas por `path_tools from-recording`.
   *Antes: corrigir o Dockerfile (scipy) e o docker-compose do notebook, ver
   TODO.md.*
+- [ ] **3.9 Velocidade do automático:** com a mínima do 3.1 e a distância de
+  parada do 3.3, decidir a velocidade do modo automático (planejado 1 m/s;
+  provável 2 a 2,5 m/s) e revalidar Stanley e manobra no simulador.
 
 ## Fase 4 - Modo automático, aumentando aos poucos
 

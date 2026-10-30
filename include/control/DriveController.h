@@ -32,7 +32,7 @@ class DriveController
 public:
     struct Output
     {
-        float normalized_command; // tracao: 0 ou [DEADZONE, DRIVE_MAX_TRACTION_COMMAND]
+        float normalized_command; // tracao: 0 ou [offset, DRIVE_MAX_TRACTION_COMMAND]
         float brake_command;      // freio [0, 1]
         bool valid;
 
@@ -60,12 +60,13 @@ public:
     void reset();
 
 private:
-    // Converte o esforco do PI em tracao e freio.
-    static void allocateEffort(float effort, Output &output);
+    // Converte o esforco do PI em tracao (offset + esforco) e freio.
+    static void allocateEffort(float effort, float traction_offset, Output &output);
 
     float integral_term_;
     float target_velocity_m_s_;
     bool target_initialized_;
     bool bench_mode_;
+    float traction_offset_; // compensacao da zona morta em uso
     int64_t previous_update_us_;
 };

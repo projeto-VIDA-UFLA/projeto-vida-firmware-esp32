@@ -337,6 +337,15 @@
 // segundos integrando ate a zona morta. 0,084 * 255 = 21,4 -> PWM 21.
 #define DRIVE_TRACTION_DEADZONE_COMMAND 0.084f
 
+// Em movimento (velocidade medida acima de MOVING_SPEED) a compensacao passa a
+// RUNNING_DEADZONE: a controladora parece manter a roda girando com menos
+// acelerador do que precisa para partir (girando segurou com PWM 20; parada so
+// partiu com 22-23). EXPERIMENTO de 29/10: 0 deixa o PI livre para descer ate
+// PWM 0 e mostrar no bag onde a controladora realmente corta. A troca e sem
+// degrau (a integral absorve a diferenca).
+#define DRIVE_TRACTION_RUNNING_DEADZONE_COMMAND 0.0f
+#define DRIVE_TRACTION_MOVING_SPEED_M_S 0.3f
+
 // Desacelerando (referencia pedida abaixo da rampa por mais que isto), o PI
 // nao traciona: so roda livre ou freio. Sem isso, ao soltar o R2 a 3 m/s a
 // rampa de descida ainda pedia tracao e a controladora religava com tranco.

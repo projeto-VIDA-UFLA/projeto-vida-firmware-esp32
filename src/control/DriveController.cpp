@@ -10,9 +10,6 @@ namespace
     // Esforco minimo: freio total.
     constexpr float MIN_EFFORT =
         -(DRIVE_BRAKE_COAST_BAND + 1.0f / DRIVE_BRAKE_EFFORT_GAIN);
-    // Esforco maximo: acima da zona morta ate o teto de tracao.
-    constexpr float MAX_EFFORT =
-        DRIVE_MAX_TRACTION_COMMAND - DRIVE_TRACTION_DEADZONE_COMMAND;
 
     static_assert(DRIVE_MAX_TRACTION_COMMAND > 0.0f &&
                       DRIVE_MAX_TRACTION_COMMAND <= 1.0f,
@@ -20,6 +17,9 @@ namespace
     static_assert(DRIVE_TRACTION_DEADZONE_COMMAND >= 0.0f &&
                       DRIVE_TRACTION_DEADZONE_COMMAND < DRIVE_MAX_TRACTION_COMMAND,
                   "DRIVE_TRACTION_DEADZONE_COMMAND deve estar em [0, DRIVE_MAX_TRACTION_COMMAND)");
+    static_assert(DRIVE_TRACTION_RUNNING_DEADZONE_COMMAND >= 0.0f &&
+                      DRIVE_TRACTION_RUNNING_DEADZONE_COMMAND <= DRIVE_TRACTION_DEADZONE_COMMAND,
+                  "DRIVE_TRACTION_RUNNING_DEADZONE_COMMAND deve estar em [0, DRIVE_TRACTION_DEADZONE_COMMAND]");
     static_assert(DRIVE_BRAKE_EFFORT_GAIN > 0.0f,
                   "DRIVE_BRAKE_EFFORT_GAIN deve ser positivo");
     static_assert(DRIVE_BRAKE_ENGAGE_POSITION >= 0.0f &&
@@ -43,6 +43,7 @@ DriveController::DriveController()
       target_velocity_m_s_(0.0f),
       target_initialized_(false),
       bench_mode_(false),
+      traction_offset_(DRIVE_TRACTION_DEADZONE_COMMAND),
       previous_update_us_(0)
 {
 }
@@ -170,8 +171,23 @@ DriveController::Output DriveController::update(
     // Na bancada a roda gira em vazio e passa da referencia com facilidade: o PI
     // so corta a tracao (roda livre), sem freio automatico. L2 e parada freiam.
     const float min_effort = bench_mode ? 0.0f : MIN_EFFORT;
+    // Compensacao da zona morta: parada, a controladora so parte acima de
+    // DEADZONE; em movimento, RUNNING_DEADZONE. Na troca a integral absorve a
+    // diferenca, entao a tracao aplicada nao da degrau.
+    const float traction_offset =
+        std::fabs(measured_m_s) < DRIVE_TRACTION_MOVING_SPEED_M_S
+            ? DRIVE_TRACTION_DEADZONE_COMMAND
+            : DRIVE_TRACTION_RUNNING_DEADZONE_COMMAND;
+    if (traction_offset != traction_offset_)
+    {
+        integral_term_ += traction_offset_ - traction_offset;
+        traction_offset_ = traction_offset;
+    }
+
     // Desacelerando o PI nao traciona (so roda livre ou freio).
-    const float max_effort = decelerating ? 0.0f : MAX_EFFORT;
+    const float max_effort =
+        decelerating ? 0.0f : DRIVE_MAX_TRACTION_COMMAND - traction_offset_;
+    integral_term_ = clampFloat(integral_term_, min_effort, max_effort);
 
     // Anti-windup condicional: rejeita a integracao que aprofundaria uma
     // saturacao (tracao maxima ou freio total) na mesma direcao.
@@ -200,15 +216,15 @@ DriveController::Output DriveController::update(
 
     output.saturated = effort > max_effort || effort < min_effort;
     output.effort = clampFloat(effort, min_effort, max_effort);
-    allocateEffort(output.effort, output);
+    allocateEffort(output.effort, traction_offset_, output);
     return output;
 }
 
-void DriveController::allocateEffort(float effort, Output &output)
+void DriveController::allocateEffort(float effort, float traction_offset, Output &output)
 {
     if (effort > 0.0f)
     {
-        output.normalized_command = DRIVE_TRACTION_DEADZONE_COMMAND + effort;
+        output.normalized_command = traction_offset + effort;
         output.brake_command = 0.0f;
         return;
     }
@@ -231,4 +247,5 @@ void DriveController::reset()
     integral_term_ = 0.0f;
     target_velocity_m_s_ = 0.0f;
     target_initialized_ = false;
+    traction_offset_ = DRIVE_TRACTION_DEADZONE_COMMAND;
 }

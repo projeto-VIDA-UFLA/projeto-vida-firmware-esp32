@@ -61,11 +61,11 @@ Ordem de decisão em cada ciclo:
 
    | Esforço | Tração | Freio |
    |---|---|---|
-   | > 0 | 0,084 + esforço (PWM 21 a 38) | 0 |
+   | > 0 | offset + esforço (até PWM 38) | 0 |
    | entre −0,02 e 0 | 0 | 0 (roda livre) |
    | < −0,02 | 0 | `0,2 + 0,8 × min(1, (−esforço − 0,02) × 3)` |
 
-   A tração começa em 0,084 (PWM 21) para compensar a zona morta da controladora da scooter: parada ela parte com ~PWM 23 e, girando, corta de vez em quando com PWM 20; o esforço útil vai de 0 a 0,066. Desacelerando (referência pedida mais de 0,1 m/s abaixo da rampa), o esforço não fica positivo: só roda livre ou freio. Em modo bancada o esforço não fica negativo: acima da referência a roda segue livre, sem freio automático.
+   O offset compensa a zona morta da controladora da scooter: com a roda parada (abaixo de 0,3 m/s) é 0,084 (PWM 21), porque ela só parte com ~PWM 23; em movimento é `DRIVE_TRACTION_RUNNING_DEADZONE_COMMAND` (hoje 0, experimento para ver até onde a controladora segue girando com menos acelerador). Na troca a integral absorve a diferença, sem degrau na tração. Desacelerando (referência pedida mais de 0,1 m/s abaixo da rampa), o esforço não fica positivo: só roda livre ou freio. Em modo bancada o esforço não fica negativo: acima da referência a roda segue livre, sem freio automático.
 
    A posição mínima de freio (0,2) compensa a folga do cabo e fica acima de `BRAKE_DRIVE_CUTOFF`: com freio, a tração é sempre cortada.
 
@@ -112,7 +112,9 @@ Simulação com essa planta, os 28 ms do estimador e um freio suposto de 3 m/s²
 | `DRIVE_BENCH_VEL_KP` / `DRIVE_BENCH_VEL_KI` | 0,008 / 0,008 | Ganhos do PI em modo bancada (roda em vazio) |
 | `DRIVE_CONTROL_MAX_DT_S` | 0,1 s | `dt` máximo antes de resetar |
 | `DRIVE_MAX_TRACTION_COMMAND` | 0,15 | Tração máxima (PWM 38) |
-| `DRIVE_TRACTION_DEADZONE_COMMAND` | 0,084 | Zona morta da controladora (PWM 21): início da tração |
+| `DRIVE_TRACTION_DEADZONE_COMMAND` | 0,084 | Zona morta da controladora (PWM 21): início da tração com a roda parada |
+| `DRIVE_TRACTION_RUNNING_DEADZONE_COMMAND` | 0 | Compensação em movimento (experimento) |
+| `DRIVE_TRACTION_MOVING_SPEED_M_S` | 0,3 m/s | Acima disso usa a compensação em movimento |
 | `DRIVE_DECEL_NO_TRACTION_MARGIN_M_S` | 0,1 m/s | Desacelerando além disso, sem tração |
 | `DRIVE_BRAKE_COAST_BAND` | 0,02 | Faixa de roda livre |
 | `DRIVE_BRAKE_EFFORT_GAIN` | 3,0 | Escala esforço → freio |
