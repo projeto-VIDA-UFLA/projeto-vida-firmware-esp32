@@ -330,11 +330,17 @@
 #define DRIVE_MAX_TRACTION_COMMAND 0.15f
 
 // Zona morta da controladora da scooter (PWM -> filtro RC -> entrada de
-// acelerador): abaixo de ~PWM 20 o motor nao liga (bancada de 29/10: partiu
-// com PWM 22-23). Esforco de tracao > 0 vira DEADZONE + esforco, entao o PI
-// atua de PWM 20 ao teto (PWM 38) sem gastar segundos integrando ate a zona
-// morta. 0,08 * 255 = 20,4 -> PWM 20 (a conversao trunca).
-#define DRIVE_TRACTION_DEADZONE_COMMAND 0.08f
+// acelerador). Bancada de 29/10: parada, partiu com PWM 22-23; girando,
+// segurou a roda com PWM 20, mas cortava sozinha de vez em quando (borda,
+// provavelmente flutuacao da tensao do RC). Esforco de tracao > 0 vira
+// DEADZONE + esforco: o PI atua de PWM 21 ao teto (PWM 38) sem gastar
+// segundos integrando ate a zona morta. 0,084 * 255 = 21,4 -> PWM 21.
+#define DRIVE_TRACTION_DEADZONE_COMMAND 0.084f
+
+// Desacelerando (referencia pedida abaixo da rampa por mais que isto), o PI
+// nao traciona: so roda livre ou freio. Sem isso, ao soltar o R2 a 3 m/s a
+// rampa de descida ainda pedia tracao e a controladora religava com tranco.
+#define DRIVE_DECEL_NO_TRACTION_MARGIN_M_S 0.1f
 
 // Freio automatico (esforco negativo do PI):
 // - entre -COAST_BAND e 0 o veiculo segue em roda livre (nem tracao nem freio);

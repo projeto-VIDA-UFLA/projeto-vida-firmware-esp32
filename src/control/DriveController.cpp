@@ -137,6 +137,8 @@ DriveController::Output DriveController::update(
                                      ? std::fmin(reference.acceleration_m_s2,
                                                  DRIVE_MAX_ACCEL_M_S2)
                                      : DRIVE_DEFAULT_MAX_ACCEL_M_S2;
+    const bool decelerating =
+        requested_m_s < target_velocity_m_s_ - DRIVE_DECEL_NO_TRACTION_MARGIN_M_S;
     if (requested_m_s > target_velocity_m_s_)
     {
         target_velocity_m_s_ = std::fmin(requested_m_s,
@@ -168,15 +170,17 @@ DriveController::Output DriveController::update(
     // Na bancada a roda gira em vazio e passa da referencia com facilidade: o PI
     // so corta a tracao (roda livre), sem freio automatico. L2 e parada freiam.
     const float min_effort = bench_mode ? 0.0f : MIN_EFFORT;
+    // Desacelerando o PI nao traciona (so roda livre ou freio).
+    const float max_effort = decelerating ? 0.0f : MAX_EFFORT;
 
     // Anti-windup condicional: rejeita a integracao que aprofundaria uma
     // saturacao (tracao maxima ou freio total) na mesma direcao.
     const float candidate_integral =
         clampFloat(integral_term_ + ki * error_m_s * dt_s,
-                   min_effort, MAX_EFFORT);
+                   min_effort, max_effort);
     const float candidate_effort = output.proportional_term + candidate_integral;
     const bool worsens_traction_saturation =
-        candidate_effort > MAX_EFFORT && candidate_integral > integral_term_;
+        candidate_effort > max_effort && candidate_integral > integral_term_;
     const bool worsens_brake_saturation =
         candidate_effort < min_effort && candidate_integral < integral_term_;
     if (!worsens_traction_saturation && !worsens_brake_saturation)
@@ -194,8 +198,8 @@ DriveController::Output DriveController::update(
         return output;
     }
 
-    output.saturated = effort > MAX_EFFORT || effort < min_effort;
-    output.effort = clampFloat(effort, min_effort, MAX_EFFORT);
+    output.saturated = effort > max_effort || effort < min_effort;
+    output.effort = clampFloat(effort, min_effort, max_effort);
     allocateEffort(output.effort, output);
     return output;
 }
