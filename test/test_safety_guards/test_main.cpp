@@ -176,6 +176,14 @@ namespace
                 1000LL;
         TEST_ASSERT_FALSE(
             SafetyWatchdogs::evaluate(input).steering_snapshot_fresh);
+
+        // Carimbo gravado por outro nucleo depois da leitura de now_us: fresco.
+        input = healthyWatchdogs();
+        input.sensor_task_heartbeat_us = input.now_us + 100;
+        input.steering_snapshot_us = input.now_us + 100;
+        result = SafetyWatchdogs::evaluate(input);
+        TEST_ASSERT_FALSE(result.sensor_task_timed_out);
+        TEST_ASSERT_TRUE(result.steering_snapshot_fresh);
     }
 
     void testControlOutputWatchdogAndDisabledPolicy()

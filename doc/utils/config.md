@@ -49,7 +49,7 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `TASK_SUPERVISOR_PERIOD_MS` / `TIMEOUT_MS` / `STARTUP_GRACE_MS` | 10 / 50 / 500 | [TaskSupervisor](../safety/TaskSupervisor.md) |
 | `TASK_WDT_TIMEOUT_S` | 5 | Watchdog do ESP-IDF (vigia o supervisor) |
 | `BENCH_MODE_REQUEST_TIMEOUT_MS` | 1000 | Sem pedido recente, sai do modo bancada |
-| `BENCH_MODE_MAX_SPEED_M_S` | 1,0 | Velocidade máxima em modo bancada |
+| `BENCH_MODE_MAX_SPEED_M_S` | 3,0 | Velocidade máxima em modo bancada |
 
 ## Sensor de esterçamento → [SteeringSensor](../sensors/SteeringSensor.md)
 

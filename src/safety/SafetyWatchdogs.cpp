@@ -46,7 +46,9 @@ SafetyWatchdogs::Result SafetyWatchdogs::evaluate(const Input &input)
 bool SafetyWatchdogs::isFresh(int64_t timestamp_us, int64_t now_us,
                               int64_t timeout_us)
 {
+    // Um carimbo depois de now_us e o mais recente possivel: foi gravado por
+    // outra task (outro nucleo) entre a leitura de now_us e a desta medida.
+    // Trata-lo como velho gerava bloqueios falsos de um ciclo (bancada 29/10).
     return timestamp_us > 0 &&
-           now_us >= timestamp_us &&
            (now_us - timestamp_us) <= timeout_us;
 }

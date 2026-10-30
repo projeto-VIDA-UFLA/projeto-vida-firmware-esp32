@@ -112,7 +112,9 @@
 // piscava; 1 s tolera isso. Perder o gamepad continua bloqueando o veiculo
 // pelo enable logico (LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS).
 #define BENCH_MODE_REQUEST_TIMEOUT_MS 1000
-#define BENCH_MODE_MAX_SPEED_M_S 1.0f
+// 3 m/s: com a roda em vazio a controladora ja passa de 2 m/s logo acima da
+// zona morta, entao 1 m/s nao da para manter na bancada (teste de 29/10).
+#define BENCH_MODE_MAX_SPEED_M_S 3.0f
 
 // ============================================================
 // Sensor de estercamento

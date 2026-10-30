@@ -83,7 +83,7 @@ Na bancada:
 |---|---|---|
 | Velocidade realimentada ([VehicleMotion](../sensors/VehicleMotion.md)) | média das dianteiras | encoder traseiro |
 | Condição 10 (encoders discordantes) | ativa | desligada |
-| Velocidade máxima ([DriveController](../control/DriveController.md)) | 3 m/s | `BENCH_MODE_MAX_SPEED_M_S` = 1 m/s |
+| Velocidade máxima ([DriveController](../control/DriveController.md)) | 3 m/s | `BENCH_MODE_MAX_SPEED_M_S` = 3 m/s |
 
 ### Heartbeat da TaskSensors
 

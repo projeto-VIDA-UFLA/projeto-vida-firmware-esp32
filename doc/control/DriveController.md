@@ -16,7 +16,7 @@ Controle **longitudinal de velocidade** em malha fechada. Recebe a velocidade de
 
 | Método | Descrição |
 |---|---|
-| `update(reference, vehicle_speed, motion_permitted, bench_mode)` | Calcula tração e freio de um ciclo; em modo bancada a referência é limitada a 1 m/s, o PI não freia (só corta a tração) e a troca de modo reinicia o controlador |
+| `update(reference, vehicle_speed, motion_permitted, bench_mode)` | Calcula tração e freio de um ciclo; em modo bancada a referência é limitada a 3 m/s, o PI não freia (só corta a tração) e a troca de modo reinicia o controlador |
 | `reset()` | Zera a integral; a rampa recomeça na velocidade medida |
 
 ### Output

@@ -390,9 +390,11 @@ bool SafetyManager::isFresh(bool received,
                             int64_t now_us,
                             int64_t timeout_us)
 {
+    // Um carimbo depois de now_us e o mais recente possivel: foi gravado por
+    // outra task (outro nucleo) entre a leitura de now_us e a desta medida.
+    // Trata-lo como velho gerava bloqueios falsos de um ciclo (bancada 29/10).
     return received &&
            received_at_us > 0 &&
-           now_us >= received_at_us &&
            (now_us - received_at_us) <= timeout_us;
 }
 
