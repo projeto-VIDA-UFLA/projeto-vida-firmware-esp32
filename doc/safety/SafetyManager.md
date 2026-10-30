@@ -87,7 +87,7 @@ Na bancada:
 
 ### Modo manobra
 
-Freio solto para empurrar o veículo à mão, pedido pelo gamepad (L1 por 3 s) com `DriveReference.brake_command ≤ −0,5` (`MANEUVER_BRAKE_REQUEST`). Publicado em `/vida/safety/maneuver`. Funciona também com o enable físico desligado, com estas regras:
+Freio solto para empurrar o veículo à mão, pedido pelo gamepad (R1 por 3 s) com `DriveReference.brake_command ≤ −0,5` (`MANEUVER_BRAKE_REQUEST`). Publicado em `/vida/safety/maneuver`. Funciona também com o enable físico desligado, com estas regras:
 
 | Regra | Efeito |
 |---|---|

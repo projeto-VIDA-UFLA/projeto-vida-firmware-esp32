@@ -119,8 +119,8 @@ Bag sugerido (baixo nível + GPS/EKF):
 - [ ] **3.5 Escala dos encoders:** reta medida de 20 m; comparar a distância dos
   encoders com a do GPS (hoje os encoders medem ~7% a mais) e calibrar
   `DRIVE_WHEEL_DIAMETER_M`.
-- [ ] **Modo manobra (L1 por 3 s):** parado, com o enable físico ligado e
-  depois desligado: freio solta (2 pulsos curtos), dá para empurrar; L1 de
+- [ ] **Modo manobra (R1 por 3 s):** parado, com o enable físico ligado e
+  depois desligado: freio solta (2 pulsos curtos), dá para empurrar; R1 de
   novo, R2 ou L2 → freio volta (1 pulso longo). Com o freio solto, desligar o
   enable físico → freio volta. Empurrar acima de 1 m/s → freio volta.
   `ros2 topic echo /vida/safety/maneuver`.

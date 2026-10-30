@@ -138,8 +138,13 @@ DriveController::Output DriveController::update(
         requested_m_s < target_velocity_m_s_ - DRIVE_DECEL_NO_TRACTION_MARGIN_M_S;
     if (requested_m_s > target_velocity_m_s_)
     {
+        // Retomando com o veiculo andando acima da rampa (R2 de novo logo depois
+        // de soltar): a rampa parte da velocidade medida. Sem isso o PI freava
+        // ate a rampa antes de acelerar (30/10: de 2,2 para 0,6 m/s).
+        const float ramp_start_m_s =
+            std::fmax(target_velocity_m_s_, std::fmin(requested_m_s, measured_m_s));
         target_velocity_m_s_ = std::fmin(requested_m_s,
-                                         target_velocity_m_s_ + max_accel_m_s2 * dt_s);
+                                         ramp_start_m_s + max_accel_m_s2 * dt_s);
     }
     else
     {

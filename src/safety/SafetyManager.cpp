@@ -247,7 +247,7 @@ void SafetyManager::update(bool vehicle_stopped)
         bench_mode_active_ = true;
     }
 
-    // Modo manobra (L1 por 3 s): freio solto para empurrar o veiculo, com ou
+    // Modo manobra (R1 por 3 s): freio solto para empurrar o veiculo, com ou
     // sem enable fisico. Regras em config.h (MANEUVER_*).
     {
         const bool maneuver_requested =

@@ -121,7 +121,7 @@
 #define BENCH_MODE_MAX_SPEED_M_S 4.0f
 
 // Modo manobra (empurrar o veiculo a mao): freio solto e tracao bloqueada.
-// Pedido pelo gamepad (L1 por 3 s) com DriveReference.brake_command <=
+// Pedido pelo gamepad (R1 por 3 s) com DriveReference.brake_command <=
 // MANEUVER_BRAKE_REQUEST. Funciona tambem com o enable fisico desligado, mas:
 // - so entra com o veiculo parado e o gamepad vivo (enable logico true);
 // - desligar o enable fisico (emergencia) cancela; para soltar de novo o
