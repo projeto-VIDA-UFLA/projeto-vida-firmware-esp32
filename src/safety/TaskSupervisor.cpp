@@ -105,8 +105,13 @@ void TaskSupervisor::check()
     const uint32_t now_ms = nowMs();
     for (int i = 0; i < TASK_COUNT; ++i)
     {
-        // Subtracao sem sinal: correta mesmo na virada do contador.
-        if ((now_ms - last_alive_ms_[i]) > TASK_SUPERVISOR_TIMEOUT_MS)
+        // Idade com sinal (correta na virada do contador). Uma task do nucleo 1
+        // pode registrar a batida entre a leitura de now_ms e esta comparacao,
+        // ja no milissegundo seguinte: idade -1, que sem sinal virava ~49 dias
+        // e disparava o supervisor por engano (ensaio de 30/10, flag 8192 com
+        // as tasks em dia).
+        const int32_t age_ms = static_cast<int32_t>(now_ms - last_alive_ms_[i]);
+        if (age_ms > static_cast<int32_t>(TASK_SUPERVISOR_TIMEOUT_MS))
         {
             tripped_task_ = static_cast<uint8_t>(i);
             tripped_ = true;

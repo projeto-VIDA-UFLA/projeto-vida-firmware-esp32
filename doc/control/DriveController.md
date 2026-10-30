@@ -55,7 +55,7 @@ Ordem de decisão em cada ciclo:
 4. **Referência:** limitada a `[0, DRIVE_MAX_TARGET_SPEED_M_S]` (negativa vira 0) e passada por uma **rampa**:
    - subida com `acceleration_m_s2` da mensagem (0 = padrão de 0,4 m/s²; teto de 0,8 m/s²). Se o veículo já anda acima da rampa (R2 de novo logo depois de soltar), a subida parte da velocidade medida, sem frear até a rampa;
    - descida a 1,0 m/s².
-5. **Parada:** com a rampa ≤ 0,05 m/s, o PI é desligado. **Freio de parada** (0,6) até o veículo parar e depois **freio de estacionamento** (1,0). O [BrakeServo](../actuators/BrakeServo.md) alivia o pulso após 1 s parado.
+5. **Parada:** com a rampa ≤ 0,05 m/s, o PI é desligado. **Freio de parada** (1,0 desde 30/10; era 0,6) até o veículo parar e depois **freio de estacionamento** (1,0). O [BrakeServo](../actuators/BrakeServo.md) alivia o pulso após 1 s parado.
 6. **PI:** `esforço = Kp·erro + ∫Ki·erro·dt`, com **anti-windup condicional**: a integração que aprofundaria a saturação (tração máxima ou freio total) é rejeitada.
 7. **Alocação do esforço:**
 
@@ -118,7 +118,7 @@ Simulação com essa planta, os 28 ms do estimador e um freio suposto de 3 m/s²
 | `DRIVE_BRAKE_EFFORT_GAIN` | 3,0 | Escala esforço → freio |
 | `DRIVE_BRAKE_ENGAGE_POSITION` | 0,2 | Posição em que o freio começa a agir |
 | `DRIVE_STOP_REFERENCE_M_S` | 0,05 m/s | Referência considerada "parar" |
-| `DRIVE_STOP_BRAKE_POSITION` | 0,6 | Freio de parada |
+| `DRIVE_STOP_BRAKE_POSITION` | 1,0 | Freio de parada |
 | `DRIVE_HOLD_BRAKE_POSITION` | 1,0 | Freio de estacionamento |
 | `DRIVE_BRAKE_OVERRIDE_THRESHOLD` | 0,05 | `brake_command` que ativa o freio manual |
 | `DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS` | 200 ms | Idade máxima da referência |

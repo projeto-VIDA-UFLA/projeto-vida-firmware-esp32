@@ -130,6 +130,6 @@ As constantes `STEERING_POS_*`/`STEERING_VEL_*` comentadas são do controlador e
 | `DRIVE_BRAKE_EFFORT_GAIN` | 3,0 | Escala esforço → freio (calibrar) |
 | `DRIVE_BRAKE_ENGAGE_POSITION` | 0,2 | Posição em que o freio começa a agir (calibrar) |
 | `DRIVE_STOP_REFERENCE_M_S` | 0,05 m/s | Referência considerada "parar" |
-| `DRIVE_STOP_BRAKE_POSITION` | 0,6 | Freio de parada |
+| `DRIVE_STOP_BRAKE_POSITION` | 1,0 | Freio de parada |
 | `DRIVE_HOLD_BRAKE_POSITION` | 1,0 | Freio de estacionamento |
 | `DRIVE_BRAKE_OVERRIDE_THRESHOLD` | 0,05 | `brake_command` que ativa o freio manual (L2) |

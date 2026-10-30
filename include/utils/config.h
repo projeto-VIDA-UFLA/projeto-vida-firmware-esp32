@@ -390,7 +390,9 @@
 // pulso apos 1 s parado). Sem isso o PI freia cada vez menos perto de zero e a
 // parada se arrasta (simulacao: 11,6 s contra 2,2 s para parar de 1,5 m/s).
 #define DRIVE_STOP_REFERENCE_M_S 0.05f
-#define DRIVE_STOP_BRAKE_POSITION 0.6f
+// 1,0 desde 30/10: com 0,6 o veiculo acelerou numa descida de ~9% (2,3 ->
+// 3,0 m/s) com o R2 solto.
+#define DRIVE_STOP_BRAKE_POSITION 1.0f
 #define DRIVE_HOLD_BRAKE_POSITION 1.0f
 
 // Freio manual pelo ROS (gatilho L2): DriveReference.brake_command acima

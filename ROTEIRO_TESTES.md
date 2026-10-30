@@ -69,16 +69,16 @@ Versões em teste:
 - [x] **1.10 Encoders discordantes** (fora do modo bancada): um pouco de R2 com a
   traseira suspensa → flag 4096, que fica travada. Rearmar: desligar e
   religar o enable físico.
-- [ ] **1.11 Sem falsos positivos:** durante toda a bancada, nenhuma flag 512
+- [x] **1.11 Sem falsos positivos:** durante toda a bancada, nenhuma flag 512
   (esterçamento travado), 1024 (sentido invertido) ou 8192 (supervisor de
   tasks).
 
 ## Fase 2 - GPS e EKF com o carro parado, ao ar livre
 
-- [ ] **2.1 GNSS:**
+- [x] **2.1 GNSS:**
   - `/vida/sensors/gps/status`: fix, RTK FIXED, `correction_age_s` baixo;
   - `ros2 topic hz /vida/sensors/gps/fix` (esperado: 1 Hz).
-- [ ] **2.2 EKF:**
+- [x] **2.2 EKF:**
   - `ros2 service call /robot_state_ekf_node/reset std_srvs/srv/Trigger`;
   - `/robot_state/status` passa por WAITING_ORIGIN → WAITING_HEADING;
   - `stationary: true` e bias do giroscópio estável (`/robot_state/gyro_bias`);

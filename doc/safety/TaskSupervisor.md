@@ -66,3 +66,4 @@ O próprio supervisor é vigiado pelo **watchdog de tarefas do ESP-IDF**: o call
 
 - **Hardware:** depois de um reset, nada no firmware segura o freio nem as entradas dos drivers. Conferir pull-downs nas entradas da ponte H e do driver de tração.
 - Se a `TaskSafety` travar, o `/vida/safety/status` para de ser atualizado (o timestamp congela), mas a flag 8192 só aparece se ela voltar. Um status com timestamp parado é sinal de task travada.
+- **Idade com sinal:** a batida de uma task pode ser registrada (outro núcleo) entre a leitura do relógio e a comparação, já no milissegundo seguinte. A idade é calculada com sinal e uma batida "do futuro" conta como recente; com subtração sem sinal ela virava ~49 dias e disparava o supervisor por engano (ensaio de 30/10/2026).
