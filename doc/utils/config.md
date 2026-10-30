@@ -49,7 +49,7 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `TASK_SUPERVISOR_PERIOD_MS` / `TIMEOUT_MS` / `STARTUP_GRACE_MS` | 10 / 50 / 500 | [TaskSupervisor](../safety/TaskSupervisor.md) |
 | `TASK_WDT_TIMEOUT_S` | 5 | Watchdog do ESP-IDF (vigia o supervisor) |
 | `BENCH_MODE_REQUEST_TIMEOUT_MS` | 1000 | Sem pedido recente, sai do modo bancada |
-| `BENCH_MODE_MAX_SPEED_M_S` | 3,0 | Velocidade máxima em modo bancada |
+| `BENCH_MODE_MAX_SPEED_M_S` | 4,0 | Velocidade máxima em modo bancada |
 
 ## Sensor de esterçamento → [SteeringSensor](../sensors/SteeringSensor.md)
 
@@ -115,7 +115,7 @@ As constantes `STEERING_POS_*`/`STEERING_VEL_*` comentadas são do controlador e
 
 | Parâmetro | Valor | Descrição |
 |---|---|---|
-| `DRIVE_MAX_TARGET_SPEED_M_S` | 4,0 m/s | Limite da referência |
+| `DRIVE_MAX_TARGET_SPEED_M_S` | 2,0 m/s | Limite da referência (primeiros ensaios no chão) |
 | `DRIVE_DEFAULT_MAX_ACCEL_M_S2` | 0,4 m/s² | Rampa de subida quando `acceleration_m_s2` = 0 |
 | `DRIVE_MAX_ACCEL_M_S2` | 0,8 m/s² | Teto da rampa de subida |
 | `DRIVE_MAX_DECEL_M_S2` | 1,0 m/s² | Rampa de descida |

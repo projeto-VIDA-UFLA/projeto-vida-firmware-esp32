@@ -48,7 +48,7 @@ Versões em teste:
   - analógico para a esquerda → rodas para a esquerda;
   - saturação em ±20°;
   - parado, o motor não fica "caçando" (zona morta 0,4/1,2°).
-- [ ] **1.7 Gamepad perdido:** desligar o controle → referências a zero, freio
+- [x] **1.7 Gamepad perdido:** desligar o controle → referências a zero, freio
   total, enable lógico cai. Com o controle ligado, nenhuma queda falsa
   (timeout de 250 ms).
 - [x] **1.8 Modo bancada:**
@@ -56,7 +56,7 @@ Versões em teste:
     `/vida/safety/bench_mode` true;
   - O por 5 s → sai, com 3 pulsos;
   - tentar entrar com uma roda girando → recusado.
-- [ ] **1.9 Tração em modo bancada:**
+- [x] **1.9 Tração em modo bancada:**
   - R2 → a roda traseira gira e a velocidade M/T acompanha a referência;
   - L2 → freio total;
   - soltar o R2 → para e segura com o freio de parada.

@@ -295,7 +295,9 @@
 
 // Referencia: DriveReference.velocity_m_s em m/s (sem re: negativo vira 0),
 // limitada e passada por uma rampa de aceleracao/desaceleracao.
-#define DRIVE_MAX_TARGET_SPEED_M_S 3.0f
+// 2 m/s nos primeiros ensaios no chao (30/10); subir para 3 m/s depois de
+// medir a distancia de frenagem.
+#define DRIVE_MAX_TARGET_SPEED_M_S 2.0f
 // Rampa de subida quando DriveReference.acceleration_m_s2 = 0.
 #define DRIVE_DEFAULT_MAX_ACCEL_M_S2 0.4f
 // Teto da rampa de subida pedida pelo ROS.
