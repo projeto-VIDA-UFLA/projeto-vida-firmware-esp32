@@ -60,10 +60,12 @@ Ordem das etapas em cada ciclo (`update()` → `compute()`):
 2. **dt:** tempo desde a chamada anterior (no primeiro ciclo, `TASK_CONTROL_PERIOD_MS`).
 3. **Validação:** referência, medição ou dt não finitos, ou dt fora de `(0, 100 ms]` → `reset()` e **saída inválida**.
 4. **Limite da referência:** `[STEERING_REFERENCE_MIN_DEG, STEERING_REFERENCE_MAX_DEG]` = ±20° (`target_clamped`).
+   **Limite de taxa:** a referência usada caminha até a pedida a no máximo `STEERING_REFERENCE_MAX_RATE_DEG_S` (40°/s); sem permissão de movimento (ou após um reset) ela parte do ângulo medido. Degraus do analógico viram rampas (no chão, em 30/10, os degraus acumulavam integral e davam tranco).
 5. **Erro** e **derivada do erro** (zero no primeiro ciclo após um reset).
 6. **Zona morta com histerese:** fora dela, só entra com \|erro\| ≤ 0,4°; dentro dela, só sai com \|erro\| > 1,2°. Dentro: comando 0 e integral zerada.
 7. **Integral** (só com movimento permitido):
-   - integral candidata = `clamp(∫ + erro·dt, ±10 °·s)`;
+   - **cruzou a referência** (erro trocou de sinal): integral zerada, para não empurrar além dela;
+   - integral candidata = `clamp(∫ + erro·dt, ±5 °·s)` (parcela integral até ±0,5);
    - **anti-windup condicional:** a candidata é rejeitada se o comando já passa de ±1 e ela aumentaria a saturação. Uma integral que ajuda a sair da saturação é aceita.
    - **sem permissão de movimento**, a integral fica em zero (o motor está parado; integrar acumularia erro e o esterçamento partiria saturado ao habilitar).
 8. **Saturação** em `±MAX_ABS_STEER_COMMAND` (`saturated`).
@@ -87,7 +89,8 @@ Ordem das etapas em cada ciclo (`update()` → `compute()`):
 | `STEERING_DIRECT_KP` | 0,007 /° | Ganho proporcional |
 | `STEERING_DIRECT_KI` | 0,1 /(°·s) | Ganho integral |
 | `STEERING_DIRECT_KD` | 0 | Ganho derivativo (desligado) |
-| `STEERING_DIRECT_INTEGRAL_MIN/MAX` | ±10 °·s | Limite da integral |
+| `STEERING_DIRECT_INTEGRAL_MIN/MAX` | ±5 °·s | Limite da integral (±0,5 de comando) |
+| `STEERING_REFERENCE_MAX_RATE_DEG_S` | 40°/s | Taxa máxima da referência |
 | `STEERING_DEADBAND_ENTER_DEG` | 0,4° | Entrada na zona morta |
 | `STEERING_DEADBAND_EXIT_DEG` | 1,2° | Saída da zona morta |
 | `STEERING_MIN_ACTUATION` | 0,15 | Piso de atuação |

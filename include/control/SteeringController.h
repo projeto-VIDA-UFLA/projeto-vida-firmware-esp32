@@ -77,6 +77,8 @@ private:
 
     float integral_;
     float previous_error_deg_;
+    float limited_target_deg_;     // referencia apos a limitacao de taxa
+    bool limited_target_valid_;
     bool initialized_;
     bool inside_deadband_;
     int64_t previous_update_us_;

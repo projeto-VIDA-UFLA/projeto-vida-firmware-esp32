@@ -34,8 +34,12 @@ SteeringPlausibility::Result SteeringPlausibility::update(const Input &input)
 {
     Result result{false, false};
 
+    const bool large_error =
+        std::isfinite(input.error_deg) &&
+        std::fabs(input.error_deg) >= STEERING_STALL_MIN_ERROR_DEG;
     const int direction =
-        input.command >= STEERING_PLAUSIBILITY_MIN_COMMAND    ? 1
+        !large_error                                          ? 0
+        : input.command >= STEERING_PLAUSIBILITY_MIN_COMMAND  ? 1
         : input.command <= -STEERING_PLAUSIBILITY_MIN_COMMAND ? -1
                                                                : 0;
 

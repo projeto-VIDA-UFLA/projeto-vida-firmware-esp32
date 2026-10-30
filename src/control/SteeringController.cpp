@@ -28,6 +28,8 @@ namespace
 SteeringController::SteeringController()
     : integral_(0.0f),
       previous_error_deg_(0.0f),
+      limited_target_deg_(0.0f),
+      limited_target_valid_(false),
       initialized_(false),
       inside_deadband_(false),
       previous_update_us_(0),
@@ -82,11 +84,25 @@ SteeringController::Output SteeringController::compute(const Input &input)
     // A referencia fica na faixa de trabalho, com margem ate o limite de
     // seguranca. O valor limitado tambem e devolvido no Output para que a
     // telemetria represente a referencia efetivamente usada pelo controlador.
-    const float target_angle_deg = clampValue(input.target_angle_deg,
-                                              STEERING_REFERENCE_MIN_DEG,
-                                              STEERING_REFERENCE_MAX_DEG);
-                                              
-    output.target_clamped = target_angle_deg != input.target_angle_deg;
+    const float clamped_target_deg = clampValue(input.target_angle_deg,
+                                                STEERING_REFERENCE_MIN_DEG,
+                                                STEERING_REFERENCE_MAX_DEG);
+    output.target_clamped = clamped_target_deg != input.target_angle_deg;
+
+    // Limite de taxa: a referencia usada caminha ate a pedida a no maximo
+    // STEERING_REFERENCE_MAX_RATE_DEG_S. Sem permissao (ou no inicio) parte do
+    // angulo medido, para retomar sem degrau.
+    if (!limited_target_valid_ || !input.motion_permitted)
+    {
+        limited_target_deg_ = clampValue(input.measured_angle_deg,
+                                         STEERING_REFERENCE_MIN_DEG,
+                                         STEERING_REFERENCE_MAX_DEG);
+        limited_target_valid_ = true;
+    }
+    const float max_step_deg = STEERING_REFERENCE_MAX_RATE_DEG_S * input.dt_s;
+    limited_target_deg_ += clampValue(clamped_target_deg - limited_target_deg_,
+                                      -max_step_deg, max_step_deg);
+    const float target_angle_deg = limited_target_deg_;
     output.target_angle_deg = target_angle_deg;
 
     const float error_deg = target_angle_deg - input.measured_angle_deg;
@@ -137,6 +153,15 @@ SteeringController::Output SteeringController::compute(const Input &input)
         output.normalized_command = 0.0f;
         output.inside_deadband = true;
         return storeOutput(output);
+    }
+
+    // Cruzou a referencia: a integral acumulada durante a aproximacao (com o
+    // atrito estatico segurando) so empurraria alem dela.
+    const bool crossed_target =
+        initialized_ && error_deg * previous_error_deg_ < 0.0f;
+    if (crossed_target)
+    {
+        integral_ = 0.0f;
     }
 
     if (!input.motion_permitted)
@@ -261,6 +286,7 @@ void SteeringController::reset()
 {
     integral_ = 0.0f;
     previous_error_deg_ = 0.0f;
+    limited_target_valid_ = false;
     initialized_ = false;
     inside_deadband_ = false;
 }

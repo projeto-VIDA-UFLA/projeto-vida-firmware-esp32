@@ -10,6 +10,9 @@
  * no piso de atuacao (0,15) o atrito estatico pode segurar a roda por mais de
  * 2 s sem defeito nenhum (teste de 12/10/2026).
  *
+ * Comando forte com erro abaixo de STEERING_STALL_MIN_ERROR_DEG nao conta:
+ * parado no chao o atrito segura a direcao perto da referencia (30/10).
+ *
  * - Travado: comando forte no mesmo sentido por STEERING_STALL_TIME_MS sem o
  *   angulo avancar STEERING_STALL_MIN_PROGRESS_DEG nesse sentido. Motor ou
  *   mecanismo preso, batente antes do limite de software, ou LVDT sem sinal.
@@ -28,6 +31,7 @@ public:
         float command;     // comando aplicado [-1, 1], convencao do angulo
         bool angle_valid;
         float angle_deg;   // angulo filtrado (REP-103)
+        float error_deg;   // referencia (do controlador) - angulo
     };
 
     struct Result

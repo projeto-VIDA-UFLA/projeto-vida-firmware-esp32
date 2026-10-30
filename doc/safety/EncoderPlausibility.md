@@ -6,7 +6,7 @@
 
 Verifica se a **roda traseira** (motriz) e as **rodas dianteiras** (realimentação do controle de velocidade) contam a mesma história. Avaliação pura, chamada pelo [SafetyManager](SafetyManager.md), que retém a falha.
 
-O [DriveController](../control/DriveController.md) controla a velocidade pela média das rodas dianteiras. Se essa medição não enxergar o movimento, o controlador vê velocidade zero e leva a tração ao máximo (PWM 38). Isso acontece em dois casos:
+O [DriveController](../control/DriveController.md) controla a velocidade pela média das rodas dianteiras. Se essa medição não enxergar o movimento, o controlador vê velocidade zero e leva a tração ao máximo (PWM 50). Isso acontece em dois casos:
 
 - **encoder dianteiro sem sinal**, lendo zero (é uma leitura "válida": finita e recente);
 - **veículo suspenso na bancada:** só a roda traseira gira.

@@ -61,11 +61,11 @@ Ordem de decisão em cada ciclo:
 
    | Esforço | Tração | Freio |
    |---|---|---|
-   | > 0 | offset + esforço (até PWM 38) | 0 |
+   | > 0 | 0,08 + esforço (PWM 20 a 50) | 0 |
    | entre −0,02 e 0 | 0 | 0 (roda livre) |
    | < −0,02 | 0 | `0,2 + 0,8 × min(1, (−esforço − 0,02) × 3)` |
 
-   O offset compensa a zona morta da controladora da scooter: com a roda parada (abaixo de 0,3 m/s) é 0,084 (PWM 21), porque ela só parte com ~PWM 23; em movimento é `DRIVE_TRACTION_RUNNING_DEADZONE_COMMAND` (hoje 0, experimento para ver até onde a controladora segue girando com menos acelerador). Na troca a integral absorve a diferença, sem degrau na tração. Desacelerando (referência pedida mais de 0,1 m/s abaixo da rampa), o esforço não fica positivo: só roda livre ou freio. Em modo bancada o esforço não fica negativo: acima da referência a roda segue livre, sem freio automático.
+   A tração começa em 0,08 (PWM 20) para compensar a zona morta da controladora da scooter: girando ela segura com PWM 20 e desarma com 19; parada parte com ~22-23, que a integral alcança em uma fração de segundo. Desacelerando (referência pedida mais de 0,1 m/s abaixo da rampa), o esforço não fica positivo: só roda livre ou freio. Em modo bancada o esforço não fica negativo: acima da referência a roda segue livre, sem freio automático.
 
    A posição mínima de freio (0,2) compensa a folga do cabo e fica acima de `BRAKE_DRIVE_CUTOFF`: com freio, a tração é sempre cortada.
 
@@ -111,10 +111,8 @@ Simulação com essa planta, os 28 ms do estimador e um freio suposto de 3 m/s²
 | `DRIVE_VEL_KP` / `DRIVE_VEL_KI` | 0,10 / 0,025 | Ganhos do PI |
 | `DRIVE_BENCH_VEL_KP` / `DRIVE_BENCH_VEL_KI` | 0,008 / 0,008 | Ganhos do PI em modo bancada (roda em vazio) |
 | `DRIVE_CONTROL_MAX_DT_S` | 0,1 s | `dt` máximo antes de resetar |
-| `DRIVE_MAX_TRACTION_COMMAND` | 0,15 | Tração máxima (PWM 38) |
-| `DRIVE_TRACTION_DEADZONE_COMMAND` | 0,084 | Zona morta da controladora (PWM 21): início da tração com a roda parada |
-| `DRIVE_TRACTION_RUNNING_DEADZONE_COMMAND` | 0 | Compensação em movimento (experimento) |
-| `DRIVE_TRACTION_MOVING_SPEED_M_S` | 0,3 m/s | Acima disso usa a compensação em movimento |
+| `DRIVE_MAX_TRACTION_COMMAND` | 0,197 | Tração máxima (PWM 50) |
+| `DRIVE_TRACTION_DEADZONE_COMMAND` | 0,08 | Zona morta da controladora (PWM 20): início da tração |
 | `DRIVE_DECEL_NO_TRACTION_MARGIN_M_S` | 0,1 m/s | Desacelerando além disso, sem tração |
 | `DRIVE_BRAKE_COAST_BAND` | 0,02 | Faixa de roda livre |
 | `DRIVE_BRAKE_EFFORT_GAIN` | 3,0 | Escala esforço → freio |
@@ -138,4 +136,4 @@ O nó `control_pkg/gamepad_reader` (notebook) publica:
 - **Freio sem calibração:** `DRIVE_BRAKE_ENGAGE_POSITION` (folga do cabo) e `DRIVE_BRAKE_EFFORT_GAIN` (eficácia do freio) são estimativas. Calibrar com um ensaio a velocidade constante, aplicando posições fixas de freio e medindo a desaceleração.
 - **Ganhos provisórios:** o modelo da planta é de baixa precisão, cobre só PWM de 0 a 38 e não considerava a zona morta de ~PWM 20 da controladora (vista na bancada de 29/10). Ajustar em ensaio, começando com degraus de 0,5 → 1,0 m/s em trecho plano.
 - **Sem compensação de curva:** em curva a média das rodas dianteiras fica ~1/cos δ acima da velocidade do eixo traseiro (6% a 20°).
-- A tração máxima continua limitada a PWM 38, valor dos testes anteriores. Pelo ganho identificado, 3 m/s em plano precisam de ~PWM 20; em subida pode faltar tração.
+- A tração máxima é PWM 50 desde 30/10 (com 38 a subida com curva saturou). No plano, ~2 m/s com PWM 20.

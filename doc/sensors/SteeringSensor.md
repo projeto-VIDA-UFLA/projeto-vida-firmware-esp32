@@ -96,7 +96,7 @@ A leitura travada funciona porque o LVDT **sempre oscila**: parado, o desvio-pad
 | `ADC_RESOLUTION_BITS` | 12 | Resolução do ADC |
 | `STEERING_ADC_CENTER` | 2046 | Centro do polinômio |
 | `STEERING_POLY_A/B/C` | −2,14862e-2 / −3,09559e-7 / 1,42370e-9 | Coeficientes da calibração |
-| `STEERING_ZERO_OFFSET_DEG` | 1,6° | Offset de zero (teste de 12/10/2026) |
+| `STEERING_ZERO_OFFSET_DEG` | −0,6° | Offset de zero (chão, 30/10/2026; era 1,6° em 12/10) |
 | `STEERING_INVERT_SIGN` | 1 | Convenção REP-103 |
 | `STEERING_FILTER_ALPHA` | 0,05 | Filtro do ângulo |
 | `STEERING_VELOCITY_FILTER_ALPHA` | 0,01 | Filtro da velocidade angular |

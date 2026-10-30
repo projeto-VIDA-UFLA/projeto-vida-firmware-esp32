@@ -44,6 +44,7 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `ENCODER_DISAGREE_MARGIN_M_S` | 0,8 | Traseira acima das dianteiras que caracteriza discordância ([EncoderPlausibility](../safety/EncoderPlausibility.md)) |
 | `ENCODER_DISAGREE_TIME_MS` | 500 | Tempo contínuo para a falha |
 | `STEERING_PLAUSIBILITY_MIN_COMMAND` | 0,3 | Comando mínimo avaliado ([SteeringPlausibility](../safety/SteeringPlausibility.md)) |
+| `STEERING_STALL_MIN_ERROR_DEG` | 2,0° | Erro mínimo para avaliar travamento |
 | `STEERING_STALL_MIN_PROGRESS_DEG` / `STEERING_STALL_TIME_MS` | 0,5° / 1000 | Travado |
 | `STEERING_WRONG_DIRECTION_DEG` / `STEERING_WRONG_DIRECTION_GRACE_MS` | 2,0° / 200 | Sentido invertido |
 | `TASK_SUPERVISOR_PERIOD_MS` / `TIMEOUT_MS` / `STARTUP_GRACE_MS` | 10 / 50 / 500 | [TaskSupervisor](../safety/TaskSupervisor.md) |
@@ -61,7 +62,7 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `STEERING_ADC_CENTER` | 2046 | Centro do polinômio de calibração |
 | `STEERING_POLY_A` / `B` / `C` | −2,14862e-2 / −3,09559e-7 / 1,42370e-9 | Coeficientes do polinômio cúbico |
 | `STEERING_INVERT_SIGN` | 1 | `1` = REP-103 (esquerda +); `0` = convenção da calibração |
-| `STEERING_ZERO_OFFSET_DEG` | 1,6° | Offset de zero (teste de 12/10/2026) |
+| `STEERING_ZERO_OFFSET_DEG` | −0,6° | Offset de zero (chão, 30/10/2026; confirmar com ida e volta) |
 | `STEERING_FILTER_ALPHA` | 0,05 | Filtro do ângulo (τ ≈ 39 ms) |
 | `STEERING_VELOCITY_FILTER_ALPHA` | 0,01 | Filtro da velocidade angular |
 | `STEERING_ADC_VALID_MIN` / `MAX` | 40 / 4055 | Faixa válida do ADC |
@@ -91,8 +92,8 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 |---|---|---|
 | `BRAKE_SERVO_FREQUENCY_HZ` / `BRAKE_SERVO_RESOLUTION_BITS` | 50 / 16 | PWM do servo |
 | `BRAKE_CALIBRATED` | 1 | `0` desliga os pulsos (freio inoperante) |
-| `BRAKE_RELEASED_US` / `BRAKE_APPLIED_US` | 2500 / 1600 | Pulso do freio solto / total |
-| `BRAKE_HOLD_US` | 1700 | Pulso máximo com o veículo parado |
+| `BRAKE_RELEASED_US` / `BRAKE_APPLIED_US` | 2500 / 1500 | Pulso do freio solto / total |
+| `BRAKE_HOLD_US` | 1600 | Pulso máximo com o veículo parado |
 | `BRAKE_HOLD_CONFIRMATION_MS` | 1000 | Tempo parado antes do alívio |
 | `BRAKE_FAULT_RATE_PER_S` | 1,0 | Velocidade da rampa de falha |
 | `BRAKE_DRIVE_CUTOFF` | 0,05 | Posição do freio que zera a tração |
@@ -107,7 +108,8 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `STEERING_CONTROL_MAX_DT_S` | 0,1 | dt máximo antes de resetar |
 | `STEERING_DIRECTION_DEADTIME_US` | 1000 | Tempo mínimo com os dois PWMs em zero na inversão |
 | `STEERING_DIRECT_KP` / `KI` / `KD` | 0,007 / 0,1 / 0 | Ganhos do PID |
-| `STEERING_DIRECT_INTEGRAL_MIN` / `MAX` | ±10 °·s | Limite da integral |
+| `STEERING_DIRECT_INTEGRAL_MIN` / `MAX` | ±5 °·s | Limite da integral (±0,5 de comando) |
+| `STEERING_REFERENCE_MAX_RATE_DEG_S` | 40°/s | Taxa máxima da referência |
 
 As constantes `STEERING_POS_*`/`STEERING_VEL_*` comentadas são do controlador em cascata antigo e não são usadas.
 
@@ -121,7 +123,7 @@ As constantes `STEERING_POS_*`/`STEERING_VEL_*` comentadas são do controlador e
 | `DRIVE_MAX_DECEL_M_S2` | 1,0 m/s² | Rampa de descida |
 | `DRIVE_VEL_KP` / `DRIVE_VEL_KI` | 0,10 / 0,025 | Ganhos do PI de velocidade |
 | `DRIVE_CONTROL_MAX_DT_S` | 0,1 s | `dt` máximo antes de resetar |
-| `DRIVE_MAX_TRACTION_COMMAND` | 0,15 | Tração máxima (PWM 38) |
+| `DRIVE_MAX_TRACTION_COMMAND` | 0,197 | Tração máxima (PWM 50) |
 | `DRIVE_BRAKE_COAST_BAND` | 0,02 | Faixa de roda livre |
 | `DRIVE_BRAKE_EFFORT_GAIN` | 3,0 | Escala esforço → freio (calibrar) |
 | `DRIVE_BRAKE_ENGAGE_POSITION` | 0,2 | Posição em que o freio começa a agir (calibrar) |

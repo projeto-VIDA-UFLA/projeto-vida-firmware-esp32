@@ -48,10 +48,11 @@
 
 ## Melhorias menores
 
-- [ ] Limitar a parcela integral do esterçamento a +-0,5 (hoje ela sozinha
-  pode comandar 100%).
-- [ ] Limite de taxa da referencia de esterçamento usando
-  `angular_velocity_deg_s` (recebido e ignorado). Util com o Stanley.
+- [x] Limitar a parcela integral do esterçamento a +-0,5 (30/10, junto com
+  zerar a integral ao cruzar a referencia).
+- [x] Limite de taxa da referencia de esterçamento: fixo em 40 graus/s
+  (`STEERING_REFERENCE_MAX_RATE_DEG_S`, 30/10). `angular_velocity_deg_s`
+  continua ignorado.
 - [ ] Derivada do esterçamento sobre a medicao filtrada, nao sobre o erro
   (hoje Kd = 0, entao inofensivo).
 - [ ] Telemetria opcional do controle longitudinal (referencia apos a rampa,

@@ -79,6 +79,10 @@
 // com comando >= 0,3 (PWM 77), no maximo 0,42 s, e o maior recuo contra o
 // comando foi 0,59 grau. Falhas retidas ate o rearme (como encoders).
 #define STEERING_PLAUSIBILITY_MIN_COMMAND 0.3f
+// Travado so com erro grande: parado no chao, um erro de 0,6 grau fora da zona
+// morta fez a integral subir ate o comando forte sem a direcao mover (atrito),
+// e a falha acusava travamento (flag 512, 30/10).
+#define STEERING_STALL_MIN_ERROR_DEG 2.0f
 // Travado: sem avancar STALL_MIN_PROGRESS no sentido comandado por STALL_TIME.
 #define STEERING_STALL_MIN_PROGRESS_DEG 0.5f
 #define STEERING_STALL_TIME_MS 1000
@@ -153,9 +157,12 @@
 
 // Offset de zero, na convencao dos dados de calibracao (direita positivo):
 // angulo que o polinomio indica com o veiculo andando reto. E subtraido do
-// polinomio antes da troca de sinal. Teste de 12/10/2026: curvatura nula com
-// -1,5 a -1,7 graus em REP-103, isto e, +1,6 graus na convencao da calibracao.
-#define STEERING_ZERO_OFFSET_DEG 1.6f
+// polinomio antes da troca de sinal. Teste de 12/10/2026: 1,6. Teste no chao
+// de 30/10 (curvatura pelo giroscopio x angulo medido): com 1,6 o veiculo
+// andava reto com +2,2 graus medidos (REP-103), curvando para a direita com 0;
+// novo valor 1,6 - 2,2 = -0,6. Incerteza ~1 grau (inclinacao lateral da via):
+// confirmar com reta de ida e volta.
+#define STEERING_ZERO_OFFSET_DEG -0.6f
 
 #define STEERING_FILTER_ALPHA 0.05f
 #define STEERING_VELOCITY_FILTER_ALPHA 0.01f
@@ -223,14 +230,17 @@
 #define BRAKE_CALIBRATED 1
 
 // Largura de pulso para freio solto e freio total, medidas no veiculo.
-// O pulso diminui para frear: o servo puxa o cabo no sentido de 2500 -> 1600.
+// O pulso diminui para frear: o servo puxa o cabo no sentido de 2500 -> 1500.
+// 30/10: freio fraco no chao (0,36 m/s2 na descida); sem ferramenta para
+// esticar o cabo, o freio total desce em passos de 100 us (1600 -> 1500),
+// conferindo a cada teste se o servo aguenta. O antigo total virou o HOLD.
 #define BRAKE_RELEASED_US 2500
-#define BRAKE_APPLIED_US 1600
+#define BRAKE_APPLIED_US 1500
 
 // Com o veiculo parado o servo puxa no maximo ate este pulso, para nao forcar
 // o servo mantendo o freio. Deve ficar entre BRAKE_RELEASED_US e
 // BRAKE_APPLIED_US. Volta ao freio total assim que houver movimento.
-#define BRAKE_HOLD_US 1700
+#define BRAKE_HOLD_US 1600
 // Tempo continuo com os tres encoders abaixo de DRIVE_STOP_SPEED_THRESHOLD_MPS
 // antes de aliviar para BRAKE_HOLD_US. Os dianteiros nao sao freados, entao
 // detectam o veiculo deslizando com a roda traseira travada.
@@ -270,8 +280,14 @@
 #define STEERING_DIRECT_KP 0.007f
 #define STEERING_DIRECT_KI 0.1f
 #define STEERING_DIRECT_KD 0.0f
-#define STEERING_DIRECT_INTEGRAL_MIN -10.0f
-#define STEERING_DIRECT_INTEGRAL_MAX 10.0f
+// +-5 grau-segundo = +-0,5 de comando pela integral (era +-10 = 100%). No chao
+// (30/10) o atrito estatico segurava a direcao enquanto a integral subia ate
+// PWM 130-160; ao soltar, passava 3 a 7 graus da referencia.
+#define STEERING_DIRECT_INTEGRAL_MIN -5.0f
+#define STEERING_DIRECT_INTEGRAL_MAX 5.0f
+// Taxa maxima da referencia usada pelo controlador: o analogico manda degraus
+// (0 -> 15 graus de uma vez), que acumulavam integral e davam tranco.
+#define STEERING_REFERENCE_MAX_RATE_DEG_S 40.0f
 
 // ============================================================
 // Controle de estercamento em cascata (inativo)
@@ -327,26 +343,17 @@
 // dt acima disto (task atrasada) reseta o controlador.
 #define DRIVE_CONTROL_MAX_DT_S 0.1f
 
-// Esforco do PI: > 0 tracao, < 0 freio. Tracao maxima = PWM 38 (0,15),
-// o mesmo limite usado nos testes em malha aberta.
-#define DRIVE_MAX_TRACTION_COMMAND 0.15f
+// Esforco do PI: > 0 tracao, < 0 freio. Tracao maxima = PWM 50 (0,197 * 255 =
+// 50,2): no chao (30/10) a subida com curva saturou o antigo teto de PWM 38.
+#define DRIVE_MAX_TRACTION_COMMAND 0.197f
 
 // Zona morta da controladora da scooter (PWM -> filtro RC -> entrada de
-// acelerador). Bancada de 29/10: parada, partiu com PWM 22-23; girando,
-// segurou a roda com PWM 20, mas cortava sozinha de vez em quando (borda,
-// provavelmente flutuacao da tensao do RC). Esforco de tracao > 0 vira
-// DEADZONE + esforco: o PI atua de PWM 21 ao teto (PWM 38) sem gastar
-// segundos integrando ate a zona morta. 0,084 * 255 = 21,4 -> PWM 21.
-#define DRIVE_TRACTION_DEADZONE_COMMAND 0.084f
-
-// Em movimento (velocidade medida acima de MOVING_SPEED) a compensacao passa a
-// RUNNING_DEADZONE: a controladora parece manter a roda girando com menos
-// acelerador do que precisa para partir (girando segurou com PWM 20; parada so
-// partiu com 22-23). EXPERIMENTO de 29/10: 0 deixa o PI livre para descer ate
-// PWM 0 e mostrar no bag onde a controladora realmente corta. A troca e sem
-// degrau (a integral absorve a diferenca).
-#define DRIVE_TRACTION_RUNNING_DEADZONE_COMMAND 0.0f
-#define DRIVE_TRACTION_MOVING_SPEED_M_S 0.3f
+// acelerador). Bancada de 29/10: parada parte com PWM 22-23, girando segura
+// com PWM 20 e desarma com 19 (sem histerese abaixo disso). Esforco de tracao
+// > 0 vira DEADZONE + esforco: o PI atua de PWM 20 ao teto sem gastar segundos
+// integrando ate a zona morta; para partir, a integral sobe os 2-3 passos que
+// faltam. 0,08 * 255 = 20,4 -> PWM 20 (a conversao trunca).
+#define DRIVE_TRACTION_DEADZONE_COMMAND 0.08f
 
 // Desacelerando (referencia pedida abaixo da rampa por mais que isto), o PI
 // nao traciona: so roda livre ou freio. Sem isso, ao soltar o R2 a 3 m/s a

@@ -10,7 +10,7 @@ Posição normalizada: `0` = solto, `1` = freio total, convertida linearmente em
 
 ```
 pulso = BRAKE_RELEASED_US + posição × (BRAKE_APPLIED_US − BRAKE_RELEASED_US)
-        2500 µs (solto) → 1600 µs (freio total)
+        2500 µs (solto) → 1500 µs (freio total)
 ```
 
 ## Onde é usada
@@ -46,7 +46,7 @@ stateDiagram-v2
     Rampa --> Normal: comando válido e permitido
 ```
 
-**Alívio com o veículo parado** (vale em qualquer modo): com o [VehicleMotion](../sensors/VehicleMotion.md) indicando parado continuamente por `BRAKE_HOLD_CONFIRMATION_MS` (1 s), o **pulso** é limitado a `BRAKE_HOLD_US` (1700 µs, ~89% do curso) para não forçar o servo segurando o freio. A posição comandada não muda; qualquer movimento volta imediatamente ao pulso total.
+**Alívio com o veículo parado** (vale em qualquer modo): com o [VehicleMotion](../sensors/VehicleMotion.md) indicando parado continuamente por `BRAKE_HOLD_CONFIRMATION_MS` (1 s), o **pulso** é limitado a `BRAKE_HOLD_US` (1600 µs, 90% do curso) para não forçar o servo segurando o freio. A posição comandada não muda; qualquer movimento volta imediatamente ao pulso total.
 
 A rampa de falha só avança em `update()`, chamado pela `TaskSafety`. Assim, ela não depende de a `TaskControl` estar funcionando.
 
@@ -56,8 +56,8 @@ A rampa de falha só avança em `update()`, chamado pela `TaskSafety`. Assim, el
 |---|---|---|
 | `BRAKE_SERVO_FREQUENCY_HZ` / `BRAKE_SERVO_RESOLUTION_BITS` | 50 Hz / 16 bits | PWM do servo (canal LEDC 4, timer próprio) |
 | `BRAKE_CALIBRATED` | 1 | `0` = nenhum pulso é enviado (freio inoperante) |
-| `BRAKE_RELEASED_US` / `BRAKE_APPLIED_US` | 2500 / 1600 µs | Freio solto / total |
-| `BRAKE_HOLD_US` | 1700 µs | Pulso máximo com o veículo parado |
+| `BRAKE_RELEASED_US` / `BRAKE_APPLIED_US` | 2500 / 1500 µs | Freio solto / total (30/10: 1600 -> 1500, em passos) |
+| `BRAKE_HOLD_US` | 1600 µs | Pulso máximo com o veículo parado |
 | `BRAKE_HOLD_CONFIRMATION_MS` | 1000 ms | Tempo parado antes do alívio |
 | `BRAKE_FAULT_RATE_PER_S` | 1,0 /s | Velocidade da rampa de falha |
 | `BRAKE_DRIVE_CUTOFF` | 0,05 | Acima disto o [ActuatorManager](ActuatorManager.md) zera a tração |
