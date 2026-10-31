@@ -59,12 +59,16 @@ ROTEIRO_TESTES.md.
   o servo continuar sem aquecer/zumbir, testar o passo seguinte (1400 us),
   medindo a distancia de parada no plano. Descidas nao sao o foco: o veiculo
   e usado no plano.
-- [ ] **Eixo traseiro girando em falso** (flag 4096, 30/10): nao era a grama;
-  o eixo motriz gira dentro do tarugo usado como enxerto e a tracao nao chega
-  a roda. O encoder traseiro fica no eixo, entao marcou 2,2-2,7 m/s com o
-  carro a ~0,9 m/s, e a falha de encoders discordantes pegou certo. Correcao
-  mecanica em andamento (usuario); depois, confirmar que a 4096 nao aparece
-  mais.
+- [ ] **Roda traseira patinando no eixo** (flag 4096, 30/10): falta a chaveta
+  entre o eixo motriz e a roda, e a tracao nao chega a roda. O encoder
+  traseiro fica no eixo, entao marcou 2,2-2,7 m/s com o carro a ~0,9 m/s, e a
+  falha de encoders discordantes pegou certo. Em 31/10 ha uma gambiarra
+  provisoria; a chaveta definitiva vai ser fabricada (usuario). Depois:
+  - confirmar que a 4096 nao aparece mais;
+  - medir de novo o entre-eixos efetivo: em 31/10 as curvas deram ~1,17 m
+    (geometrico 1,125); os 1,42 m de 30/10 foram medidos com a roda
+    patinando. Se confirmar, ajustar `feedforward_wheelbase_m` do Stanley,
+    o raio minimo do `path_tools` (4 m) e o `wheelbase_m` do simulador.
 - [ ] **Escala dos encoders:** medem ~3,5% mais que o GPS (eram ~7%, mas parte
   vinha das curvas). Medir numa reta de 20 m e ajustar `DRIVE_WHEEL_DIAMETER_M`;
   conferir se `ENC_*_TICKS_PER_REV` sao contagens x4 (730 nao e multiplo de 4).
