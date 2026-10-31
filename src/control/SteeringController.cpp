@@ -18,6 +18,16 @@ namespace
         return value;
     }
 
+    // Soma a compensacao da zona morta do motor no sentido do comando.
+    float compensateDeadzone(float command)
+    {
+        if (command == 0.0f)
+        {
+            return 0.0f;
+        }
+        return std::copysign(STEERING_DEADZONE_COMPENSATION + std::fabs(command), command);
+    }
+
     static_assert(STEERING_REFERENCE_MIN_DEG >= STEERING_MIN_DEG &&
                       STEERING_REFERENCE_MAX_DEG <= STEERING_MAX_DEG,
                   "A faixa de referencia deve ficar dentro do limite de seguranca");
@@ -28,6 +38,8 @@ namespace
 SteeringController::SteeringController()
     : integral_(0.0f),
       previous_error_deg_(0.0f),
+      previous_measured_deg_(0.0f),
+      measured_rate_deg_s_(0.0f),
       limited_target_deg_(0.0f),
       limited_target_valid_(false),
       initialized_(false),
@@ -115,11 +127,15 @@ SteeringController::Output SteeringController::compute(const Input &input)
     output.angle_error_deg = error_deg;
     output.valid = true;
 
-    float derivative_deg_s = 0.0f;
+    // Velocidade medida, filtrada, para o D. Sobre a medicao (e nao sobre o
+    // erro): o D freia a aproximacao sem reagir aos degraus da referencia.
     if (initialized_)
     {
-        derivative_deg_s = (error_deg - previous_error_deg_) / input.dt_s;
-        if (!std::isfinite(derivative_deg_s))
+        const float raw_rate_deg_s =
+            (input.measured_angle_deg - previous_measured_deg_) / input.dt_s;
+        measured_rate_deg_s_ += (input.dt_s / (STEERING_DERIVATIVE_FILTER_TAU_S + input.dt_s)) *
+                                (raw_rate_deg_s - measured_rate_deg_s_);
+        if (!std::isfinite(measured_rate_deg_s_))
         {
             reset();
             output.valid = false;
@@ -128,15 +144,17 @@ SteeringController::Output SteeringController::compute(const Input &input)
     }
     else
     {
+        measured_rate_deg_s_ = 0.0f;
         initialized_ = true;
     }
+    previous_measured_deg_ = input.measured_angle_deg;
 
     // Ganhos e unidades:
     // Kp [comando normalizado/grau]
     // Ki [comando normalizado/(grau-segundo)]
     // Kd [comando normalizado/(grau/segundo)]
     output.proportional_term = STEERING_DIRECT_KP * error_deg;
-    output.derivative_term = STEERING_DIRECT_KD * derivative_deg_s;
+    output.derivative_term = -STEERING_DIRECT_KD * measured_rate_deg_s_;
 
     // Histerese: dentro da zona morta so sai acima de EXIT; fora dela so
     // entra abaixo de ENTER.
@@ -164,10 +182,11 @@ SteeringController::Output SteeringController::compute(const Input &input)
         integral_ = 0.0f;
     }
 
-    if (!input.motion_permitted)
+    if (!input.motion_permitted || absolute_error_deg > STEERING_INTEGRAL_ZONE_DEG)
     {
-        // Atuador desconectado: integrar aqui acumularia erro com o motor
-        // parado e, ao habilitar, o esterçamento partiria saturado.
+        // Sem permissao o atuador esta desconectado: integrar acumularia erro
+        // com o motor parado. Longe da referencia o P (com a compensacao da
+        // zona morta) ja move a direcao; a integral so cuida do erro final.
         integral_ = 0.0f;
     }
     else
@@ -181,9 +200,9 @@ SteeringController::Output SteeringController::compute(const Input &input)
         }
 
         const float candidate_integral_term = STEERING_DIRECT_KI * candidate_integral;
-        const float candidate_command = output.proportional_term +
-                                        candidate_integral_term +
-                                        output.derivative_term;
+        const float candidate_command = compensateDeadzone(output.proportional_term +
+                                                           candidate_integral_term +
+                                                           output.derivative_term);
 
         // Anti-windup condicional: rejeita apenas a parcela integral que
         // empurraria uma saida ja saturada ainda mais na mesma direcao. Uma
@@ -202,9 +221,9 @@ SteeringController::Output SteeringController::compute(const Input &input)
     }
 
     output.integral_term = STEERING_DIRECT_KI * integral_;
-    const float command = output.proportional_term +
-                          output.integral_term +
-                          output.derivative_term;
+    const float command = compensateDeadzone(output.proportional_term +
+                                             output.integral_term +
+                                             output.derivative_term);
 
     if (!std::isfinite(command))
     {
@@ -219,17 +238,6 @@ SteeringController::Output SteeringController::compute(const Input &input)
     output.saturated = command > MAX_ABS_STEER_COMMAND ||
                        command < -MAX_ABS_STEER_COMMAND;
     output.normalized_command = clampValue(command,
-                                           -MAX_ABS_STEER_COMMAND,
-                                           MAX_ABS_STEER_COMMAND);
-
-    if (output.normalized_command != 0.0f &&
-        std::fabs(output.normalized_command) < STEERING_MIN_ACTUATION)
-    {
-        output.normalized_command = std::copysign(STEERING_MIN_ACTUATION,
-                                                  output.normalized_command);
-    }
-
-    output.normalized_command = clampValue(output.normalized_command,
                                            -MAX_ABS_STEER_COMMAND,
                                            MAX_ABS_STEER_COMMAND);
 
@@ -286,6 +294,8 @@ void SteeringController::reset()
 {
     integral_ = 0.0f;
     previous_error_deg_ = 0.0f;
+    previous_measured_deg_ = 0.0f;
+    measured_rate_deg_s_ = 0.0f;
     limited_target_valid_ = false;
     initialized_ = false;
     inside_deadband_ = false;

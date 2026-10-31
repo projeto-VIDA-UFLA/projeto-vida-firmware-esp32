@@ -33,7 +33,7 @@ No teste de 12/10/2026:
 | ≥ 38 (piso de 0,15) | 2,07 s (atrito estático) | 0,59° |
 | ≥ 77 (0,3) | 0,42 s | 0,00° |
 
-No piso de atuação a roda pode ficar parada por atrito sem nenhum defeito. Se ela estiver presa de verdade, a integral do controlador aumenta o comando até passar de 0,3, e a falha é detectada.
+No piso de atuação a roda pode ficar parada por atrito sem nenhum defeito. Com o controlador de 31/10 (compensação de 0,25 somada ao PID), um erro acima de ~1° já pede mais de 0,3, e entre 2° e 4° a integral completa. Se a roda estiver presa de verdade, a falha é detectada.
 
 Repetindo a regra sobre esse teste: nenhum disparo, com folga de 2,3× no tempo. O teste teve só 3,7 s de comando forte, então os valores devem ser confirmados nos próximos ensaios.
 

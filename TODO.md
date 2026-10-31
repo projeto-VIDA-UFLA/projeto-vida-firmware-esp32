@@ -7,12 +7,18 @@ ROTEIRO_TESTES.md.
 ## Prioridade
 
 - [ ] **Esterçamento mais responsivo e sem sobressinal.** No 1o Stanley
-  (30/10) a direcao chegou ~0,3 s atrasada e passou do comando (atraso puro
-  ~0,15 s + resposta subamortecida), e o Stanley oscilou +-10 graus a 0,7 Hz.
-  Hoje o controlador e quase so integral (Kp 0,007/grau). Proposta: subir o
-  Kp (~0,03-0,05/grau), derivada sobre a medicao filtrada (nao sobre o erro)
-  para frear a aproximacao, e integral so para o erro final. Ajustar no chao
-  com degraus de +-10 graus andando devagar em reta (bag para analise).
+  (30/10) a direcao chegou ~0,3 s atrasada e passou do comando, e o Stanley
+  oscilou +-10 graus a 0,7 Hz. Causa (bags de 30/10): o motor quase nao se
+  move abaixo de PWM ~80, e o controlador ficava no piso de PWM 38 esperando
+  a integral subir. Implementado em 31/10, falta testar no chao: compensacao
+  da zona morta do motor (0,25), Kp 0,05, D sobre a velocidade medida (0,002),
+  integral so com |erro| <= 4 graus (Ki 0,05). Na simulacao com o motor
+  medido: degrau de 10 graus em 0,30 s com 0,5 grau de sobressinal (era 0,67 s
+  e 5,3). Teste: andando devagar em reta, analogico de um lado ao outro e de
+  volta ao centro (bag com `/vida/control/steering/reference`,
+  `/vida/sensors/steering`, `/vida/actuators/steering`). Depois: refazer o
+  modelo do esterçamento no simulador do alto-nivel e reajustar o Stanley
+  (`gain_k`, `yaw_damping_s`).
 - [ ] **Mensagens atrasando na entrada do ESP32.** Notebook e Odroid publicam
   a 25 Hz sem falhas, mas de vez em quando o ESP32 fica >300 ms sem ver uma
   mensagem: o pedido do modo bancada (bancada, 29/10) e o enable logico (1o

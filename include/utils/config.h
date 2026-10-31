@@ -288,9 +288,14 @@
 // evitando o liga-desliga na borda. Valores iniciais: ajustar em ensaio.
 #define STEERING_DEADBAND_ENTER_DEG 0.4f
 #define STEERING_DEADBAND_EXIT_DEG 1.2f
-// Piso de atuacao: fora da zona morta, |comando| menor que isto vira
-// +-STEERING_MIN_ACTUATION (vence o atrito estatico do mecanismo).
-#define STEERING_MIN_ACTUATION 0.15f
+// Compensacao da zona morta do motor: fora da zona morta do erro, o comando
+// do PID e somado a +-STEERING_DEADZONE_COMPENSATION. Nos bags de 30/10 (no
+// chao, andando) a direcao quase nao se move abaixo de PWM ~75-80 (0-7 graus/s
+// ate PWM 80, ~45 graus/s em PWM 115, ~70 em PWM 150). O antigo piso de 0,15
+// (PWM 38) deixava o motor parado ate a integral subir: ~0,3 s de atraso e,
+// ao arrancar, a integral acumulada passava 3-7 graus da referencia.
+// 0,25 = PWM 64: logo abaixo do arranque, o P completa o resto.
+#define STEERING_DEADZONE_COMPENSATION 0.25f
 #define MAX_ABS_STEER_COMMAND 1.0f
 // dt acima disto (task atrasada) reseta o controlador.
 #define STEERING_CONTROL_MAX_DT_S 0.1f
@@ -299,11 +304,22 @@
 
 // Kp: comando normalizado por grau.
 // Ki: comando normalizado por grau-segundo.
-// Kd: comando normalizado por grau por segundo.
+// Kd: comando normalizado por grau por segundo, sobre a velocidade MEDIDA
+// (nao sobre o erro): freia a aproximacao sem chutar nos degraus da referencia.
 // INTEGRAL_MIN/MAX limitam a integral do erro (grau-segundo).
-#define STEERING_DIRECT_KP 0.007f
-#define STEERING_DIRECT_KI 0.1f
-#define STEERING_DIRECT_KD 0.0f
+// Ganhos de 31/10 escolhidos simulando este codigo com o motor medido nos bags
+// de 30/10 (degrau de 10 graus: 0,30 s e 0,5 grau de sobressinal; seno de
+// 8 graus a 0,7 Hz: 92 ms de atraso. O anterior, Kp 0,007 / Ki 0,1 com piso
+// 0,15: 0,67 s, 5,3 graus e 342 ms). A conferir no chao com degraus.
+#define STEERING_DIRECT_KP 0.05f
+#define STEERING_DIRECT_KI 0.05f
+#define STEERING_DIRECT_KD 0.002f
+// A integral so acumula com |erro| <= INTEGRAL_ZONE (zerada fora): serve so
+// para o erro final que o atrito segura, nao para a aproximacao.
+#define STEERING_INTEGRAL_ZONE_DEG 4.0f
+// Constante de tempo do filtro da velocidade medida usada pelo D (a velocidade
+// do SteeringSensor tem ~0,2 s de filtro, lenta demais para isto).
+#define STEERING_DERIVATIVE_FILTER_TAU_S 0.02f
 // +-5 grau-segundo = +-0,5 de comando pela integral (era +-10 = 100%). No chao
 // (30/10) o atrito estatico segurava a direcao enquanto a integral subia ate
 // PWM 130-160; ao soltar, passava 3 a 7 graus da referencia.

@@ -9,10 +9,12 @@
  * Controle de posicao do esterçamento (TaskControl, a cada
  * TASK_CONTROL_PERIOD_MS).
  *
- * Malha: referencia limitada a STEERING_REFERENCE_*_DEG -> erro -> zona
- * morta com histerese -> PI (D disponivel, hoje Kd = 0) com anti-windup
- * condicional -> saturacao [-1, 1] -> piso STEERING_MIN_ACTUATION ->
- * protecao de fim de curso (STEERING_MIN/MAX_DEG) -> motor_command.
+ * Malha: referencia limitada a STEERING_REFERENCE_*_DEG e a
+ * STEERING_REFERENCE_MAX_RATE_DEG_S -> erro -> zona morta com histerese ->
+ * P + I (so com |erro| <= STEERING_INTEGRAL_ZONE_DEG, anti-windup
+ * condicional) + D sobre a velocidade medida -> compensacao da zona morta do
+ * motor (STEERING_DEADZONE_COMPENSATION) -> saturacao [-1, 1] -> protecao de
+ * fim de curso (STEERING_MIN/MAX_DEG) -> motor_command.
  *
  * Entradas invalidas (referencia nao finita, sensor invalido ou velho, dt
  * fora de (0, STEERING_CONTROL_MAX_DT_S]) resetam o controlador e geram saida
@@ -77,6 +79,8 @@ private:
 
     float integral_;
     float previous_error_deg_;
+    float previous_measured_deg_;
+    float measured_rate_deg_s_;    // velocidade medida filtrada (D)
     float limited_target_deg_;     // referencia apos a limitacao de taxa
     bool limited_target_valid_;
     bool initialized_;

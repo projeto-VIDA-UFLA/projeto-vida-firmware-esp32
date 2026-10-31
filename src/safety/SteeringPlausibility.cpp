@@ -10,8 +10,8 @@ namespace
         return ms * 1000LL;
     }
 
-    static_assert(STEERING_PLAUSIBILITY_MIN_COMMAND > STEERING_MIN_ACTUATION,
-                  "A plausibilidade nao deve avaliar o piso de atuacao");
+    static_assert(STEERING_PLAUSIBILITY_MIN_COMMAND > STEERING_DEADZONE_COMPENSATION,
+                  "A plausibilidade nao deve avaliar a compensacao da zona morta");
     static_assert(STEERING_WRONG_DIRECTION_GRACE_MS < STEERING_STALL_TIME_MS,
                   "A tolerancia de inversao deve ser menor que o tempo de travamento");
 } // namespace

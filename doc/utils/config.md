@@ -107,12 +107,14 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | Parâmetro | Valor | Descrição |
 |---|---|---|
 | `STEERING_DEADBAND_ENTER_DEG` / `EXIT_DEG` | 0,4° / 1,2° | Zona morta com histerese |
-| `STEERING_MIN_ACTUATION` | 0,15 | Piso de atuação |
+| `STEERING_DEADZONE_COMPENSATION` | 0,25 | Compensação da zona morta do motor (somada ao comando do PID) |
 | `MAX_ABS_STEER_COMMAND` | 1,0 | Saturação do comando |
 | `STEERING_CONTROL_MAX_DT_S` | 0,1 | dt máximo antes de resetar |
 | `STEERING_DIRECTION_DEADTIME_US` | 1000 | Tempo mínimo com os dois PWMs em zero na inversão |
-| `STEERING_DIRECT_KP` / `KI` / `KD` | 0,007 / 0,1 / 0 | Ganhos do PID |
-| `STEERING_DIRECT_INTEGRAL_MIN` / `MAX` | ±5 °·s | Limite da integral (±0,5 de comando) |
+| `STEERING_DIRECT_KP` / `KI` / `KD` | 0,05 / 0,05 / 0,002 | Ganhos do PID (D sobre a velocidade medida) |
+| `STEERING_DIRECT_INTEGRAL_MIN` / `MAX` | ±5 °·s | Limite da integral (±0,25 de comando) |
+| `STEERING_INTEGRAL_ZONE_DEG` | 4° | Integral só com \|erro\| até aqui |
+| `STEERING_DERIVATIVE_FILTER_TAU_S` | 0,02 s | Filtro da velocidade medida usada pelo D |
 | `STEERING_REFERENCE_MAX_RATE_DEG_S` | 40°/s | Taxa máxima da referência |
 
 As constantes `STEERING_POS_*`/`STEERING_VEL_*` comentadas são do controlador em cascata antigo e não são usadas.
