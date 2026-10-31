@@ -64,7 +64,7 @@ Ordem das etapas em cada ciclo (`update()` → `compute()`):
    **Limite de taxa:** a referência usada caminha até a pedida a no máximo `STEERING_REFERENCE_MAX_RATE_DEG_S` (40°/s); sem permissão de movimento (ou após um reset) ela parte do ângulo medido. Degraus do analógico viram rampas (no chão, em 30/10, os degraus acumulavam integral e davam tranco).
 5. **Erro** e **velocidade medida** para o D: derivada do ângulo medido, filtrada com `STEERING_DERIVATIVE_FILTER_TAU_S` (20 ms; zero no primeiro ciclo após um reset). O D é `−Kd·θ̇`, sobre a medição e não sobre o erro: freia a aproximação sem reagir aos degraus da referência. A velocidade do [SteeringSensor](../sensors/SteeringSensor.md) não serve aqui (~0,2 s de filtro).
 6. **Zona morta com histerese:** fora dela, só entra com \|erro\| ≤ 0,4°; dentro dela, só sai com \|erro\| > 1,2°. Dentro: comando 0 e integral zerada.
-7. **Integral** (só com movimento permitido e \|erro\| ≤ `STEERING_INTEGRAL_ZONE_DEG` = 4°; fora disso fica em zero):
+7. **Integral** (só com movimento permitido, e com \|erro\| ≤ `STEERING_INTEGRAL_ZONE_DEG` = 4° **ou** a direção parada, \|θ̇\| < `STEERING_INTEGRAL_STALL_RATE_DEG_S` = 5°/s; aproximando rápido de longe fica em zero, para não passar da referência):
    - **cruzou a referência** (erro trocou de sinal): integral zerada, para não empurrar além dela;
    - integral candidata = `clamp(∫ + erro·dt, ±5 °·s)` (parcela integral até ±0,5);
    - **anti-windup condicional:** a candidata é rejeitada se o comando já passa de ±1 e ela aumentaria a saturação. Uma integral que ajuda a sair da saturação é aceita.
@@ -88,10 +88,11 @@ Ordem das etapas em cada ciclo (`update()` → `compute()`):
 | Parâmetro | Valor | Uso |
 |---|---|---|
 | `STEERING_DIRECT_KP` | 0,05 /° | Ganho proporcional |
-| `STEERING_DIRECT_KI` | 0,05 /(°·s) | Ganho integral |
+| `STEERING_DIRECT_KI` | 0,1 /(°·s) | Ganho integral |
 | `STEERING_DIRECT_KD` | 0,002 /(°/s) | Ganho derivativo, sobre a velocidade medida |
-| `STEERING_DIRECT_INTEGRAL_MIN/MAX` | ±5 °·s | Limite da integral (±0,25 de comando) |
-| `STEERING_INTEGRAL_ZONE_DEG` | 4° | Integral só com \|erro\| até aqui |
+| `STEERING_DIRECT_INTEGRAL_MIN/MAX` | ±5 °·s | Limite da integral (±0,5 de comando) |
+| `STEERING_INTEGRAL_ZONE_DEG` | 4° | Integral com \|erro\| até aqui… |
+| `STEERING_INTEGRAL_STALL_RATE_DEG_S` | 5°/s | …ou com a direção parada (velocidade medida abaixo disto) |
 | `STEERING_DERIVATIVE_FILTER_TAU_S` | 0,02 s | Filtro da velocidade medida (D) |
 | `STEERING_DEADZONE_COMPENSATION` | 0,25 | Compensação da zona morta do motor (PWM 64) |
 | `STEERING_REFERENCE_MAX_RATE_DEG_S` | 40°/s | Taxa máxima da referência |
@@ -116,7 +117,8 @@ O estado interno (integral, erro anterior, zona morta) só é usado pela `TaskCo
   | Antes | 0,67 s, passa 5,3° | amplitude 14°, atraso 342 ms |
   | Agora | 0,30 s, passa 0,5° | amplitude 8°, atraso 92 ms |
 
-  Com ±30% no ganho do motor, ±15 PWM no arranque ou atraso de 70 ms, o sobressinal fica em até ~3,5°. Conferir no chão com degraus; se oscilar, baixar `STEERING_DIRECT_KP` ou subir `KD`; se não chegar na referência com erro pequeno (atrito), subir `STEERING_DEADZONE_COMPENSATION`.
+  Com ±30% no ganho do motor, ±15 PWM no arranque ou atraso de 70 ms, o sobressinal fica em até ~3,5°.
+- **Carga em curva fechada (31/10):** no 1º Stanley com estes ganhos, a integral só agia com \|erro\| ≤ 4°. Numa curva fechada à direita (raio de 2,3 m no caminho, Stanley saturado em −20°), a direção parou em −15,5° com 4,5° de erro e PWM ~120, sem integral para aumentar o esforço, e a plausibilidade deu flag 512 depois de 1 s. Em 30/10, com o controlador antigo, ela tinha chegado a −20,5° no mesmo trecho. Correção: integral também com a direção parada, e Ki de 0,05 para 0,1. Na simulação com uma carga de 70–90 PWM acima de 15,5°, a direção chega a −19,7° e fica travada no máximo 0,86 s. Conferir no chão com degraus; se oscilar, baixar `STEERING_DIRECT_KP` ou subir `KD`; se não chegar na referência com erro pequeno (atrito), subir `STEERING_DEADZONE_COMPENSATION`.
 - **Plausibilidade de travamento:** `STEERING_PLAUSIBILITY_MIN_COMMAND` (0,3) precisa ficar acima da compensação (0,25), verificado por `static_assert`.
 - **Integral zerada na zona morta:** o redutor não trava a posição. Se o veículo em movimento empurrar as rodas para fora da zona morta, o controlador corrige com pulsos curtos. Observar em teste.
 - **Referência sem limite de taxa:** o campo `angular_velocity_deg_s` da referência é recebido mas ignorado; degraus de referência viram velocidade máxima do motor.

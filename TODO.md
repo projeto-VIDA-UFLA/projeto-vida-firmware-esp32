@@ -12,7 +12,10 @@ ROTEIRO_TESTES.md.
   move abaixo de PWM ~80, e o controlador ficava no piso de PWM 38 esperando
   a integral subir. Implementado em 31/10, falta testar no chao: compensacao
   da zona morta do motor (0,25), Kp 0,05, D sobre a velocidade medida (0,002),
-  integral so com |erro| <= 4 graus (Ki 0,05). Na simulacao com o motor
+  integral com |erro| <= 4 graus ou com a direcao parada (Ki 0,1).
+  31/10, 2o Stanley: andou bem, mas parou 2x no mesmo ponto com flag 512 (a
+  integral so com |erro| <= 4 graus nao vencia a carga na curva de raio 2,3 m;
+  corrigido com a integral tambem com a direcao parada, falta testar). Na simulacao com o motor
   medido: degrau de 10 graus em 0,30 s com 0,5 grau de sobressinal (era 0,67 s
   e 5,3). Teste: andando devagar em reta, analogico de um lado ao outro e de
   volta ao centro (bag com `/vida/control/steering/reference`,

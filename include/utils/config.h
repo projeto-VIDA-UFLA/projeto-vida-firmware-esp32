@@ -310,13 +310,20 @@
 // Ganhos de 31/10 escolhidos simulando este codigo com o motor medido nos bags
 // de 30/10 (degrau de 10 graus: 0,30 s e 0,5 grau de sobressinal; seno de
 // 8 graus a 0,7 Hz: 92 ms de atraso. O anterior, Kp 0,007 / Ki 0,1 com piso
-// 0,15: 0,67 s, 5,3 graus e 342 ms). A conferir no chao com degraus.
+// 0,15: 0,67 s, 5,3 graus e 342 ms). Ki de 0,05 para 0,1 em 31/10 junto com a
+// integral com a direcao parada: vence uma carga de ~90 PWM em < 0,9 s, antes
+// da plausibilidade de travamento (1 s).
 #define STEERING_DIRECT_KP 0.05f
-#define STEERING_DIRECT_KI 0.05f
+#define STEERING_DIRECT_KI 0.1f
 #define STEERING_DIRECT_KD 0.002f
-// A integral so acumula com |erro| <= INTEGRAL_ZONE (zerada fora): serve so
-// para o erro final que o atrito segura, nao para a aproximacao.
+// A integral acumula com |erro| <= INTEGRAL_ZONE (erro final que o atrito
+// segura) ou com a direcao parada longe da referencia (|velocidade medida| <
+// INTEGRAL_STALL_RATE): carga que o P sozinho nao vence. Aproximando rapido,
+// fica zerada (era a causa do sobressinal). Em 31/10 (1o Stanley com estes
+// ganhos) so a zona: na curva fechada a direita a direcao parou em -15,5 graus
+// com 4,5 graus de erro e PWM 120, sem integral, e deu flag 512.
 #define STEERING_INTEGRAL_ZONE_DEG 4.0f
+#define STEERING_INTEGRAL_STALL_RATE_DEG_S 5.0f
 // Constante de tempo do filtro da velocidade medida usada pelo D (a velocidade
 // do SteeringSensor tem ~0,2 s de filtro, lenta demais para isto).
 #define STEERING_DERIVATIVE_FILTER_TAU_S 0.02f

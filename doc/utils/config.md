@@ -111,9 +111,9 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `MAX_ABS_STEER_COMMAND` | 1,0 | Saturação do comando |
 | `STEERING_CONTROL_MAX_DT_S` | 0,1 | dt máximo antes de resetar |
 | `STEERING_DIRECTION_DEADTIME_US` | 1000 | Tempo mínimo com os dois PWMs em zero na inversão |
-| `STEERING_DIRECT_KP` / `KI` / `KD` | 0,05 / 0,05 / 0,002 | Ganhos do PID (D sobre a velocidade medida) |
-| `STEERING_DIRECT_INTEGRAL_MIN` / `MAX` | ±5 °·s | Limite da integral (±0,25 de comando) |
-| `STEERING_INTEGRAL_ZONE_DEG` | 4° | Integral só com \|erro\| até aqui |
+| `STEERING_DIRECT_KP` / `KI` / `KD` | 0,05 / 0,1 / 0,002 | Ganhos do PID (D sobre a velocidade medida) |
+| `STEERING_DIRECT_INTEGRAL_MIN` / `MAX` | ±5 °·s | Limite da integral (±0,5 de comando) |
+| `STEERING_INTEGRAL_ZONE_DEG` / `STALL_RATE_DEG_S` | 4° / 5°/s | Integral com \|erro\| até 4° ou com a direção parada |
 | `STEERING_DERIVATIVE_FILTER_TAU_S` | 0,02 s | Filtro da velocidade medida usada pelo D |
 | `STEERING_REFERENCE_MAX_RATE_DEG_S` | 40°/s | Taxa máxima da referência |
 

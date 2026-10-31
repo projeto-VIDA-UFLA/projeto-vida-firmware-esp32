@@ -182,11 +182,17 @@ SteeringController::Output SteeringController::compute(const Input &input)
         integral_ = 0.0f;
     }
 
-    if (!input.motion_permitted || absolute_error_deg > STEERING_INTEGRAL_ZONE_DEG)
+    // Longe da referencia e andando, o P (com a compensacao da zona morta) ja
+    // move a direcao: integrar ai so empurraria alem dela. Parada longe da
+    // referencia, a integral aumenta o esforco ate vencer a carga.
+    const bool integral_active =
+        absolute_error_deg <= STEERING_INTEGRAL_ZONE_DEG ||
+        std::fabs(measured_rate_deg_s_) < STEERING_INTEGRAL_STALL_RATE_DEG_S;
+
+    if (!input.motion_permitted || !integral_active)
     {
         // Sem permissao o atuador esta desconectado: integrar acumularia erro
-        // com o motor parado. Longe da referencia o P (com a compensacao da
-        // zona morta) ja move a direcao; a integral so cuida do erro final.
+        // com o motor parado e, ao habilitar, o esterçamento partiria saturado.
         integral_ = 0.0f;
     }
     else
