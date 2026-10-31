@@ -129,7 +129,7 @@ As constantes `STEERING_POS_*`/`STEERING_VEL_*` comentadas são do controlador e
 | `DRIVE_MAX_DECEL_M_S2` | 1,0 m/s² | Rampa de descida |
 | `DRIVE_VEL_KP` / `DRIVE_VEL_KI` | 0,10 / 0,025 | Ganhos do PI de velocidade |
 | `DRIVE_CONTROL_MAX_DT_S` | 0,1 s | `dt` máximo antes de resetar |
-| `DRIVE_MAX_TRACTION_COMMAND` | 0,197 | Tração máxima (PWM 50) |
+| `DRIVE_MAX_TRACTION_COMMAND` | 0,251 | Tração máxima (PWM 64) |
 | `DRIVE_BRAKE_COAST_BAND` | 0,02 | Faixa de roda livre |
 | `DRIVE_BRAKE_EFFORT_GAIN` | 3,0 | Escala esforço → freio (calibrar) |
 | `DRIVE_BRAKE_ENGAGE_POSITION` | 0,2 | Posição em que o freio começa a agir (calibrar) |

@@ -111,7 +111,7 @@ Simulação com essa planta, os 28 ms do estimador e um freio suposto de 3 m/s²
 | `DRIVE_VEL_KP` / `DRIVE_VEL_KI` | 0,10 / 0,025 | Ganhos do PI |
 | `DRIVE_BENCH_VEL_KP` / `DRIVE_BENCH_VEL_KI` | 0,008 / 0,008 | Ganhos do PI em modo bancada (roda em vazio) |
 | `DRIVE_CONTROL_MAX_DT_S` | 0,1 s | `dt` máximo antes de resetar |
-| `DRIVE_MAX_TRACTION_COMMAND` | 0,197 | Tração máxima (PWM 50) |
+| `DRIVE_MAX_TRACTION_COMMAND` | 0,251 | Tração máxima (PWM 64) |
 | `DRIVE_TRACTION_DEADZONE_COMMAND` | 0,08 | Zona morta da controladora (PWM 20): início da tração |
 | `DRIVE_DECEL_NO_TRACTION_MARGIN_M_S` | 0,1 m/s | Desacelerando além disso, sem tração |
 | `DRIVE_BRAKE_COAST_BAND` | 0,02 | Faixa de roda livre |
@@ -136,4 +136,4 @@ O nó `control_pkg/gamepad_reader` (notebook) publica:
 - **Freio sem calibração:** `DRIVE_BRAKE_ENGAGE_POSITION` (folga do cabo) e `DRIVE_BRAKE_EFFORT_GAIN` (eficácia do freio) são estimativas. Calibrar com um ensaio a velocidade constante, aplicando posições fixas de freio e medindo a desaceleração.
 - **Ganhos provisórios:** o modelo da planta é de baixa precisão, cobre só PWM de 0 a 38 e não considerava a zona morta de ~PWM 20 da controladora (vista na bancada de 29/10). Ajustar em ensaio, começando com degraus de 0,5 → 1,0 m/s em trecho plano.
 - **Sem compensação de curva:** em curva a média das rodas dianteiras fica ~1/cos δ acima da velocidade do eixo traseiro (6% a 20°).
-- A tração máxima é PWM 50 desde 30/10 (com 38 a subida com curva saturou). No plano, ~2 m/s com PWM 20.
+- A tração máxima é PWM 64 desde 31/10 (38 → 50 em 30/10, quando a subida com curva saturou; em 31/10 uma rampa de 8–9% a 2,5 m/s pediu até PWM 48). No plano, ~2 m/s com PWM 20 e 2,5 m/s com 20–26; o teto só é usado em rampa ou com a roda patinando.

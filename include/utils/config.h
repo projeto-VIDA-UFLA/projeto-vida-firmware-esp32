@@ -393,9 +393,12 @@
 // dt acima disto (task atrasada) reseta o controlador.
 #define DRIVE_CONTROL_MAX_DT_S 0.1f
 
-// Esforco do PI: > 0 tracao, < 0 freio. Tracao maxima = PWM 50 (0,197 * 255 =
-// 50,2): no chao (30/10) a subida com curva saturou o antigo teto de PWM 38.
-#define DRIVE_MAX_TRACTION_COMMAND 0.197f
+// Esforco do PI: > 0 tracao, < 0 freio. Tracao maxima = PWM 64 (0,251 * 255 =
+// 64,0). 30/10: a subida com curva saturou o antigo teto de PWM 38 -> 50.
+// 31/10: rampa de 8-9% a 2,5 m/s pediu PWM ate 48, sem folga no teto de 50;
+// 64 da ~30% de margem. O teto tambem limita a arrancada se um encoder
+// dianteiro ler zero, ate a flag 4096 (0,5 s): nao subir muito alem disto.
+#define DRIVE_MAX_TRACTION_COMMAND 0.251f
 
 // Zona morta da controladora da scooter (PWM -> filtro RC -> entrada de
 // acelerador). Bancada de 29/10: parada parte com PWM 22-23, girando segura
