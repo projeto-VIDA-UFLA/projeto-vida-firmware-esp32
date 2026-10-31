@@ -48,17 +48,6 @@ ROTEIRO_TESTES.md.
   < 20 e o PI pulsa (a inercia segura +-0,09 m/s). Ideias, sem prioridade:
   seletor de velocidade da controladora (se existir) ou modo de pulsos.
 
-## Hardware
-
-- [ ] Fixar o cabo USB do ESP32 (desconectou em campo em 30/10).
-
-## Melhorias menores
-
-- [ ] Telemetria opcional do controle longitudinal (referencia apos a rampa,
-  esforco, P, I) e do esterçamento, ligada por `#define` para nao pesar na
-  serial.
-- [ ] Plausibilidade da tracao sem movimento (PWM aplicado e veiculo parado).
-
 ## Outros repositorios
 
 - [ ] `robot_state_ekf` e privado: pedir ao Danilo acesso de leitura para a
@@ -69,11 +58,6 @@ ROTEIRO_TESTES.md.
   (`heading_init_require_fixed`, hoje so FIXED); GPS a 2 Hz no ZED-F9R.
 - [ ] Depois de validar na pista: migrar o `vida_navigation` para C++ usando a
   versao Python como referencia.
-
-## Adiado
-
-- [ ] `EncoderReader::handleInterrupt()` fora da IRAM (so importa com escrita
-  em flash durante a operacao).
 
 ## Limpeza
 
