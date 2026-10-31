@@ -36,10 +36,12 @@ ROTEIRO_TESTES.md.
   esticar o cabo (ferramenta), testar o passo seguinte do servo (1400 us)
   se ele continuar sem aquecer/zumbir, e decidir `DRIVE_BRAKE_EFFORT_GAIN`
   3 -> 6 (freio automatico do PI segurando a velocidade em descida).
-- [ ] **Roda traseira patinando na grama** (flag 4096, 30/10): 2,2-2,7 m/s
-  na traseira contra 0,9 nas dianteiras, com a controladora armando e
-  desarmando a 1 m/s. Falha real; se repetir a 1,5-2,5 m/s, avaliar
-  `ENCODER_DISAGREE_TIME_MS` maior para piso de grama.
+- [ ] **Eixo traseiro girando em falso** (flag 4096, 30/10): nao era a grama;
+  o eixo motriz gira dentro do tarugo usado como enxerto e a tracao nao chega
+  a roda. O encoder traseiro fica no eixo, entao marcou 2,2-2,7 m/s com o
+  carro a ~0,9 m/s, e a falha de encoders discordantes pegou certo. Correcao
+  mecanica em andamento (usuario); depois, confirmar que a 4096 nao aparece
+  mais.
 - [ ] **Escala dos encoders:** medem ~3,5% mais que o GPS (eram ~7%, mas parte
   vinha das curvas). Medir numa reta de 20 m e ajustar `DRIVE_WHEEL_DIAMETER_M`;
   conferir se `ENC_*_TICKS_PER_REV` sao contagens x4 (730 nao e multiplo de 4).
