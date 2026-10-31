@@ -59,12 +59,12 @@ ROTEIRO_TESTES.md.
   o servo continuar sem aquecer/zumbir, testar o passo seguinte (1400 us),
   medindo a distancia de parada no plano. Descidas nao sao o foco: o veiculo
   e usado no plano.
-- [ ] **Roda traseira patinando no eixo** (flag 4096, 30/10): falta a chaveta
-  entre o eixo motriz e a roda, e a tracao nao chega a roda. O encoder
-  traseiro fica no eixo, entao marcou 2,2-2,7 m/s com o carro a ~0,9 m/s, e a
-  falha de encoders discordantes pegou certo. Em 31/10 ha uma gambiarra
-  provisoria; a chaveta definitiva vai ser fabricada (usuario). Depois:
-  - confirmar que a 4096 nao aparece mais;
+- [ ] **Entre-eixos efetivo, com a chaveta definitiva** (instalada em 31/10).
+  Em 30/10 a roda traseira patinava no eixo por falta da chaveta (flag 4096
+  pegou certo). No trajeto pista -> laboratorio de 31/10 (bag 16:51) a
+  traseira chegou a 5,3 m/s com as dianteiras a 1,1-1,5 m/s, mas foi uma
+  valeta, nao a chaveta; rajadas de ate 0,37 s, sem 4096. Falta:
+  - confirmar que a 4096 nao aparece em uso normal (o teto agora e PWM 64);
   - medir de novo o entre-eixos efetivo: em 31/10 as curvas deram ~1,17 m
     (geometrico 1,125); os 1,42 m de 30/10 foram medidos com a roda
     patinando. Se confirmar, ajustar `feedforward_wheelbase_m` do Stanley,
