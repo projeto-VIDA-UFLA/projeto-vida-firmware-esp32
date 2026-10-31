@@ -35,7 +35,7 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 
 | Parâmetro | Valor | Descrição |
 |---|---|---|
-| `LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS` | 500 | Idade máxima do enable lógico (era 300 até 30/10) |
+| `LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS` | 1500 | Idade máxima do enable lógico (300 até 30/10, 500 até 31/10; no automático chegou a ~1 s sem ele) |
 | `DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS` | 200 | Idade máxima da referência de tração |
 | `STEERING_REFERENCE_WATCHDOG_TIMEOUT_MS` | 200 | Idade máxima da referência de esterçamento |
 | `SENSOR_TASK_WATCHDOG_TIMEOUT_MS` | 20 | Tempo máximo entre ciclos válidos da `TaskSensors` |

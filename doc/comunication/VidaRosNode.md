@@ -108,7 +108,9 @@ bool motion_permitted
 uint32 inhibit_flags            # ver SafetyManager (1..256, 512, 1024, 4096, 8192)
 ```
 
-`SteeringControllerOutput.msg` foi removido do pacote em 31/10 (não era mais publicado); ele só sai da libmicroros já compilada na próxima recompilação completa dela.
+`SteeringControllerOutput.msg` foi removido do pacote em 31/10 (não era mais publicado) e saiu da libmicroros na recompilação completa do mesmo dia.
+
+**Vagas de recepção** (`RMW_UXRCE_MAX_HISTORY`, no mesmo `colcon.meta`): **10** desde 31/10, compartilhadas pelas subscriptions. Com 4, as mensagens que chegam juntas a cada 40 ms (4 tópicos; mais referências no modo automático) enchiam a reserva, e o enable lógico, que chega por último (o nó `security` do Odroid o repassa ~1 ms depois), era descartado: flag 8 no automático, nunca no manual. Um `static_assert` no `RosCommunication.cpp` impede compilar com uma libmicroros antiga. Ela só é recompilada se faltar: depois de mudar o `colcon.meta`, rodar `pio run -t clean_microros` em cada máquina que grava o firmware.
 
 **Limite de entidades** da biblioteca micro-ROS (`lib/micro_ros_platformio/metas/colcon.meta`): 10 publishers (8 usados; o `RosCommunication` aceita até 8) e **5 subscriptions (4 usadas)**. Um novo tópico assinado ocupa a última vaga; além disso é preciso aumentar `RMW_UXRCE_MAX_SUBSCRIPTIONS` e recompilar a biblioteca.
 

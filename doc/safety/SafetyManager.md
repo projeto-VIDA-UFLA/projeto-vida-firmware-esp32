@@ -36,7 +36,7 @@ O estado é `STATE_READY` somente com **todas** as condições verdadeiras. Bast
 | 1 | Enable físico (GPIO 13) em nível alto | — | `INHIBIT_PHYSICAL_ENABLE_OFF` (1) |
 | 2 | Enable lógico já recebido | — | `INHIBIT_LOGICAL_ENABLE_NOT_RECEIVED` (2) |
 | 3 | Enable lógico = `true` | — | `INHIBIT_LOGICAL_ENABLE_FALSE` (4) |
-| 4 | Enable lógico recente | 500 ms | `INHIBIT_LOGICAL_ENABLE_TIMEOUT` (8) |
+| 4 | Enable lógico recente | 1500 ms | `INHIBIT_LOGICAL_ENABLE_TIMEOUT` (8) |
 | 5 | Referência de tração recente | 200 ms | `INHIBIT_DRIVE_REFERENCE_NOT_FRESH` (16) |
 | 6 | Referência de esterçamento recente | 200 ms | `INHIBIT_STEERING_REFERENCE_NOT_FRESH` (32) |
 | 7 | `TaskSensors` viva (heartbeat) | 20 ms (500 ms no boot) | `INHIBIT_SENSOR_TASK_TIMEOUT` (64) |
@@ -123,7 +123,7 @@ Durante a manobra o [ActuatorManager](../actuators/ActuatorManager.md) mantém o
 
 | Parâmetro | Valor |
 |---|---|
-| `LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS` | 500 ms |
+| `LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS` | 1500 ms |
 | `DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS` | 200 ms |
 | `STEERING_REFERENCE_WATCHDOG_TIMEOUT_MS` | 200 ms |
 | `SENSOR_TASK_WATCHDOG_TIMEOUT_MS` | 20 ms |

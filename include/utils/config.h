@@ -55,10 +55,12 @@
 // Seguranca e watchdogs
 // ============================================================
 
-// 500 ms desde 30/10: o enable chega a 25 Hz e, no 1o Stanley, o ESP32 ficou
-// >300 ms sem ve-lo uma vez (no notebook e no Odroid ele saiu sem falhas) e
-// bloqueou no meio da volta. Investigacao do atraso na entrada: TODO.md.
-#define LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS 500
+// O enable chega a 25 Hz, mas no modo automatico o ESP32 chegou a ficar ~1 s
+// sem ve-lo (31/10: flag 8 duas vezes na manobra; no notebook ele saiu sem
+// falhas). Era 300 ate 30/10 e 500 ate 31/10. Perder o gamepad continua
+// parando o veiculo em 250 ms: o gamepad publica enable falso (joy_timeout) e
+// as referencias param (watchdog de 200 ms). Investigacao: TODO.md.
+#define LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS 1500
 #define DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS 200
 #define STEERING_REFERENCE_WATCHDOG_TIMEOUT_MS 200
 

@@ -1,6 +1,17 @@
 #include "comunication/RosCommunication.h"
 #include "esp_timer.h"
 
+#if !defined(__INTELLISENSE__) && !defined(__clangd__)
+#include <rmw_microxrcedds_c/config.h>
+// Vagas para mensagens recebidas, compartilhadas pelas subscriptions. Com 4,
+// as 4 mensagens que chegam juntas a cada 40 ms (mais no modo automatico)
+// enchiam a reserva e o enable logico, sempre o ultimo, era descartado (31/10).
+// Vem do colcon.meta da libmicroros, que so e recompilada se faltar: este
+// assert pega uma libmicroros antiga (pio run -t clean_microros).
+static_assert(RMW_UXRCE_MAX_HISTORY >= 10,
+              "libmicroros antiga: rode 'pio run -t clean_microros' e compile de novo");
+#endif
+
 RosCommunication::RosCommunication(const char *node_name,
                                    const char *node_namespace,
                                    int domain_id)

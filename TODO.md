@@ -31,6 +31,13 @@ ROTEIRO_TESTES.md.
   - buffer de recepcao da UART de 256 para 2048 bytes;
   - publish reliable espera no maximo 20 ms pela confirmacao (era 1000 ms).
 
+  31/10, 2o e 3o Stanley: ainda perdia so o enable logico (flag 8, ate ~1 s,
+  so no automatico; no notebook ele chega sem falhas). Hipotese: reserva de 4
+  vagas de recepcao do micro-ROS cheia, e o enable chega sempre por ultimo.
+  Feito: `RMW_UXRCE_MAX_HISTORY` 4 -> 10 (libmicroros recompilada) e
+  `LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS` 500 -> 1500 ms. Com 1500 ms um buraco
+  de ~1 s fica invisivel: para confirmar a hipotese, rodar uma volta no
+  automatico com o watchdog em 500 ms; sem flag 8, deixar em 500 ms.
   Teste: no bag, `logical_enable_fresh`, `drive_reference_fresh` e
   `steering_reference_fresh` de `/vida/safety/status` nao caem com o gamepad
   ligado (comparar com os bags de 30/10); `ros2 topic hz` dos topicos do
