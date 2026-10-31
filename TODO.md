@@ -51,11 +51,10 @@ ROTEIRO_TESTES.md.
 - [ ] `robot_state_ekf` e privado: pedir ao Danilo acesso de leitura para a
   conta `Nucleo-LMT`, para o Odroid atualizar o submodulo sem token pessoal.
 - [ ] Navegacao (alto-nivel): regravar a rota com o `path_recorder` aceitando
-  FLOAT (`require_rtk_fixed:=false`) e curvas mais abertas que o grampo da
-  rota 3. O rumo inicial do EKF continua exigindo FIXED (decidido em 31/10:
-  esperar o FIXED se preciso).
-- [ ] GPS a 2 Hz no ZED-F9R (Odroid): parametro no driver para
-  `CFG-RATE-MEAS` = 500 ms, no mesmo `CFG-VALSET` (so RAM); conferir ACK no log.
+  FLOAT (`require_rtk_fixed:=false`).
+- [ ] GPS a 2 Hz no ZED-F9R (Odroid): o driver ja tem `measurement_rate_ms`
+  (31/10, padrao 1000). Falta testar: 500 no `zed_f9r.yaml`, conferir o ACK no
+  log e `ros2 topic hz /vida/sensors/gps/fix` = 2 Hz.
 - [ ] Depois de validar na pista: migrar o `vida_navigation` para C++ usando a
   versao Python como referencia.
 
