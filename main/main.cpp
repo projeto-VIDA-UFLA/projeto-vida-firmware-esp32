@@ -196,7 +196,8 @@ void setup()
   // Inicializa servo motor do freio
   brake_servo.begin();
 
-  // Inicia comunicação serial
+  // Inicia comunicação serial (o buffer de recepção precisa vir antes do begin)
+  Serial.setRxBufferSize(SERIAL_RX_BUFFER_SIZE);
   Serial.begin(SERIAL_BAUDRATE);
   delay(1000);
 

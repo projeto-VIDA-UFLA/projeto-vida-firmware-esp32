@@ -9,6 +9,7 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | Parâmetro | Valor | Descrição |
 |---|---|---|
 | `SERIAL_BAUDRATE` | 921600 | Serial do micro-ROS; o agente no Odroid precisa usar o mesmo valor |
+| `SERIAL_RX_BUFFER_SIZE` | 2048 | Buffer de recepção da UART (o padrão de 256 bytes enche em ~3 ms a 921600 e perdia quadros) |
 
 ## PWM e canais LEDC
 

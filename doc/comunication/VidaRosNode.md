@@ -36,7 +36,11 @@ Os callbacks do rclc são funções livres; elas acessam o objeto pela instânci
 
 Hoje quem publica as referências é o gamepad (`control_pkg`, no notebook, a 25 Hz), e quem publica o enable lógico é o nó `security` do Odroid.
 
+As quatro assinaturas são **best-effort** (`rmw_qos_profile_sensor_data`), desde 31/10. Com reliable, um quadro perdido na serial segurava todas as mensagens seguintes até o agente retransmitir, e o ESP32 ficava >300 ms sem referências nem enable lógico. Com best-effort, a mensagem perdida some e a próxima chega 40 ms depois. Uma assinatura best-effort recebe de publishers reliable, então o notebook e o Odroid não mudam.
+
 ## Tópicos publicados (a cada 20 ms)
+
+Os publishers continuam **reliable**: o `robot_state_ekf` assina encoders e esterçamento como reliable e não receberia de um publisher best-effort. O tempo que cada publish espera pela confirmação do agente é limitado no [RosCommunication](RosCommunication.md).
 
 | Tópico | Mensagem | Conteúdo |
 |---|---|---|

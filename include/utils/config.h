@@ -9,6 +9,10 @@
 
 // Transporte do micro-ROS; o agente no Odroid deve usar o mesmo baud rate.
 #define SERIAL_BAUDRATE 921600
+// Buffer de recepcao da UART (padrao do Arduino: 256 bytes, cheio em ~3 ms a
+// 921600). As 4 mensagens de entrada chegam juntas a cada 40 ms e a task do
+// ROS pode ficar alguns ms ocupada publicando: com 256 bytes perdia quadros.
+#define SERIAL_RX_BUFFER_SIZE 2048
 
 // ============================================================
 // PWM e canais LEDC

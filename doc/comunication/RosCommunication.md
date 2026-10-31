@@ -51,6 +51,8 @@ Cada volta faz **no máximo uma** chamada bloqueante e depois roda o executor:
 
 Os timeouts ficam bem abaixo dos watchdogs de referência (200 ms). Enquanto a task está bloqueada, o executor não recebe mensagens. Uma falha isolada de ping não derruba a sessão.
 
+Os publishes reliable também bloqueiam: cada `rcl_publish` espera a confirmação do agente. O padrão do micro-ROS é 1000 ms (`RMW_UXRCE_PUBLISH_RELIABLE_TIMEOUT`); `createEntities()` reduz para **20 ms** por publisher (`PUBLISH_SESSION_TIMEOUT_MS`). Se a confirmação não chega a tempo, a mensagem continua no stream e é retransmitida. São 8 publishes a cada 20 ms, então uma confirmação perdida travava o executor por até 1 s.
+
 ### Vigia de entrada (sessão "zumbi")
 
 O ping só confirma que *um* agente responde, não que a sessão ainda existe. Um agente que reinicia em menos de ~600 ms (os 3 pings) responde normalmente, mas descarta tudo da sessão antiga: o ESP32 continua em `AgentConnected` sem receber nem publicar nada.

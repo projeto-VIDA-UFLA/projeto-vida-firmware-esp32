@@ -16,12 +16,18 @@ ROTEIRO_TESTES.md.
 - [ ] **Mensagens atrasando na entrada do ESP32.** Notebook e Odroid publicam
   a 25 Hz sem falhas, mas de vez em quando o ESP32 fica >300 ms sem ver uma
   mensagem: o pedido do modo bancada (bancada, 29/10) e o enable logico (1o
-  Stanley, 30/10, bloqueou no meio da volta). Contornado com
-  `BENCH_MODE_REQUEST_TIMEOUT_MS` = 1 s e `LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS`
-  = 500 ms (e o mode_manager tolera 0,3 s de bloqueio). Investigar: contar
-  mensagens recebidas por topico no ESP32; suspeita na fila de entrada do
-  micro-ROS (`RMW_UXRCE_MAX_HISTORY` = 4 com 4 mensagens chegando juntas a cada
-  40 ms) e no publish reliable que bloqueia a task do ROS.
+  Stanley, 30/10, bloqueou no meio da volta). Implementado em 31/10, falta
+  testar:
+  - assinaturas best-effort (reliable segurava tudo ate a retransmissao);
+  - buffer de recepcao da UART de 256 para 2048 bytes;
+  - publish reliable espera no maximo 20 ms pela confirmacao (era 1000 ms).
+
+  Teste: no bag, `logical_enable_fresh`, `drive_reference_fresh` e
+  `steering_reference_fresh` de `/vida/safety/status` nao caem com o gamepad
+  ligado (comparar com os bags de 30/10); `ros2 topic hz` dos topicos do
+  ESP32 continua em 50 Hz. Se der certo, voltar a pensar nos contornos
+  (`BENCH_MODE_REQUEST_TIMEOUT_MS`, `LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS`,
+  tolerancia do mode_manager).
 - [ ] **Sessao micro-ROS "zumbi" apos reinicio rapido do agente** (bancada,
   29/10; campo, 30/10): implementado em 31/10, falta testar. Firmware: 3 s
   sem nenhuma mensagem recebida (depois da 1a da sessao) recria a sessao.

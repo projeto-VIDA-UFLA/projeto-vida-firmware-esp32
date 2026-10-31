@@ -181,6 +181,7 @@ struct vida_interfaces__msg__SafetyStatus
 };
 
 extern rmw_qos_profile_t rmw_qos_profile_default;
+extern rmw_qos_profile_t rmw_qos_profile_sensor_data;
 
 #define RCL_MS_TO_NS(ms) ((int64_t)(ms) * 1000000LL)
 #define ROSIDL_GET_MSG_TYPE_SUPPORT(pkg, subfolder, name) \
@@ -348,6 +349,20 @@ inline int64_t rmw_uros_epoch_nanos()
 inline rcl_ret_t rclc_executor_spin_some(rclc_executor_t *, int64_t)
 {
     return RCL_RET_OK;
+}
+
+struct rmw_publisher_t
+{
+};
+
+inline rmw_publisher_t *rcl_publisher_get_rmw_handle(const rcl_publisher_t *)
+{
+    return nullptr;
+}
+
+inline rmw_ret_t rmw_uros_set_publisher_session_timeout(rmw_publisher_t *, int)
+{
+    return RMW_RET_OK;
 }
 
 inline rcl_ret_t rcl_publish(rcl_publisher_t *, const void *, void *)

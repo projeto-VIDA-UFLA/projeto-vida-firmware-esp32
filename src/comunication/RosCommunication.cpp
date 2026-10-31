@@ -262,6 +262,11 @@ void RosCommunication::taskLoop()
 
 bool RosCommunication::createEntities()
 {
+    // O publish reliable espera a confirmacao do agente (padrao do micro-ROS:
+    // 1000 ms), travando a task e o executor que recebe as referencias. Sem a
+    // confirmacao a tempo, a mensagem continua no stream e e retransmitida.
+    constexpr int PUBLISH_SESSION_TIMEOUT_MS = 20;
+
     allocator_ = rcl_get_default_allocator();
     init_options_ = rcl_get_zero_initialized_init_options();
 
@@ -300,6 +305,9 @@ bool RosCommunication::createEntities()
             return false;
         }
         publisher.initialized = true;
+        (void)rmw_uros_set_publisher_session_timeout(
+            rcl_publisher_get_rmw_handle(publisher.publisher),
+            PUBLISH_SESSION_TIMEOUT_MS);
     }
 
     for (size_t i = 0; i < subscription_count_; ++i)

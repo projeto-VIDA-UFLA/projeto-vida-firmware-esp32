@@ -163,7 +163,8 @@ bool VidaRosNode::configure()
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, LogicalEnable),
             LOGICAL_ENABLE_TOPIC,
             &logical_enable_message_,
-            logicalEnableCallback))
+            logicalEnableCallback,
+            &rmw_qos_profile_sensor_data))
     {
         return false;
     }
@@ -189,7 +190,8 @@ bool VidaRosNode::configure()
             ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
             BENCH_MODE_REQUEST_TOPIC,
             &bench_mode_request_message_,
-            benchModeRequestCallback))
+            benchModeRequestCallback,
+            &rmw_qos_profile_sensor_data))
     {
         return false;
     }
@@ -199,7 +201,8 @@ bool VidaRosNode::configure()
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, SteeringReference),
             STEERING_REFERENCE_TOPIC,
             &steering_reference_message_,
-            steeringReferenceCallback))
+            steeringReferenceCallback,
+            &rmw_qos_profile_sensor_data))
     {
         return false;
     }
@@ -209,7 +212,8 @@ bool VidaRosNode::configure()
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, DriveReference),
             DRIVE_REFERENCE_TOPIC,
             &drive_reference_message_,
-            driveReferenceCallback))
+            driveReferenceCallback,
+            &rmw_qos_profile_sensor_data))
     {
         return false;
     }
