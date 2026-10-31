@@ -77,9 +77,6 @@ ROTEIRO_TESTES.md.
 
 ## Limpeza
 
-- [ ] Envs `steering_sensor`, `steering_motor` e `encoder_teste` do `platformio.ini`
-  apontam para arquivos que nao existem mais.
-- [ ] `monitor_speed` (460800) diferente de `SERIAL_BAUDRATE` (921600).
-- [ ] `vida_interfaces` divergente entre os 3 repositorios; usar uma fonte unica
-  (o do alto-nivel tem todas). `SteeringControllerOutput.msg` nao e mais
-  publicado e pode sair na proxima recompilacao da libmicroros.
+- [ ] `vida_interfaces` em 3 copias: as mensagens em comum estao identicas e o
+  Odroid foi sincronizado com o alto-nivel (31/10), mas cada repositorio tem a
+  sua copia. Fonte unica de verdade (submodulo) fica para depois.

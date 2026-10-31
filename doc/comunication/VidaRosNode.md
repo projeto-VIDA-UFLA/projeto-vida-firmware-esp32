@@ -104,9 +104,9 @@ bool motion_permitted
 uint32 inhibit_flags            # ver SafetyManager (1..256, 512, 1024, 4096, 8192)
 ```
 
-`SteeringControllerOutput.msg` ainda existe no pacote, mas não é mais publicado.
+`SteeringControllerOutput.msg` foi removido do pacote em 31/10 (não era mais publicado); ele só sai da libmicroros já compilada na próxima recompilação completa dela.
 
-**Limite de entidades** da biblioteca micro-ROS (`lib/micro_ros_platformio/metas/colcon.meta`): 10 publishers (7 usados) e **5 subscriptions (4 usadas)**. Um novo tópico assinado ocupa a última vaga; além disso é preciso aumentar `RMW_UXRCE_MAX_SUBSCRIPTIONS` e recompilar a biblioteca.
+**Limite de entidades** da biblioteca micro-ROS (`lib/micro_ros_platformio/metas/colcon.meta`): 10 publishers (8 usados; o `RosCommunication` aceita até 8) e **5 subscriptions (4 usadas)**. Um novo tópico assinado ocupa a última vaga; além disso é preciso aumentar `RMW_UXRCE_MAX_SUBSCRIPTIONS` e recompilar a biblioteca.
 
 ## Pontos de atenção
 
