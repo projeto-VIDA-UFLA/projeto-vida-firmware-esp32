@@ -20,8 +20,14 @@
  * com o agente. A propria task (TaskRosCommunication) executa a maquina de
  * estados:
  *   WaitingAgent  -- ping ok -->  AgentAvailable  -- entidades criadas -->
- *   AgentConnected -- MAX_MISSED_AGENT_PINGS seguidos --> AgentDisconnected
- *   -- entidades destruidas --> WaitingAgent
+ *   AgentConnected -- MAX_MISSED_AGENT_PINGS seguidos ou sem mensagens
+ *   recebidas --> AgentDisconnected -- entidades destruidas --> WaitingAgent
+ *
+ * O ping nao confere a sessao: um agente que reinicia rapido responde aos
+ * pings mas descarta a sessao antiga ("zumbi"). Por isso, se alguma
+ * subscription ja recebeu mensagem nesta sessao e todas ficam
+ * INBOUND_TIMEOUT_MS sem receber, a sessao e recriada. Sem nenhuma mensagem
+ * desde a conexao (notebook desligado) nao ha reconexao em laco.
  *
  * Conectada, cada volta do laco faz no maximo uma chamada bloqueante
  * (sincronizacao de relogio ou ping, com timeouts curtos) e depois roda o
@@ -86,6 +92,7 @@ private:
         void *message;
         SubscriptionCallback callback;
         const rmw_qos_profile_t *qos;
+        RosCommunication *owner;
         bool initialized;
     };
 
@@ -98,6 +105,8 @@ private:
     };
 
     static void taskEntry(void *parameter);
+    // Marca a chegada de uma mensagem e repassa ao callback registrado.
+    static void subscriptionEntry(const void *message, void *context);
 
     void taskLoop();
     bool createEntities();
@@ -134,4 +143,7 @@ private:
     int64_t last_agent_connected_ping_ms_;
     int64_t last_time_sync_ms_;
     uint8_t missed_agent_pings_;
+    // Ultima mensagem recebida (uxr_millis); so conta depois da 1a da sessao.
+    int64_t last_inbound_ms_;
+    bool inbound_received_;
 };

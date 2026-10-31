@@ -29,7 +29,9 @@ RosCommunication::RosCommunication(const char *node_name,
       last_agent_wait_ping_ms_(-1),
       last_agent_connected_ping_ms_(-1),
       last_time_sync_ms_(-1),
-      missed_agent_pings_(0)
+      missed_agent_pings_(0),
+      last_inbound_ms_(-1),
+      inbound_received_(false)
 {
 }
 
@@ -87,6 +89,7 @@ bool RosCommunication::addSubscription(rcl_subscription_t &subscription,
         message,
         callback,
         qos,
+        this,
         false};
     return true;
 }
@@ -146,6 +149,15 @@ void RosCommunication::taskEntry(void *parameter)
     static_cast<RosCommunication *>(parameter)->taskLoop();
 }
 
+void RosCommunication::subscriptionEntry(const void *message, void *context)
+{
+    // Roda no executor, dentro da propria task: sem corrida com taskLoop().
+    SubscriptionConfig *subscription = static_cast<SubscriptionConfig *>(context);
+    subscription->owner->last_inbound_ms_ = uxr_millis();
+    subscription->owner->inbound_received_ = true;
+    subscription->callback(message);
+}
+
 void RosCommunication::taskLoop()
 {
     constexpr uint32_t WAITING_AGENT_PING_PERIOD_MS = 500;
@@ -164,6 +176,10 @@ void RosCommunication::taskLoop()
     constexpr int TIME_SYNC_TIMEOUT_MS = 100;
     // Pings perdidos em sequencia antes de considerar o agente desconectado.
     constexpr uint8_t MAX_MISSED_AGENT_PINGS = 3;
+    // Sem nenhuma mensagem recebida por este tempo (depois da 1a da sessao),
+    // a sessao e considerada zumbi. Notebook e Odroid publicam a 25 Hz e os
+    // buracos vistos em campo ficam abaixo de 1 s.
+    constexpr int64_t INBOUND_TIMEOUT_MS = 3000;
 
     for (;;)
     {
@@ -179,6 +195,7 @@ void RosCommunication::taskLoop()
 
         case State::AgentAvailable:
             missed_agent_pings_ = 0;
+            inbound_received_ = false;
             state_ = createEntities() ? State::AgentConnected : State::WaitingAgent;
             if (state_ == State::WaitingAgent)
             {
@@ -188,6 +205,12 @@ void RosCommunication::taskLoop()
 
         case State::AgentConnected:
         {
+            if (inbound_received_ && uxr_millis() - last_inbound_ms_ >= INBOUND_TIMEOUT_MS)
+            {
+                state_ = State::AgentDisconnected;
+                break;
+            }
+
             const uint32_t time_sync_period_ms = rmw_uros_epoch_synchronized()
                                                      ? TIME_SYNC_PERIOD_MS
                                                      : TIME_SYNC_RETRY_PERIOD_MS;
@@ -225,6 +248,7 @@ void RosCommunication::taskLoop()
             last_agent_connected_ping_ms_ = -1;
             last_time_sync_ms_ = -1;
             missed_agent_pings_ = 0;
+            inbound_received_ = false;
             break;
         }
 
@@ -318,11 +342,12 @@ bool RosCommunication::createEntities()
         for (size_t i = 0; i < subscription_count_; ++i)
         {
             SubscriptionConfig &subscription = subscriptions_[i];
-            if (rclc_executor_add_subscription(&executor_,
-                                               subscription.subscription,
-                                               subscription.message,
-                                               subscription.callback,
-                                               ON_NEW_DATA) != RCL_RET_OK)
+            if (rclc_executor_add_subscription_with_context(&executor_,
+                                                            subscription.subscription,
+                                                            subscription.message,
+                                                            subscriptionEntry,
+                                                            &subscription,
+                                                            ON_NEW_DATA) != RCL_RET_OK)
             {
                 return false;
             }

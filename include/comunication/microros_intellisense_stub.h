@@ -275,6 +275,10 @@ inline rcl_ret_t rclc_executor_add_subscription(rclc_executor_t *, rcl_subscript
 {
     return RCL_RET_OK;
 }
+inline rcl_ret_t rclc_executor_add_subscription_with_context(rclc_executor_t *, rcl_subscription_t *, void *, void (*)(const void *, void *), void *, int)
+{
+    return RCL_RET_OK;
+}
 
 inline rmw_context_t *rcl_context_get_rmw_context(rcl_context_t *)
 {

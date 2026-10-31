@@ -23,11 +23,12 @@ ROTEIRO_TESTES.md.
   micro-ROS (`RMW_UXRCE_MAX_HISTORY` = 4 com 4 mensagens chegando juntas a cada
   40 ms) e no publish reliable que bloqueia a task do ROS.
 - [ ] **Sessao micro-ROS "zumbi" apos reinicio rapido do agente** (bancada,
-  29/10; repetiu em campo ao subir o docker compose do Odroid): o agente
-  volta em <600 ms, o ESP32 nao percebe (3 pings perdidos) e o agente novo
-  descarta tudo ate o reset. Contorno atual: resetar o ESP32 depois de
-  reiniciar o Odroid. Proposta: em `AgentConnected`, sem mensagem do enable
-  logico por ~2 s, ir para `AgentDisconnected` e recriar as entidades.
+  29/10; campo, 30/10): implementado em 31/10, falta testar. Firmware: 3 s
+  sem nenhuma mensagem recebida (depois da 1a da sessao) recria a sessao.
+  Odroid: o agente espera 2 s antes de abrir a serial. Teste: com o notebook
+  rodando, `docker compose restart micro_ros_agent` (e tambem
+  `docker compose up -d --force-recreate`); os topicos do ESP32 voltam sem
+  reset em poucos segundos.
 
 ## Ensaios e ajustes
 
