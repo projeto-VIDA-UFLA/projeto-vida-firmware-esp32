@@ -34,7 +34,7 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 
 | Parâmetro | Valor | Descrição |
 |---|---|---|
-| `LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS` | 300 | Idade máxima do enable lógico |
+| `LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS` | 500 | Idade máxima do enable lógico (era 300 até 30/10) |
 | `DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS` | 200 | Idade máxima da referência de tração |
 | `STEERING_REFERENCE_WATCHDOG_TIMEOUT_MS` | 200 | Idade máxima da referência de esterçamento |
 | `SENSOR_TASK_WATCHDOG_TIMEOUT_MS` | 20 | Tempo máximo entre ciclos válidos da `TaskSensors` |
@@ -45,6 +45,7 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `ENCODER_DISAGREE_TIME_MS` | 500 | Tempo contínuo para a falha |
 | `STEERING_PLAUSIBILITY_MIN_COMMAND` | 0,3 | Comando mínimo avaliado ([SteeringPlausibility](../safety/SteeringPlausibility.md)) |
 | `STEERING_STALL_MIN_ERROR_DEG` | 2,0° | Erro mínimo para avaliar travamento |
+| `STEERING_STALL_MIN_SPEED_M_S` | 0,2 m/s | Velocidade mínima para avaliar travamento |
 | `STEERING_STALL_MIN_PROGRESS_DEG` / `STEERING_STALL_TIME_MS` | 0,5° / 1000 | Travado |
 | `STEERING_WRONG_DIRECTION_DEG` / `STEERING_WRONG_DIRECTION_GRACE_MS` | 2,0° / 200 | Sentido invertido |
 | `TASK_SUPERVISOR_PERIOD_MS` / `TIMEOUT_MS` / `STARTUP_GRACE_MS` | 10 / 50 / 500 | [TaskSupervisor](../safety/TaskSupervisor.md) |

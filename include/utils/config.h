@@ -51,7 +51,10 @@
 // Seguranca e watchdogs
 // ============================================================
 
-#define LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS 300
+// 500 ms desde 30/10: o enable chega a 25 Hz e, no 1o Stanley, o ESP32 ficou
+// >300 ms sem ve-lo uma vez (no notebook e no Odroid ele saiu sem falhas) e
+// bloqueou no meio da volta. Investigacao do atraso na entrada: TODO.md.
+#define LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS 500
 #define DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS 200
 #define STEERING_REFERENCE_WATCHDOG_TIMEOUT_MS 200
 
@@ -83,6 +86,9 @@
 // morta fez a integral subir ate o comando forte sem a direcao mover (atrito),
 // e a falha acusava travamento (flag 512, 30/10).
 #define STEERING_STALL_MIN_ERROR_DEG 2.0f
+// E so com o veiculo andando: parado na grama (30/10) o motor nao venceu o
+// atrito do pneu com 6 graus de erro e a falha acusava travamento.
+#define STEERING_STALL_MIN_SPEED_M_S 0.2f
 // Travado: sem avancar STALL_MIN_PROGRESS no sentido comandado por STALL_TIME.
 #define STEERING_STALL_MIN_PROGRESS_DEG 0.5f
 #define STEERING_STALL_TIME_MS 1000

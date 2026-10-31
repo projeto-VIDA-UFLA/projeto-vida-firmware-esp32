@@ -17,7 +17,7 @@ Detecta:
 
 Só são avaliados comandos **fortes**: \|comando\| ≥ `STEERING_PLAUSIBILITY_MIN_COMMAND` (0,3, PWM 77). O comando é o PWM aplicado (`direita − esquerda`), convertido para a convenção do ângulo e dividido por 255.
 
-E só com **erro grande**: \|referência − ângulo\| ≥ `STEERING_STALL_MIN_ERROR_DEG` (2°). Parado no chão (30/10), um erro de 0,6° fez a integral subir até o comando forte sem a direção se mover por atrito, e a falha acusava travamento.
+E só com **erro grande**, \|referência − ângulo\| ≥ `STEERING_STALL_MIN_ERROR_DEG` (2°), e com o **veículo andando** (≥ `STEERING_STALL_MIN_SPEED_M_S`, 0,2 m/s: parado na grama o atrito do pneu segurou a direção com 6° de erro). Parado no chão (30/10), um erro de 0,6° fez a integral subir até o comando forte sem a direção se mover por atrito, e a falha acusava travamento.
 
 | Falha | Condição |
 |---|---|
@@ -54,6 +54,7 @@ Rearme: enable físico desligado ou enable lógico `false`. A verificação cont
 |---|---|
 | `STEERING_PLAUSIBILITY_MIN_COMMAND` | 0,3 |
 | `STEERING_STALL_MIN_ERROR_DEG` | 2,0° |
+| `STEERING_STALL_MIN_SPEED_M_S` | 0,2 m/s |
 | `STEERING_STALL_MIN_PROGRESS_DEG` | 0,5° |
 | `STEERING_STALL_TIME_MS` | 1000 ms |
 | `STEERING_WRONG_DIRECTION_DEG` | 2,0° |

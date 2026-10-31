@@ -325,7 +325,9 @@ void SafetyManager::update(bool vehicle_stopped)
                 applied_steering_command,
                 steering_sensor_fresh,
                 sensor_health.steering_angle_deg,
-                control_output.output.valid ? control_output.output.angle_error_deg : NAN});
+                control_output.output.valid ? control_output.output.angle_error_deg : NAN,
+                std::fmax(std::fabs(sensor_health.rear_velocity_m_s),
+                          std::fabs(sensor_health.front_velocity_m_s))});
         steering_stalled_latched_ = steering_stalled_latched_ || steering.stalled;
         steering_wrong_direction_latched_ =
             steering_wrong_direction_latched_ || steering.wrong_direction;
