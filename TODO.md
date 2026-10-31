@@ -45,7 +45,6 @@ ROTEIRO_TESTES.md.
 - [ ] **Escala dos encoders:** medem ~3,5% mais que o GPS (eram ~7%, mas parte
   vinha das curvas). Medir numa reta de 20 m e ajustar `DRIVE_WHEEL_DIAMETER_M`;
   conferir se `ENC_*_TICKS_PER_REV` sao contagens x4 (730 nao e multiplo de 4).
-- [ ] Validar no veiculo a deteccao de LVDT travado / fundo de escala.
 - [ ] Velocidade abaixo de ~2 m/s: a controladora da scooter desarma com PWM
   < 20 e o PI pulsa (a inercia segura +-0,09 m/s). Ideias, sem prioridade:
   seletor de velocidade da controladora (se existir) ou modo de pulsos.
