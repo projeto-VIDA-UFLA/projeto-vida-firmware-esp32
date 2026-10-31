@@ -52,7 +52,7 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `BENCH_MODE_REQUEST_TIMEOUT_MS` | 1000 | Sem pedido recente, sai do modo bancada |
 | `BENCH_MODE_MAX_SPEED_M_S` | 4,0 | Velocidade máxima em modo bancada |
 | `MANEUVER_BRAKE_REQUEST` | −0,5 | `brake_command` abaixo disso pede o modo manobra (freio solto) |
-| `MANEUVER_MAX_SPEED_M_S` | 1,0 m/s | Acima disso o modo manobra é cancelado |
+| `MANEUVER_MAX_SPEED_M_S` | 2,5 m/s | Acima disso o modo manobra é cancelado |
 
 ## Sensor de esterçamento → [SteeringSensor](../sensors/SteeringSensor.md)
 

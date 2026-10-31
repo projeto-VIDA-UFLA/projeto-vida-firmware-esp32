@@ -72,11 +72,11 @@
 
 ## Outros repositorios (navegacao)
 
-- [ ] Alto-nivel, `ros_ws/Dockerfile`: instalar `python3-scipy python3-matplotlib
-  python3-numpy`. Sem o scipy, `stanley`, `mode_manager`, `path_publisher` e
+- [x] Alto-nivel, `ros_ws/Dockerfile`: instalar `python3-scipy python3-matplotlib
+  python3-numpy` (30/10). Sem o scipy, `stanley`, `mode_manager`, `path_publisher` e
   `path_recorder` quebram ao iniciar. Nao afeta a fase 1 (so o gamepad).
-- [ ] Alto-nivel, `docker-compose.yml`: comando para `navigation.launch.py` e
-  volume para os caminhos gravados (fases 3.5 e 4).
+- [x] Alto-nivel, `docker-compose.yml`: perfil `navegacao` com o
+  `navigation.launch.py` e `../analises` montado em `/caminhos` (30/10).
 - [ ] `robot_state_ekf` e privado: pedir ao Danilo acesso de leitura para a
   conta `Nucleo-LMT`, para o Odroid atualizar o submodulo sem token pessoal.
 

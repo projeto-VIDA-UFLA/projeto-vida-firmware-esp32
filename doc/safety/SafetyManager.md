@@ -93,7 +93,7 @@ Freio solto para empurrar o veículo à mão, pedido pelo gamepad (R1 por 3 s) c
 |---|---|
 | Entrada | só com o veículo parado (3 encoders) e o enable lógico `true` (gamepad vivo) |
 | Enable físico desligado durante a manobra | cancela (emergência); para soltar de novo o pedido precisa ser desfeito e refeito |
-| Velocidade > `MANEUVER_MAX_SPEED_M_S` (1 m/s) | cancela (veículo rolando sozinho) |
+| Velocidade > `MANEUVER_MAX_SPEED_M_S` (2,5 m/s) | cancela (veículo rolando sozinho) |
 | Pedido sem referência recente (200 ms) ou enable lógico perdido | cancela |
 | Supervisor de tasks disparado ou emergência retida | o [ActuatorManager](../actuators/ActuatorManager.md) ignora o pedido |
 

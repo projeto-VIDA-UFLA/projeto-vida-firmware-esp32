@@ -130,7 +130,8 @@
 // - sem referencia de velocidade recente (DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS)
 //   ou sem enable logico, cancela.
 #define MANEUVER_BRAKE_REQUEST -0.5f
-#define MANEUVER_MAX_SPEED_M_S 1.0f
+// 2,5 m/s desde 30/10: com 1,0 m/s empurrar o veiculo a mao ja cancelava.
+#define MANEUVER_MAX_SPEED_M_S 2.5f
 
 // ============================================================
 // Sensor de estercamento

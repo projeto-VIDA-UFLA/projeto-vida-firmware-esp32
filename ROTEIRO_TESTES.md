@@ -122,7 +122,7 @@ Bag sugerido (baixo nível + GPS/EKF):
 - [ ] **Modo manobra (R1 por 3 s):** parado, com o enable físico ligado e
   depois desligado: freio solta (2 pulsos curtos), dá para empurrar; R1 de
   novo, R2 ou L2 → freio volta (1 pulso longo). Com o freio solto, desligar o
-  enable físico → freio volta. Empurrar acima de 1 m/s → freio volta.
+  enable físico → freio volta. Empurrar acima de 2,5 m/s → freio volta.
   `ros2 topic echo /vida/safety/maneuver`.
 - [ ] **3.6 Plausibilidades sem falsos positivos:** em todas as voltas, nenhuma
   flag 512, 1024, 4096 ou 8192 em `/vida/safety/status`.
