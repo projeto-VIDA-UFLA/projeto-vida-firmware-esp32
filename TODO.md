@@ -31,11 +31,11 @@ ROTEIRO_TESTES.md.
 
 ## Ensaios e ajustes
 
-- [ ] **Freio em descida.** Freio total no plano: 2,5 m/s -> 0 em 2,5 m
-  (~1,5-1,7 m/s2, servo em 1450 us); em descida de ~10% mal segura. Falta:
-  esticar o cabo (ferramenta), testar o passo seguinte do servo (1400 us)
-  se ele continuar sem aquecer/zumbir, e decidir `DRIVE_BRAKE_EFFORT_GAIN`
-  3 -> 6 (freio automatico do PI segurando a velocidade em descida).
+- [ ] **Freio (uso no plano).** Freio total no plano: 2,5 m/s -> 0 em 2,5 m
+  (~1,5-1,7 m/s2, servo em 1450 us). Falta: esticar o cabo (ferramenta) e, se
+  o servo continuar sem aquecer/zumbir, testar o passo seguinte (1400 us),
+  medindo a distancia de parada no plano. Descidas nao sao o foco: o veiculo
+  e usado no plano.
 - [ ] **Eixo traseiro girando em falso** (flag 4096, 30/10): nao era a grama;
   o eixo motriz gira dentro do tarugo usado como enxerto e a tracao nao chega
   a roda. O encoder traseiro fica no eixo, entao marcou 2,2-2,7 m/s com o
@@ -60,6 +60,4 @@ ROTEIRO_TESTES.md.
 
 ## Limpeza
 
-- [ ] `vida_interfaces` em 3 copias: as mensagens em comum estao identicas e o
-  Odroid foi sincronizado com o alto-nivel (31/10), mas cada repositorio tem a
-  sua copia. Fonte unica de verdade (submodulo) fica para depois.
+- [ ] `vida_interfaces` Fonte unica de verdade (submodulo)
