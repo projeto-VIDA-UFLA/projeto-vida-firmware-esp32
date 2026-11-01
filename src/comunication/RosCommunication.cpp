@@ -72,6 +72,10 @@ bool RosCommunication::addPublisher(rcl_publisher_t &publisher,
                                     const char *topic_name,
                                     const rmw_qos_profile_t *qos)
 {
+#if !defined(__INTELLISENSE__) && !defined(__clangd__)
+    static_assert(MAX_PUBLISHERS <= RMW_UXRCE_MAX_PUBLISHERS,
+                  "MAX_PUBLISHERS acima do RMW_UXRCE_MAX_PUBLISHERS da libmicroros");
+#endif
     if (entities_created_ || publisher_count_ >= MAX_PUBLISHERS)
     {
         return false;

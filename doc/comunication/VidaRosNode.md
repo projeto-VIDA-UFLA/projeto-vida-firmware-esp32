@@ -51,6 +51,8 @@ Os publishers continuam **reliable**: o `robot_state_ekf` assina encoders e este
 | `/vida/actuators/brake` | `Comands` | **Largura de pulso do servo em µs** (0 = sem pulsos) |
 | `/vida/safety/status` | `SafetyStatus` | Estado, condições e `inhibit_flags` do [SafetyManager](../safety/SafetyManager.md) |
 | `/vida/safety/bench_mode` | `std_msgs/Bool` | Modo bancada efetivo (sem timestamp) |
+| `/vida/safety/maneuver` | `std_msgs/Bool` | Modo manobra efetivo (sem timestamp) |
+| `/vida/sensors/battery` | `BatteryStatus` | Tensão, corrente e SoC do banco ([BatteryMonitor](../sensors/BatteryMonitor.md)). **Só a cada leitura nova (10 Hz)**, também as inválidas (`valid = false`: INA228 sem resposta) |
 
 O timestamp de cada mensagem é o **instante da amostra** convertido para o relógio do agente. Nada é publicado antes da sincronização de relógio.
 
@@ -96,6 +98,17 @@ float32 filtered_angular_velocity_deg_s
 builtin_interfaces/Time timestamp
 int16 pwm
 
+# BatteryStatus.msg
+uint8 STATE_INVALID=0
+uint8 STATE_NORMAL=1
+uint8 STATE_EMERGENCY=2         # SoC <= 20%; so informativo
+builtin_interfaces/Time timestamp  # instante da leitura
+float32 voltage_v               # sem filtro
+float32 current_a               # > 0 = descarga; NaN sem shunt configurado
+float32 soc_percent             # pela tensao filtrada; so vale em repouso
+uint8 state
+bool valid
+
 # SafetyStatus.msg
 uint8 state                     # 0 DISABLED, 1 READY
 bool physical_enable
@@ -112,7 +125,9 @@ uint32 inhibit_flags            # ver SafetyManager (1..256, 512, 1024, 4096, 81
 
 **Vagas de recepção** (`RMW_UXRCE_MAX_HISTORY`, no mesmo `colcon.meta`): **10** desde 31/10, compartilhadas pelas subscriptions. Com 4, as mensagens que chegam juntas a cada 40 ms (4 tópicos; mais referências no modo automático) enchiam a reserva, e o enable lógico, que chega por último (o nó `security` do Odroid o repassa ~1 ms depois), era descartado: flag 8 no automático, nunca no manual. Um `static_assert` no `RosCommunication.cpp` impede compilar com uma libmicroros antiga. Ela só é recompilada se faltar: depois de mudar o `colcon.meta`, rodar `pio run -t clean_microros` em cada máquina que grava o firmware.
 
-**Limite de entidades** da biblioteca micro-ROS (`lib/micro_ros_platformio/metas/colcon.meta`): 10 publishers (8 usados; o `RosCommunication` aceita até 8) e **5 subscriptions (4 usadas)**. Um novo tópico assinado ocupa a última vaga; além disso é preciso aumentar `RMW_UXRCE_MAX_SUBSCRIPTIONS` e recompilar a biblioteca.
+**Limite de entidades** da biblioteca micro-ROS (`lib/micro_ros_platformio/metas/colcon.meta`): 10 publishers (**9 usados** desde 31/10, com a bateria; o `RosCommunication` aceita os 10, verificado por `static_assert`) e **5 subscriptions (4 usadas)**. Um novo tópico assinado ocupa a última vaga; além disso é preciso aumentar `RMW_UXRCE_MAX_SUBSCRIPTIONS` e recompilar a biblioteca.
+
+**Banda da serial** (estimativa pelo tamanho das mensagens, 31/10): a 921600 baud cabem ~92 kB/s. Os 8 tópicos a 50 Hz somam ~360 bytes a cada 20 ms com o cabeçalho do XRCE (~18 kB/s, 20–25% com os ACKs); a bateria a 10 Hz soma ~0,5 kB/s.
 
 ## Pontos de atenção
 

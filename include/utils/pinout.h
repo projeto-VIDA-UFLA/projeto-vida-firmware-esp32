@@ -30,6 +30,12 @@
 // Servo do freio (cabo de aco)
 #define PIN_BRAKE_SERVO     4
 
+// Barramento I2C do monitor de bateria (INA228)
+#define PIN_I2C_SDA 21
+#define PIN_I2C_SCL 22
+// Endereco I2C de 7 bits do INA228 (A0 e A1 em GND)
+#define INA228_I2C_ADDRESS 0x40
+
 // Enable físico de segurança
 // HIGH = painel/contator fisicamente habilitado
 // LOW  = painel fisicamente desabilitado (causa não identificável pelo ESP32)

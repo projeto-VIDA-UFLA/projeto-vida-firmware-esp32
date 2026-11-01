@@ -39,7 +39,7 @@ Pinagem: [`doc/utils/pinout.md`](doc/utils/pinout.md).
 ```text
 main/main.cpp            Instâncias, tasks FreeRTOS e setup()
 include/, src/
-  sensors/               EncoderReader, SteeringSensor, VehicleMotion
+  sensors/               EncoderReader, SteeringSensor, VehicleMotion, BatteryMonitor
   control/               SteeringController, DriveController
   actuators/             ActuatorManager, DriveMotor, SteeringMotor, BrakeServo, MotorHardware
   safety/                SafetyManager, SafetyWatchdogs
@@ -61,6 +61,7 @@ Tasks FreeRTOS (detalhes em [`doc/main.md`](doc/main.md)):
 | `TaskControl` | 1 | 3 | 5 ms | Controladores de esterçamento e tração |
 | `TaskSensors` | 1 | 2 | 2 ms | LVDT e encoders |
 | `TaskRosCommunication` | 0 | 2 | 1 ms (publica a cada 20 ms) | micro-ROS |
+| `TaskBattery` | 0 | 1 | 100 ms | Tensão e corrente do banco (INA228) |
 
 **Segurança:** o veículo só se move com o **enable físico** ligado, o **enable lógico** do ROS recebido e recente, as **referências** recentes, os **sensores** válidos e o **controlador** respondendo. Qualquer falha para os motores e leva o freio a total em rampa. Detalhes em [`doc/safety/SafetyManager.md`](doc/safety/SafetyManager.md).
 

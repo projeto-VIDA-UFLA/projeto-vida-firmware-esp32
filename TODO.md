@@ -73,6 +73,13 @@ ROTEIRO_TESTES.md.
   vinha das curvas). Medir numa reta de 20 m e ajustar `DRIVE_WHEEL_DIAMETER_M`;
   conferir se `ENC_*_TICKS_PER_REV` sao contagens x4 (730 nao e multiplo de 4).
 
+- [ ] **Monitor de bateria (INA228), 31/10:** trazido da branch `Alexandre`
+  para o firmware atual (`BatteryMonitor`, `/vida/sensors/battery`). Falta:
+  - preencher `BATTERY_SHUNT_RESISTANCE_OHM` com o shunt instalado (hoje 0:
+    corrente NaN) e conferir o sinal com o veiculo tracionando;
+  - `pio run -t clean_microros` (mensagem nova) e testar no hardware;
+  - conferir a faixa do SoC (35,8-40 V) com a curva de descarga do banco.
+
 ## Outros repositorios
 
 - [ ] `robot_state_ekf` e privado: pedir ao Danilo acesso de leitura para a

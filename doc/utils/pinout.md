@@ -16,5 +16,6 @@ Placa: **ESP32 DevKit de 38 pinos** (`esp32dev`).
 | Tração — direção (DIR) | `PIN_DRIVE_REVERSE` | 14 | `HIGH` = ré; emite sinal durante o boot |
 | Servo do freio | `PIN_BRAKE_SERVO` | 4 | Canal LEDC 4 (50 Hz) |
 | Enable físico de segurança | `PIN_ENABLE_SAFETY` | 13 | `HIGH` = painel habilitado; `LOW` bloqueia o movimento |
+| I2C SDA / SCL (INA228, bateria) | `PIN_I2C_SDA` / `PIN_I2C_SCL` | 21 / 22 | Endereço `INA228_I2C_ADDRESS` = 0x40 |
 
 O ADC usado é o ADC1, que continua funcionando com o Wi-Fi ligado (o firmware não usa Wi-Fi).

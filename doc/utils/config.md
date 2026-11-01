@@ -30,6 +30,21 @@ Todos os parâmetros ajustáveis do firmware ficam neste arquivo, agrupados por 
 | `TASK_CONTROL_PERIOD_MS` | 5 | `TaskControl` (200 Hz) |
 | `TASK_COMUNICATION_PERIOD_MS` | 20 | Período de publicação ROS (50 Hz) |
 | `PRIORITY_SAFETY` / `PRIORITY_CONTROL` / `PRIORITY_SENSORS` | 4 / 3 / 2 | Prioridades FreeRTOS |
+| `PRIORITY_BATTERY` | 1 | `TaskBattery` (núcleo 0, abaixo da `TaskRosCommunication`) |
+
+## Monitor de bateria → [BatteryMonitor](../sensors/BatteryMonitor.md)
+
+| Parâmetro | Valor | Descrição |
+|---|---|---|
+| `BATTERY_MEASUREMENT_PERIOD_MS` | 100 | Período da `TaskBattery` (10 Hz) |
+| `BATTERY_I2C_FREQUENCY_HZ` | 400000 | Clock do I2C |
+| `BATTERY_I2C_TIMEOUT_MS` | 5 | Timeout de cada transação I2C |
+| `BATTERY_SHUNT_RESISTANCE_OHM` | **0 (a preencher)** | Shunt da corrente; 0 = corrente NaN |
+| `BATTERY_CURRENT_SIGN` | 1 | Sinal para a descarga sair positiva |
+| `BATTERY_VOLTAGE_VALID_MAX_V` | 85 | Tensão máxima válida (faixa do INA228) |
+| `BATTERY_SOC_FULL_V` / `BATTERY_SOC_EMPTY_V` | 40,0 / 35,8 | Faixa linear do SoC |
+| `BATTERY_SOC_EMERGENCY_PERCENT` | 20 | SoC do estado de emergência (só informativo) |
+| `BATTERY_VOLTAGE_FILTER_ALPHA` | 0,10 | Filtro da tensão usada no SoC |
 
 ## Segurança e watchdogs → [SafetyManager](../safety/SafetyManager.md)
 

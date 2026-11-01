@@ -10,6 +10,7 @@
 //   TaskControl           1       3           TASK_CONTROL_PERIOD_MS (5 ms)
 //   TaskSensors           1       2           TASK_SENSOR_PERIOD_MS  (2 ms)
 //   TaskRosCommunication  0       2           laco de 1 ms, publica a cada 20 ms
+//   TaskBattery           0       1           BATTERY_MEASUREMENT_PERIOD_MS (100 ms)
 //======================================================================
 
 //======================================================================
@@ -30,6 +31,7 @@
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
 #include "sensors/VehicleMotion.h"
+#include "sensors/BatteryMonitor.h"
 
 // Inclui classes de atuadores
 #include "actuators/SteeringMotor.h"
@@ -64,6 +66,9 @@ VehicleMotion vehicle_motion(rear_encoder, right_encoder, left_encoder);
 // Instanciando objeto do sensor de esterçamento
 SteeringSensor steering_sensor(PIN_LVDT);
 
+// Monitor do banco de baterias (INA228 no I2C)
+BatteryMonitor battery_monitor(INA228_I2C_ADDRESS, PIN_I2C_SDA, PIN_I2C_SCL);
+
 // Instanciando objetos que representam os atuadores
 SteeringMotor steering_motor(PIN_STEER_RIGHT_PWM, PIN_STEER_LEFT_PWM, PWM_CH_STEER_RIGHT, PWM_CH_STEER_LEFT);
 DriveMotor drive_motor(PIN_DRIVE_PWM, PIN_DRIVE_REVERSE, PWM_CH_DRIVE);
@@ -84,7 +89,7 @@ SafetyManager safety_manager(PIN_ENABLE_SAFETY, command_mailbox, actuator_manage
 TaskSupervisor task_supervisor(actuator_manager);
 
 // Instanciando nó do ROS
-VidaRosNode ros_node(rear_encoder, right_encoder, left_encoder, steering_sensor, safety_manager, actuator_manager, command_mailbox);
+VidaRosNode ros_node(rear_encoder, right_encoder, left_encoder, steering_sensor, battery_monitor, safety_manager, actuator_manager, command_mailbox);
 
 //======================================================================
 // DEFINIÇÃO DE ISRs DOS ENCODERS
@@ -187,6 +192,20 @@ void taskControl(void *parameter)
   }
 }
 
+// Le tensao e corrente do banco. No nucleo 0 e abaixo do ROS: o I2C bloqueia
+// a task por ate BATTERY_I2C_TIMEOUT_MS e nao entra no TaskSupervisor.
+void taskBattery(void *parameter)
+{
+  (void)parameter;
+  TickType_t last_wake_time = xTaskGetTickCount();
+
+  while (true)
+  {
+    battery_monitor.update();
+    vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(BATTERY_MEASUREMENT_PERIOD_MS));
+  }
+}
+
 //======================================================================
 // VOID SETUP
 //======================================================================
@@ -206,6 +225,9 @@ void setup()
   right_encoder.begin(isrRightEncoder);
   left_encoder.begin(isrLeftEncoder);
   steering_sensor.begin();
+  // Sem mensagens na Serial: ela e o transporte do micro-ROS. A falha aparece
+  // em /vida/sensors/battery (valid = false).
+  battery_monitor.begin();
 
   // Inicializa demais atuadores
   drive_motor.begin();
@@ -219,6 +241,7 @@ void setup()
   xTaskCreatePinnedToCore(taskSensors, "TaskSensors", 4096, nullptr, PRIORITY_SENSORS, nullptr, 1);
   xTaskCreatePinnedToCore(taskControl, "TaskControl", 4096, nullptr, PRIORITY_CONTROL, nullptr, 1);
   xTaskCreatePinnedToCore(taskSafety, "TaskSafety", 4096, nullptr, PRIORITY_SAFETY, nullptr, 1);
+  xTaskCreatePinnedToCore(taskBattery, "TaskBattery", 4096, nullptr, PRIORITY_BATTERY, nullptr, 0);
 
   // Supervisor das tasks (timer no nucleo 0) e watchdog do ESP-IDF
   task_supervisor.begin();

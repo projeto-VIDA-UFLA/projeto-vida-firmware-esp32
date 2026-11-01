@@ -47,9 +47,37 @@
 #define PRIORITY_SAFETY 4
 #define PRIORITY_CONTROL 3
 #define PRIORITY_SENSORS 2
+// TaskBattery (nucleo 0): abaixo da TaskRosCommunication (2).
+#define PRIORITY_BATTERY 1
 
 // Sem uso enquanto as respectivas tarefas nao existirem.
 // #define PRIORITY_DEBUG 1
+
+// ============================================================
+// Monitor do banco de baterias (INA228, I2C)
+// ============================================================
+
+// Leitura de tensao e corrente; o INA228 faz media de 16 amostras (~34 ms).
+#define BATTERY_MEASUREMENT_PERIOD_MS 100
+#define BATTERY_I2C_FREQUENCY_HZ 400000U
+// Timeout de cada transacao I2C (padrao do Arduino: 50 ms).
+#define BATTERY_I2C_TIMEOUT_MS 5
+// Resistencia do shunt da corrente do banco. 0 = sem shunt configurado
+// (corrente publicada como NaN). PREENCHER com o shunt instalado.
+#define BATTERY_SHUNT_RESISTANCE_OHM 0.0f
+// +1 ou -1: sinal para que a corrente de descarga saia positiva (depende do
+// sentido de ligacao do shunt; conferir com o veiculo tracionando).
+#define BATTERY_CURRENT_SIGN 1.0f
+// Faixa do INA228 (VBUS ate 85 V); acima disso a leitura e invalida.
+#define BATTERY_VOLTAGE_VALID_MAX_V 85.0f
+// Estimativa inicial do SoC (Alexandre, 01/10): linear entre estas tensoes.
+// Sob carga a tensao cai, entao o SoC so vale com o veiculo parado.
+#define BATTERY_SOC_FULL_V 40.0f
+#define BATTERY_SOC_EMPTY_V 35.8f
+// Estado de emergencia na mensagem com SoC ate aqui (so informativo).
+#define BATTERY_SOC_EMERGENCY_PERCENT 20.0f
+// Filtro passa-baixa da tensao usada no SoC (tau ~1 s a 10 Hz).
+#define BATTERY_VOLTAGE_FILTER_ALPHA 0.10f
 
 // ============================================================
 // Seguranca e watchdogs

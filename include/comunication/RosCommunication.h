@@ -71,7 +71,8 @@ public:
     bool localTimeToEpochNanos(int64_t local_time_us, int64_t &epoch_ns) const;
 
 private:
-    static constexpr size_t MAX_PUBLISHERS = 8;
+    // = RMW_UXRCE_MAX_PUBLISHERS do colcon.meta (verificado no .cpp).
+    static constexpr size_t MAX_PUBLISHERS = 10;
     static constexpr size_t MAX_SUBSCRIPTIONS = 8;
     static constexpr size_t MAX_TIMERS = 8;
 

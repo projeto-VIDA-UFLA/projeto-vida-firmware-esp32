@@ -13,6 +13,7 @@ namespace
     // Tópicos de sensores
     constexpr char ENCODERS_TOPIC[] = "/vida/sensors/encoders";
     constexpr char STEERING_TOPIC[] = "/vida/sensors/steering";
+    constexpr char BATTERY_TOPIC[] = "/vida/sensors/battery";
 
     // tópicos de atuadores
     constexpr char CMD_STEERING_TOPIC[] = "/vida/actuators/steering";
@@ -43,12 +44,14 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
                          EncoderReader &right_encoder,
                          EncoderReader &left_encoder,
                          SteeringSensor &steering_sensor,
+                         BatteryMonitor &battery_monitor,
                          SafetyManager &safety_manager,
                          ActuatorManager &actuator_manager,
                          CommandMailbox &command_mailbox)
     : communication_(NODE_NAME, NODE_NAMESPACE, ROS_DOMAIN_ID),
       encoders_publisher_(rcl_get_zero_initialized_publisher()),
       steering_publisher_(rcl_get_zero_initialized_publisher()),
+      battery_publisher_(rcl_get_zero_initialized_publisher()),
       cmd_steering_publisher_(rcl_get_zero_initialized_publisher()),
       cmd_drive_publisher_(rcl_get_zero_initialized_publisher()),
       cmd_brake_publisher_(rcl_get_zero_initialized_publisher()),
@@ -61,6 +64,7 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
       bench_mode_request_subscription_(rcl_get_zero_initialized_subscription()),
       encoders_message_{},
       steering_message_{},
+      battery_message_{},
       cmd_drive_message_{},
       cmd_steering_message_{},
       cmd_brake_message_{},
@@ -75,6 +79,8 @@ VidaRosNode::VidaRosNode(EncoderReader &rear_encoder,
       actuator_manager_(actuator_manager),
       safety_manager_(safety_manager),
       steering_sensor_(steering_sensor),
+      battery_monitor_(battery_monitor),
+      last_battery_sample_us_(0),
       rear_encoder_(rear_encoder),
       right_encoder_(right_encoder),
       left_encoder_(left_encoder),
@@ -122,6 +128,14 @@ bool VidaRosNode::configure()
             steering_publisher_,
             ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, Steering),
             STEERING_TOPIC))
+    {
+        return false;
+    }
+
+    if (!communication_.addPublisher(
+            battery_publisher_,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(vida_interfaces, msg, BatteryStatus),
+            BATTERY_TOPIC))
     {
         return false;
     }
@@ -321,6 +335,7 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
     const EncoderReader::Snapshot right = right_encoder_.getMeasurementSnapshot();
     const EncoderReader::Snapshot rear = rear_encoder_.getMeasurementSnapshot();
     const SteeringSensor::Snapshot steering = steering_sensor_.getSnapshot();
+    const BatteryMonitor::Snapshot battery = battery_monitor_.getSnapshot();
     const SafetyManager::Snapshot safety = safety_manager_.getSnapshot();
 
     const bool encoders_valid =
@@ -343,6 +358,22 @@ void VidaRosNode::publishSensors(rcl_timer_t *timer)
         steering_message_.filtered_angle_deg = steering.filtered_angle_deg;
         steering_message_.filtered_angular_velocity_deg_s = steering.filtered_angular_velocity_deg_s;
         communication_.publish(steering_publisher_, &steering_message_);
+    }
+
+    // So leituras novas (10 Hz), tambem as invalidas: INA228 sem resposta
+    // aparece como valid = false.
+    if (battery.sample_timestamp_us != last_battery_sample_us_ &&
+        setTimestamp(battery_message_.timestamp, battery.sample_timestamp_us))
+    {
+        battery_message_.voltage_v = battery.voltage_v;
+        battery_message_.current_a = battery.current_a;
+        battery_message_.soc_percent = battery.soc_percent;
+        battery_message_.state = static_cast<uint8_t>(battery.state);
+        battery_message_.valid = battery.valid;
+        if (communication_.publish(battery_publisher_, &battery_message_))
+        {
+            last_battery_sample_us_ = battery.sample_timestamp_us;
+        }
     }
 
     if (setTimestamp(cmd_steering_message_.timestamp, steering_pwm.timestamp_us))

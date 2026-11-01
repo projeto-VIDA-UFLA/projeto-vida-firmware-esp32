@@ -8,6 +8,7 @@
 #include "safety/SafetyManager.h"
 #include "sensors/EncoderReader.h"
 #include "sensors/SteeringSensor.h"
+#include "sensors/BatteryMonitor.h"
 
 #if defined(__INTELLISENSE__) || defined(__clangd__)
 #include "microros_intellisense_stub.h"
@@ -19,6 +20,7 @@
 #include <vida_interfaces/msg/drive_reference.h>
 #include <vida_interfaces/msg/logical_enable.h>
 #include <vida_interfaces/msg/safety_status.h>
+#include <vida_interfaces/msg/battery_status.h>
 #include <std_msgs/msg/bool.h>
 #endif
 
@@ -40,6 +42,10 @@
  *   /vida/actuators/brake             Comands (largura de pulso do servo, us)
  *   /vida/safety/status               SafetyStatus
  *   /vida/safety/bench_mode           std_msgs/Bool (modo bancada efetivo)
+ *   /vida/safety/maneuver             std_msgs/Bool (modo manobra efetivo)
+ *
+ * Publica a cada leitura nova do INA228 (BATTERY_MEASUREMENT_PERIOD_MS):
+ *   /vida/sensors/battery             BatteryStatus
  *
  * Os timestamps publicados sao os instantes das amostras convertidos para o
  * relogio do agente; nada e publicado antes da sincronizacao de relogio.
@@ -51,6 +57,7 @@ public:
                 EncoderReader &right_encoder,
                 EncoderReader &left_encoder,
                 SteeringSensor &steering_sensor,
+                BatteryMonitor &battery_monitor,
                 SafetyManager &safety_manager,
                 ActuatorManager &actuator_manager,
                 CommandMailbox &command_mailbox);
@@ -79,6 +86,7 @@ private:
     // Publisher de sensores
     rcl_publisher_t encoders_publisher_;
     rcl_publisher_t steering_publisher_;
+    rcl_publisher_t battery_publisher_;
 
     // Publisher de atuadores
     rcl_publisher_t cmd_drive_publisher_;
@@ -101,6 +109,7 @@ private:
     // Mensagens
     vida_interfaces__msg__Encoders encoders_message_;
     vida_interfaces__msg__Steering steering_message_;
+    vida_interfaces__msg__BatteryStatus battery_message_;
     vida_interfaces__msg__Comands cmd_steering_message_;
     vida_interfaces__msg__Comands cmd_drive_message_;
     vida_interfaces__msg__Comands cmd_brake_message_;
@@ -117,6 +126,8 @@ private:
 
     // Sensores
     SteeringSensor &steering_sensor_;
+    BatteryMonitor &battery_monitor_;
+    int64_t last_battery_sample_us_; // ultima leitura publicada
     EncoderReader &rear_encoder_;
     EncoderReader &right_encoder_;
     EncoderReader &left_encoder_;

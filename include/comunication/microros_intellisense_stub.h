@@ -166,6 +166,16 @@ struct vida_interfaces__msg__LogicalEnable
     bool enabled;
 };
 
+struct vida_interfaces__msg__BatteryStatus
+{
+    builtin_interfaces__msg__Time timestamp;
+    float voltage_v;
+    float current_a;
+    float soc_percent;
+    uint8_t state;
+    bool valid;
+};
+
 struct vida_interfaces__msg__SafetyStatus
 {
     builtin_interfaces__msg__Time timestamp;

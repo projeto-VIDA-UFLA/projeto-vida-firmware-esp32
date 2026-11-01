@@ -33,8 +33,9 @@ O `main.cpp` cria todos os objetos do firmware como variáveis globais, liga as 
 | `TaskControl` | 1 | 3 (`PRIORITY_CONTROL`) | 5 ms (`TASK_CONTROL_PERIOD_MS`) | 4096 |
 | `TaskSensors` | 1 | 2 (`PRIORITY_SENSORS`) | 2 ms (`TASK_SENSOR_PERIOD_MS`) | 4096 |
 | `TaskRosCommunication` | 0 | 2 | laço de 1 ms; publica a cada 20 ms | 8192 |
+| `TaskBattery` | 0 | 1 (`PRIORITY_BATTERY`) | 100 ms (`BATTERY_MEASUREMENT_PERIOD_MS`) | 4096 |
 
-As três primeiras usam `vTaskDelayUntil` (período fixo). A `TaskRosCommunication` é criada pelo [`VidaRosNode`](comunication/VidaRosNode.md).
+As tasks do núcleo 1 e a `TaskBattery` usam `vTaskDelayUntil` (período fixo). A `TaskBattery` lê o [BatteryMonitor](sensors/BatteryMonitor.md) (I2C) e não é vigiada pelo `TaskSupervisor`: um I2C lento só atrasa a própria leitura. A `TaskRosCommunication` é criada pelo [`VidaRosNode`](comunication/VidaRosNode.md).
 
 ### TaskSensors (500 Hz)
 
@@ -75,10 +76,10 @@ actuator_manager.applyCommands(command, vehicle_motion.getStopDetectionVelocity(
 
 1. `brake_servo.begin()` — **primeiro de tudo**: freio total imediato, para o servo não ficar sem pulsos (solto) durante o boot.
 2. `Serial.begin(SERIAL_BAUDRATE)` e espera de 1 s.
-3. Encoders (com as interrupções) e sensor de esterçamento.
+3. Encoders (com as interrupções), sensor de esterçamento e `battery_monitor.begin()` (I2C; sem o INA228 o boot segue).
 4. `drive_motor`, `steering_motor` e `actuator_manager` — movimento bloqueado.
 5. `safety_manager.begin()` — estado `DISABLED`.
-6. Criação das tasks de sensores, controle e segurança.
+6. Criação das tasks de sensores, controle, segurança e bateria.
 7. `task_supervisor.begin()` — watchdog do ESP-IDF e timer do supervisor. Cada task chama `task_supervisor.reportAlive()` a cada ciclo.
 8. `ros_node.begin(Serial)` — registra os tópicos e cria a `TaskRosCommunication`.
 
