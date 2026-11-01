@@ -82,6 +82,11 @@ ROTEIRO_TESTES.md.
 
 ## Outros repositorios
 
+- [ ] **Documentar o `.env` do Odroid** (a definir o melhor lugar na revisao da
+  documentacao): ele precisa ser atualizado no proprio Odroid, ao lado do
+  `docker-compose.yml`, e nao vem com o `git pull` (esta no `.gitignore`). O
+  `docker-compose.yml` le `VIDA_NTRIP_USERNAME` e `VIDA_NTRIP_PASSWORD`. Sem valores
+  aqui: credenciais nao entram no repositorio.
 - [ ] `robot_state_ekf` e privado: pedir ao Danilo acesso de leitura para a
   conta `Nucleo-LMT`, para o Odroid atualizar o submodulo sem token pessoal.
 - [ ] Navegacao (alto-nivel): regravar a rota com o `path_recorder` aceitando
