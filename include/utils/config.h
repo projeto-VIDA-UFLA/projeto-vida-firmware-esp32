@@ -87,7 +87,7 @@
 // sem ve-lo (31/10: flag 8 duas vezes na manobra; no notebook ele saiu sem
 // falhas). Era 300 ate 30/10 e 500 ate 31/10. Perder o gamepad continua
 // parando o veiculo em 250 ms: o gamepad publica enable falso (joy_timeout) e
-// as referencias param (watchdog de 200 ms). Investigacao: TODO.md.
+// as referencias param (watchdog de 200 ms).
 #define LOGICAL_ENABLE_WATCHDOG_TIMEOUT_MS 1500
 #define DRIVE_REFERENCE_WATCHDOG_TIMEOUT_MS 200
 #define STEERING_REFERENCE_WATCHDOG_TIMEOUT_MS 200

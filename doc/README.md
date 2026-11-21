@@ -23,7 +23,7 @@ A pasta `doc/` segue a mesma estrutura de `include/` e `src/`: uma página por c
 | | [SteeringSensor](sensors/SteeringSensor.md) | LVDT: ângulo de esterçamento e validação da leitura |
 | | [VehicleMotion](sensors/VehicleMotion.md) | Velocidade do veículo, veículo parado e velocidade para inversão |
 | | [BatteryMonitor](sensors/BatteryMonitor.md) | Tensão, corrente e SoC do banco de tração (INA228, I2C) |
-| **control** | [SteeringController](control/SteeringController.md) | Controle de posição do esterçamento (PI) |
+| **control** | [SteeringController](control/SteeringController.md) | Controle de posição do esterçamento (PID) |
 | | [DriveController](control/DriveController.md) | Controle longitudinal de velocidade (tração e freio) |
 | **actuators** | [ActuatorManager](actuators/ActuatorManager.md) | Acesso único aos atuadores, permissão e intertravamento |
 | | [DriveMotor](actuators/DriveMotor.md) | Motor de tração: PWM + DIR, inversão só parado |
